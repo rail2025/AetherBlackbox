@@ -22,4 +22,4 @@ This repository contains modifications and additional functionality, including
 replacing tabular output with a scrubbable replay window rendered via ImGui.
 
 ## Installation
-
+https://raw.githubusercontent.com/rail2025/AetherBlackbox/refs/heads/main/repo.json
