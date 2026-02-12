@@ -6,6 +6,10 @@ Visually see what killed you or your party members!
 Shows healing, damage taken, debuffs, buffs and barriers.
 Searchable status/effects, snap to timeline, and more.
 
+<br>
+<img width="1007" height="642" alt="abb main window" src="https://github.com/user-attachments/assets/9079f588-a708-4c50-8508-643517b5a869" />
+<br>
+
 ## Credits & Attribution
 
 This project is a combined and modified work based on the following AGPL-licensed projects:
