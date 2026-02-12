@@ -227,8 +227,13 @@ namespace AetherBlackbox.DrawingLogic
                 else
                 {
                     var assembly = Assembly.GetExecutingAssembly();
-                    var fullResourcePath = $"{assembly.GetName().Name}.{resourcePath.Replace("\\", ".").Replace("/", ".")}";
-                    using var resourceStream = assembly.GetManifestResourceStream(fullResourcePath);
+                    var targetName = $"{assembly.GetName().Name}.{resourcePath.Replace("\\", ".").Replace("/", ".")}";
+
+                    // Fuzzy match: Find name ignoring case
+                    var foundResource = assembly.GetManifestResourceNames()
+                        .FirstOrDefault(n => n.Equals(targetName, StringComparison.OrdinalIgnoreCase));
+
+                    using var resourceStream = foundResource != null ? assembly.GetManifestResourceStream(foundResource) : null;
                     if (resourceStream != null) rawImageBytes = ReadStream(resourceStream);
                 }
 
