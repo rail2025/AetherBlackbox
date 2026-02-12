@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.2.11415.280 d18.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AetherBlackbox", "AetherBlackbox.csproj", "{FC478AF9-9387-3D46-7A3F-5C65F1CB31B2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FC478AF9-9387-3D46-7A3F-5C65F1CB31B2}.Debug|x64.ActiveCfg = Debug|x64
+		{FC478AF9-9387-3D46-7A3F-5C65F1CB31B2}.Debug|x64.Build.0 = Debug|x64
+		{FC478AF9-9387-3D46-7A3F-5C65F1CB31B2}.Release|x64.ActiveCfg = Release|x64
+		{FC478AF9-9387-3D46-7A3F-5C65F1CB31B2}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AD40B11E-E292-498E-8923-4AAA1A3B0AE2}
+	EndGlobalSection
+EndGlobal

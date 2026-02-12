@@ -1,0 +1,90 @@
+using System;
+using System.Numerics;
+using Dalamud.Interface.Windowing;
+using Dalamud.Bindings.ImGui;
+
+using Dalamud.Interface.Utility; 
+
+namespace AetherBlackbox.Windows
+{
+    public class CanvasConfigWindow : Window, IDisposable
+    {
+        private readonly Plugin plugin;
+        private readonly Configuration configuration;
+
+        public CanvasConfigWindow(Plugin plugin) : base("AetherBlackbox Settings###AetherBlackboxConfigWindow")
+        {
+            this.SizeConstraints = new WindowSizeConstraints
+            {
+                MinimumSize = new Vector2(300f * ImGuiHelpers.GlobalScale, 150f * ImGuiHelpers.GlobalScale),
+                MaximumSize = new Vector2(float.MaxValue, float.MaxValue)
+            };
+            this.RespectCloseHotkey = true;
+
+            this.plugin = plugin;
+            this.configuration = plugin.Configuration;
+        }
+
+        public void Dispose()
+        { }
+
+        public override void Draw()
+        {
+            ImGui.Text("AetherBlackbox Configuration");
+            ImGui.Spacing();
+
+            bool tempMovable = this.configuration.IsMainWindowMovable;
+            if (ImGui.Checkbox("Main Window Movable", ref tempMovable))
+            {
+                this.configuration.IsMainWindowMovable = tempMovable;
+                this.configuration.Save();
+            }
+
+            ImGui.Text("Default Brush Color:");
+            Vector4 color = new Vector4(
+                this.configuration.DefaultBrushColorR,
+                this.configuration.DefaultBrushColorG,
+                this.configuration.DefaultBrushColorB,
+                this.configuration.DefaultBrushColorA
+            );
+            if (ImGui.ColorEdit4("##DefaultBrushColor", ref color))
+            {
+                this.configuration.DefaultBrushColorR = color.X;
+                this.configuration.DefaultBrushColorG = color.Y;
+                this.configuration.DefaultBrushColorB = color.Z;
+                this.configuration.DefaultBrushColorA = color.W;
+                this.configuration.Save();
+            }
+
+            float tempThickness = this.configuration.DefaultBrushThickness;
+            if (ImGui.DragFloat("Default Brush Thickness", ref tempThickness, 0.1f, 1.0f, 50.0f))
+            {
+                this.configuration.DefaultBrushThickness = tempThickness;
+                this.configuration.Save();
+            }
+            ImGui.Text("Grid Settings");
+
+            bool gridVisible = this.configuration.IsGridVisible;
+            if (ImGui.Checkbox("Grid Visible", ref gridVisible))
+            {
+                this.configuration.IsGridVisible = gridVisible;
+                this.configuration.Save();
+            }
+
+            int gridSize = (int)this.configuration.GridSize;
+            if (ImGui.DragInt("Grid Spacing", ref gridSize, 1, 10, 200))
+            {
+                this.configuration.GridSize = gridSize;
+                this.configuration.Save();
+            }
+
+            bool snapToGrid = this.configuration.IsSnapToGrid;
+            if (ImGui.Checkbox("Snap to Grid (Default On)", ref snapToGrid))
+            {
+                this.configuration.IsSnapToGrid = snapToGrid;
+                this.configuration.Save();
+            }
+        
+        }
+    }
+}

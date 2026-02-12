@@ -1,0 +1,32 @@
+[
+  {
+    "Author": "rail",
+    "Name": "Aether Blackbox",
+    "Punchline": "A visual replay of positions before death",
+    "Description": "Replay positions and events before death. /abb to open",
+    "Changelog": "v0.0.0.1: Initial release",
+    "Tags": [
+      "viewer",
+      "strategy",
+      "image",
+      "encounter",
+      "death",
+      "positions"
+    ],
+    "IsHide": false,
+    "InternalName": "AetherBlackbox",
+    "AssemblyVersion": "0.0.0.1",
+    "TestingAssemblyVersion": "0.0.0.1",
+    "IsTestingExclusive": false,
+    "RepoUrl": "https://github.com/rail2025/AetherBlackbox",
+    "ApplicableVersion": "any",
+    "DalamudApiLevel": 14,
+    "TestingDalamudApiLevel": 14,
+    "LoadPriority": 0,
+    "DownloadLinkInstall": "https://github.com/rail2025/AetherBlackbox/releases/download/v0.0.0.1/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/rail2025/AetherBlackbox/releases/download/v0.0.0.1/latest.zip",
+    "DownloadLinkTesting": "https://github.com/rail2025/AetherBlackbox/releases/download/v0.0.0.1/latest.zip",
+    "SupportsProfiles": true,
+    "IconUrl": "https://raw.githubusercontent.com/rail2025/AetherBlackbox/refs/heads/master/icon.png"
+  }
+]

@@ -1,0 +1,116 @@
+namespace AetherBlackbox.DrawingLogic
+{
+    public enum DrawMode
+    {
+        // Basic Shapes
+        Pen,
+        StraightLine,
+        Rectangle,
+        Circle,
+        Arrow,
+        Cone,
+        Dash,
+        Donut,
+        Triangle,
+        
+
+        // Tools
+        Select,
+        Eraser,
+        Image, // Added for generic downloaded images, if raidplan ever lets me download from them
+        EmojiImage,
+
+        // Image-based Tools / Placeables
+        BossImage,
+        CircleAoEImage,
+        DonutAoEImage,
+        FlareImage,
+        LineStackImage,
+        SpreadImage,
+        StackImage,
+
+        Waymark1Image,
+        Waymark2Image,
+        Waymark3Image,
+        Waymark4Image,
+        WaymarkAImage,
+        WaymarkBImage,
+        WaymarkCImage,
+        WaymarkDImage,
+
+        RoleTankImage,
+        RoleHealerImage,
+        RoleMeleeImage,
+        RoleRangedImage,
+
+        TriangleImage,
+        SquareImage,
+        PlusImage,
+        CircleMarkImage,
+
+        Party1Image,
+        Party2Image,
+        Party3Image,
+        Party4Image,
+        Party5Image,
+        Party6Image,
+        Party7Image,
+        Party8Image,
+
+        TextTool,
+
+        // Other specific icons if they behave like placeable images
+        StackIcon,
+        SpreadIcon,
+        TetherIcon,
+        BossIconPlaceholder,
+        AddMobIcon,
+        Dot1Image,
+        Dot2Image,
+        Dot3Image,
+        Dot4Image,
+        Dot5Image,
+        Dot6Image,
+        Dot7Image,
+        Dot8Image,
+
+        StatusIconPlaceholder = 58,
+        Pie = 59,
+        RoleCasterImage,
+        // Tank
+        JobPldImage, JobWarImage, JobDrkImage, JobGnbImage,
+        // Healer
+        JobWhmImage, JobSchImage, JobAstImage, JobSgeImage,
+        // Melee
+        JobMnkImage, JobDrgImage, JobNinImage, JobSamImage, JobRprImage, JobVprImage,
+        // Ranged
+        JobBrdImage, JobMchImage, JobDncImage,
+        // Caster
+        JobBlmImage, JobSmnImage, JobRdmImage, JobPctImage,
+
+        Bind1Image,
+        Bind2Image,
+        Bind3Image,
+        Ignore1Image,
+        Ignore2Image,
+        Laser = 87,
+        GazeImage,
+        TowerImage,
+        ExasImage,
+        Starburst,
+        RoleTank1Image,
+        RoleTank2Image,
+        RoleHealer1Image,
+        RoleHealer2Image,
+        RoleMelee1Image,
+        RoleMelee2Image,
+        RoleRanged1Image,
+        RoleRanged2Image,
+        ArenaM9,
+        ArenaM10,
+        ArenaM11P1,
+        ArenaM11P2,
+        ArenaM12P1,
+        ArenaM12P2
+    }
+}
