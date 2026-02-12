@@ -1,7 +1,7 @@
 # Aether Blackbox
 
 AetherDraw+Death Recap=
-Visually see what killed you or your party members!
+Visually see your positions prior to death!
 
 Shows healing, damage taken, debuffs, buffs and barriers.
 Searchable status/effects, snap to timeline, and more.
