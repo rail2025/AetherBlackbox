@@ -138,11 +138,11 @@ public class AetherBlackboxWindow : Window {
                 ImGui.SameLine(0, 15);
                 if (ImGuiComponents.IconButton("ReplayButton", FontAwesomeIcon.Play))
                 {
-                    plugin.WhiteboardWindow.OpenReplay(death);
+                    plugin.MainWindow.OpenReplay(death);
                 }
                 if (ImGui.IsItemHovered())
                 {
-                    ImGui.SetTooltip("Open Replay in Whiteboard");
+                    ImGui.SetTooltip("Open Replay in Viewer");
                 }
             }
 

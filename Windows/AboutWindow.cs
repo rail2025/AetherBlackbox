@@ -64,7 +64,7 @@ public class AboutWindow : Window, IDisposable
 
         ImGui.Spacing();
 
-        string buttonText = "Donate & Support development of the Whiteboard & Planning features.";
+        string buttonText = "Donate & Support development of the Replay & Planning features.";
 
         var buttonColor = new Vector4(0.9f, 0.2f, 0.2f, 1.0f);
 

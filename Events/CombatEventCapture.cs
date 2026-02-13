@@ -7,7 +7,8 @@ using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
-using FFXIVClientStructs.FFXIV.Common.Math;
+using FFXIVClientStructs.FFXIV.Client.Network;
+using System.Numerics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,35 +21,38 @@ public class CombatEventCapture : IDisposable {
     private readonly Dictionary<ulong, List<CombatEvent>> combatEvents = new();
     private readonly Plugin plugin;
 
-    private unsafe delegate void ProcessPacketActionEffectDelegate(
-        uint casterEntityId, Character* casterPtr, Vector3* targetPos, ActionEffectHandler.Header* header, ActionEffectHandler.TargetEffects* effects,
-        GameObjectId* targetEntityIds);
-
-    private delegate void ProcessPacketActorControlDelegate(
-        uint category, uint eventId, uint param1, uint param2, uint param3, uint param4, uint param5, uint param6, uint param7, uint param8, ulong targetId,
-        byte param9);
-
     private delegate void ProcessPacketEffectResultDelegate(uint targetId, IntPtr actionIntegrityData, byte isReplay);
 
-    private readonly Hook<ProcessPacketActionEffectDelegate> processPacketActionEffectHook;
-
-    [Signature("E8 ?? ?? ?? ?? 0F B7 0B 83 E9 64", DetourName = nameof(ProcessPacketActorControlDetour))]
-    private readonly Hook<ProcessPacketActorControlDelegate> processPacketActorControlHook = null!;
+    private readonly Hook<ActionEffectHandler.Delegates.Receive> processPacketActionEffectHook;
+    private readonly Hook<PacketDispatcher.Delegates.HandleActorControlPacket> processPacketActorControlHook;
 
     [Signature("48 8B C4 44 88 40 18 89 48 08", DetourName = nameof(ProcessPacketEffectResultDetour))]
     private readonly Hook<ProcessPacketEffectResultDelegate> processPacketEffectResultHook = null!;
 
-    public unsafe CombatEventCapture(Plugin plugin) {
+    public unsafe CombatEventCapture(Plugin plugin)
+    {
         this.plugin = plugin;
 
-        Service.GameInteropProvider.InitializeFromAttributes(this);
+        try
+        {
+            Service.GameInteropProvider.InitializeFromAttributes(this);
+            processPacketEffectResultHook?.Enable();
+        }
+        catch (Exception e)
+        {
+            Service.PluginLog.Error(e, "Failed to hook EffectResult signatures.");
+            Service.ChatGui.PrintError("[AetherBlackbox] Buffs/debuffs are currently not being tracked due to patch updates, but positional and actions are working.");
+        }
 
-        processPacketActionEffectHook =
-            Service.GameInteropProvider.HookFromSignature<ProcessPacketActionEffectDelegate>(ActionEffectHandler.Addresses.Receive.String,
-                ProcessPacketActionEffectDetour);
+        processPacketActionEffectHook = Service.GameInteropProvider.HookFromAddress(
+            (nint)ActionEffectHandler.MemberFunctionPointers.Receive,
+            new ActionEffectHandler.Delegates.Receive(ProcessPacketActionEffectDetour));
         processPacketActionEffectHook.Enable();
+
+        processPacketActorControlHook = Service.GameInteropProvider.HookFromAddress(
+            (nint)PacketDispatcher.MemberFunctionPointers.HandleActorControlPacket,
+            new PacketDispatcher.Delegates.HandleActorControlPacket(ProcessPacketActorControlDetour));
         processPacketActorControlHook.Enable();
-        processPacketEffectResultHook.Enable();
     }
 
     private unsafe void ProcessPacketActionEffectDetour(
@@ -171,8 +175,9 @@ public class CombatEventCapture : IDisposable {
     }
 
     private void ProcessPacketActorControlDetour(
-        uint entityId, uint category, uint param1, uint param2, uint param3, uint param4, uint param5, uint param6, uint param7, uint param8, ulong targetId,
-        byte param9) {
+        uint entityId, uint category, uint param1, uint param2, uint param3, uint param4, uint param5, uint param6, uint param7, uint param8, GameObjectId targetId,
+        bool param9)
+    {
         processPacketActorControlHook.Original(entityId, category, param1, param2, param3, param4, param5, param6, param7, param8, targetId, param9);
 
         try {

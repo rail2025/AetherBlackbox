@@ -1,14 +1,15 @@
-using System;
-using System.Numerics;
-using System.Text;
+using AetherBlackbox.Events;
+using AetherBlackbox.Game;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
-using AetherBlackbox.Events;
-using AetherBlackbox.Game;
+using System;
+using System.Linq;
+using System.Numerics;
+using System.Text;
 
 namespace AetherBlackbox.UI;
 
@@ -36,17 +37,10 @@ public class NotificationHandler : Window {
     private void OnChatLinkClick(uint cmdId, SeString msg) {
         if (msg.Payloads is [.., RawPayload p, _] && DeathNotificationPayload.Decode(p) is { } payload
                                                   && plugin.DeathsPerPlayer.TryGetValue(payload.PlayerId, out var deaths)) {
-            var selectedDeath = 0;
-            if (deaths.FindLastIndex(d => d.TimeOfDeath.Ticks == payload.DeathTimestamp) is >= 0 and var idx) {
-                selectedDeath = deaths.Count - idx - 1;
-            }
-
-            if (plugin.RecapWindow.SelectedPlayer == deaths[0].PlayerId && plugin.RecapWindow.SelectedDeath == selectedDeath) {
-                plugin.RecapWindow.Toggle();
-            } else {
-                plugin.RecapWindow.IsOpen = true;
-                plugin.RecapWindow.SelectedPlayer = deaths[0].PlayerId;
-                plugin.RecapWindow.SelectedDeath = selectedDeath;
+            var death = deaths.FirstOrDefault(d => d.TimeOfDeath.Ticks == payload.DeathTimestamp);
+            if (death != null)
+            {
+                plugin.MainWindow.OpenReplay(death);
             }
         }
     }
@@ -118,9 +112,7 @@ public class NotificationHandler : Window {
                 Service.ChatGui.Print(new XivChatEntry { Message = chatMsg, Type = plugin.Configuration.ChatType, Name = death.PlayerName });
                 break;
             case NotificationStyle.OpenAetherBlackbox:
-                plugin.RecapWindow.IsOpen = true;
-                plugin.RecapWindow.SelectedPlayer = death.PlayerId;
-                plugin.RecapWindow.SelectedDeath = 0;
+                plugin.MainWindow.OpenReplay(death);
                 break;
         }
     }

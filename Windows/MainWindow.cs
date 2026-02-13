@@ -199,7 +199,8 @@ namespace AetherBlackbox.Windows
                         bool isSelected = (death == ActiveDeathReplay);
 
                         string displayName = GetAnonymizedName(death.PlayerName, death.ReplayData);
-                        string deathLabel = $"{displayName} ({death.TimeOfDeath:mm:ss})";
+                        var timeIntoPull = death.TimeOfDeath - pull.StartTime;
+                        string deathLabel = $"{displayName} ({timeIntoPull:mm\\:ss})";
 
                         if (ImGui.Selectable(deathLabel, isSelected))
                         {

@@ -34,7 +34,7 @@ public class Plugin : IDalamudPlugin
 
     public AetherBlackboxWindow RecapWindow { get; init; }
     public RecapConfigWindow RecapConfigWindow { get; init; }
-    public MainWindow WhiteboardWindow { get; init; }
+    public MainWindow MainWindow { get; init; }
     public CanvasConfigWindow CanvasConfigWindow { get; init; }
     public AboutWindow AboutWindow { get; init; }
     public ConditionEvaluator ConditionEvaluator { get; init; }
@@ -63,20 +63,20 @@ public class Plugin : IDalamudPlugin
         CanvasConfigWindow = new CanvasConfigWindow(this);
         AboutWindow = new AboutWindow();
 
-        WhiteboardWindow = new MainWindow(this);
+        MainWindow = new MainWindow(this);
 
         WindowSystem = new WindowSystem(Name);
         WindowSystem.AddWindow(RecapConfigWindow);
         WindowSystem.AddWindow(RecapWindow);
         WindowSystem.AddWindow(CanvasConfigWindow);
-        WindowSystem.AddWindow(WhiteboardWindow);
+        WindowSystem.AddWindow(MainWindow);
         WindowSystem.AddWindow(AboutWindow);
 
         Service.PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
         Service.PluginInterface.UiBuilder.OpenConfigUi += () => RecapConfigWindow.IsOpen = true;
 
-        Service.CommandManager.AddHandler("/abb", new CommandInfo((_, _) => WhiteboardWindow.IsOpen = true) { HelpMessage = "Open Aether Blackbox" });
-        Service.CommandManager.AddHandler("/aetherblackbox", new CommandInfo((_, _) => WhiteboardWindow.IsOpen = true) { HelpMessage = "Open Aether Blackbox" });
+        Service.CommandManager.AddHandler("/abb", new CommandInfo((_, _) => MainWindow.IsOpen = true) { HelpMessage = "Open Aether Blackbox" });
+        Service.CommandManager.AddHandler("/aetherblackbox", new CommandInfo((_, _) => MainWindow.IsOpen = true) { HelpMessage = "Open Aether Blackbox" });
 
 
     }
@@ -114,7 +114,7 @@ public class Plugin : IDalamudPlugin
         Capture.Dispose();
         RecapConfigWindow.Dispose();
         CanvasConfigWindow.Dispose();
-        WhiteboardWindow.Dispose();
+        MainWindow.Dispose();
         AboutWindow.Dispose();
     }
 
