@@ -22,7 +22,7 @@ public class AboutWindow : Window, IDisposable
 
     public override void Draw()
     {
-        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.0.0";
+        var version = Service.PluginInterface.Manifest.AssemblyVersion.ToString() ?? "0.0.0";
         ImGui.Text($"Version: {version}");
         ImGui.Separator();
 

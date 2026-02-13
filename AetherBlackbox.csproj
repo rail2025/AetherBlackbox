@@ -4,7 +4,7 @@
 		<AssemblyName>AetherBlackbox</AssemblyName>
 		<RootNamespace>AetherBlackbox</RootNamespace>
 		<InternalName>AetherBlackbox</InternalName>
-		<AssemblyVersion>0.0.0.2</AssemblyVersion>
+		<AssemblyVersion>0.0.0.3</AssemblyVersion>
 		<TargetFramework>net10.0-windows</TargetFramework>
 		<Platforms>x64</Platforms>
 		<PlatformTarget>x64</PlatformTarget>
@@ -14,7 +14,7 @@
 		<Description>Visual replay of positions before death</Description>
 		<PackageProjectUrl>https://github.com/rail2025/AetherBlackbox/</PackageProjectUrl>
 		<Authors>rail</Authors>
-		<Version>0.0.0.2</Version>
+		<Version>0.0.0.3</Version>
 		<NoWarn>CA1416</NoWarn>
 		<DalamudApiLevel>14</DalamudApiLevel>
 		<IsPackable>false</IsPackable>

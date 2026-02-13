@@ -154,6 +154,19 @@ namespace AetherBlackbox.Windows
             if (ImGui.TreeNode("Saved Replays (Disk)"))
             {
                 if (ImGui.Button("Refresh List")) cachedSavedReplays = plugin.PullManager.GetSavedReplays();
+                ImGui.SameLine();
+                if (ImGui.Button("Clear All History"))
+                {
+                    plugin.PullManager.History.Clear();
+                    selectedPull = null;
+                    var folder = System.IO.Path.Combine(Service.PluginInterface.ConfigDirectory.FullName, "replays");
+                    if (System.IO.Directory.Exists(folder))
+                    {
+                        foreach (var f in System.IO.Directory.GetFiles(folder, "*.json.gz"))
+                            try { System.IO.File.Delete(f); } catch { }
+                    }
+                    cachedSavedReplays = plugin.PullManager.GetSavedReplays();
+                }
                 if (cachedSavedReplays == null) cachedSavedReplays = plugin.PullManager.GetSavedReplays();
 
                 foreach (var file in cachedSavedReplays)
@@ -184,6 +197,14 @@ namespace AetherBlackbox.Windows
 
                 var title = pull.DisplayTitle + (pull.IsTruncated ? " [TRUNC]" : "");
                 bool isOpen = ImGui.TreeNodeEx($"##Pull_{pull.PullNumber}", flags, title);
+
+                ImGui.SameLine();
+                if (ImGuiComponents.IconButton($"##Delete_{pull.PullNumber}", FontAwesomeIcon.Trash))
+                {
+                    plugin.PullManager.History.Remove(pull);
+                    if (selectedPull == pull) selectedPull = null;
+                    continue;
+                }
 
                 if (ImGui.IsItemClicked())
                 {
@@ -391,8 +412,8 @@ namespace AetherBlackbox.Windows
                 }
             }
 
-            float bottomControlsHeight = ImGui.GetFrameHeightWithSpacing() * 2 + ImGui.GetStyle().WindowPadding.Y * 2 + ImGui.GetStyle().ItemSpacing.Y;
-            float canvasAvailableHeight = ImGui.GetContentRegionAvail().Y - bottomControlsHeight - ImGui.GetStyle().ItemSpacing.Y;
+            float selectionInfoHeight = (selectedEntityId != 0 && ActiveDeathReplay != null) ? (140f * ImGuiHelpers.GlobalScale) : (ImGui.GetStyle().WindowPadding.Y * 2);
+            float canvasAvailableHeight = ImGui.GetContentRegionAvail().Y - selectionInfoHeight;
             canvasAvailableHeight = Math.Max(canvasAvailableHeight, 50f * ImGuiHelpers.GlobalScale);
 
             if (ImGui.BeginChild("CanvasDrawingArea", new Vector2(0, canvasAvailableHeight), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
@@ -404,7 +425,11 @@ namespace AetherBlackbox.Windows
 
             if (selectedEntityId != 0 && ActiveDeathReplay != null)
             {
-                DrawSelectionInfo();
+                if (ImGui.BeginChild("SelectionInfoArea", new Vector2(0, selectionInfoHeight), false, ImGuiWindowFlags.NoScrollbar))
+                {
+                    DrawSelectionInfo();
+                    ImGui.EndChild();
+                }
             }
         }
 

@@ -14,7 +14,7 @@ namespace AetherBlackbox.Core
     public struct ReplayStatus { public uint Id; public float Duration; public uint StackCount; }
     public struct ReplayCast { public uint ActionId; public float Current; public float Total; }
     public struct WaymarkSnapshot { public int ID; public float X; public float Z; public bool Active; }
-    public enum EntityType { Player, Boss }
+    public enum EntityType { Player, Boss, Npc }
     public class SearchHeader
     {
         public int SchemaVersion { get; set; } = 1;
@@ -77,6 +77,7 @@ namespace AetherBlackbox.Core
         public Vector3 Position;
         public float Rotation;
         public uint CurrentHp;
+        public DateTime DeathTime;
     }
     public class PositionRecorder : IDisposable
     {
@@ -187,7 +188,7 @@ namespace AetherBlackbox.Core
             foreach (var obj in Service.ObjectTable)
             {
                 uint currentAction = 0;
-                
+
                 bool isNewEntity = false;
                 if (plugin.PullManager?.CurrentSession != null)
                 {
@@ -197,7 +198,7 @@ namespace AetherBlackbox.Core
                         isNewEntity = true;
                     }
                 }
-                
+
                 bool shouldRecordMovement = true;
                 bool shouldRecordAttributes = false;
                 if (lastRecordedStates.TryGetValue(obj.EntityId, out var lastState))
@@ -245,7 +246,7 @@ namespace AetherBlackbox.Core
                     };
 
                     frameData.Add(snapshot);
-                    
+
                     lastRecordedStates[player.EntityId] = new ReplayEntityState
                     {
                         Position = player.Position,
@@ -258,10 +259,28 @@ namespace AetherBlackbox.Core
                         Service.PluginLog.Debug($"[ActionTracker] Source: {player.Name}, Action: {actionToLog}");
                     }
                 }
-                else if (obj is IBattleNpc npc && npc.MaxHp > 0 && npc.IsTargetable && !string.IsNullOrEmpty(npc.Name.TextValue))
+                else if (obj is IBattleNpc npc && npc.MaxHp > 0 && !string.IsNullOrEmpty(npc.Name.TextValue))
                 {
-                    if (!shouldRecordMovement && !isNewEntity && !npc.IsCasting && actionToLog == 0)
-                        continue;
+                    bool isDead = npc.IsDead;
+                    bool isActive = npc.IsCasting || actionToLog != 0 || shouldRecordMovement || isNewEntity || npc.IsTargetable;
+
+                    if (lastRecordedStates.TryGetValue(npc.EntityId, out var state))
+                    {
+                        if (isActive && !isDead)
+                        {
+                            state.DeathTime = snapshotTime;
+                            lastRecordedStates[npc.EntityId] = state;
+                        }
+                        else
+                        {
+                            if ((snapshotTime - state.DeathTime).TotalSeconds > 7.0) continue;
+                        }
+                    }
+                    else
+                    {
+                        if (isDead) continue;
+                        lastRecordedStates[npc.EntityId] = new ReplayEntityState { Position = npc.Position, Rotation = npc.Rotation, DeathTime = snapshotTime };
+                    }
 
                     var snapshot = new EntityPositionSnapshot
                     {
@@ -272,7 +291,7 @@ namespace AetherBlackbox.Core
                         CurrentHp = npc.CurrentHp,
                         MaxHp = npc.MaxHp,
                         Timestamp = snapshotTime,
-                        Type = EntityType.Boss,
+                        Type = npc.IsTargetable ? EntityType.Boss : EntityType.Npc,
                         ModelId = (uint)npc.BaseId,
                         Statuses = npc.StatusList.Select(s => new ReplayStatus { Id = s.StatusId, Duration = s.RemainingTime, StackCount = s.Param }).ToList(),
                         Cast = npc.IsCasting ? new ReplayCast { ActionId = npc.CastActionId, Current = npc.CurrentCastTime, Total = npc.TotalCastTime } : default,
@@ -281,7 +300,14 @@ namespace AetherBlackbox.Core
                     };
 
                     frameData.Add(snapshot);
-                    lastRecordedStates[npc.EntityId] = new ReplayEntityState { Position = npc.Position, Rotation = npc.Rotation };
+
+                    if (lastRecordedStates.TryGetValue(npc.EntityId, out var existingState))
+                    {
+                        existingState.Position = npc.Position;
+                        existingState.Rotation = npc.Rotation;
+                        existingState.CurrentHp = npc.CurrentHp;
+                        lastRecordedStates[npc.EntityId] = existingState;
+                    }
 
                     if (actionToLog != 0)
                     {
@@ -290,7 +316,7 @@ namespace AetherBlackbox.Core
                 }
             }
 
-            lock (sessionData)
+                lock (sessionData)
             {
                 sessionData.Add((snapshotTime, frameData));
             }

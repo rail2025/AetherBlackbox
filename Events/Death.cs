@@ -13,7 +13,7 @@ public record Death
 
     public List<CombatEvent> Events { get; init; } = null!;
 
-    public ReplayRecording ReplayData { get; init; } = new();
+    public ReplayRecording ReplayData { get; set; } = new();
 
     public string Title
     {

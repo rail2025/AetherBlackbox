@@ -33,6 +33,7 @@ namespace AetherBlackbox.DrawingLogic
                     continue;
 
                 bool isBoss = meta.Type == EntityType.Boss;
+                bool isNpc = meta.Type == EntityType.Npc;
                 bool isPlayer = meta.ClassJobId != 0;
 
                 if (!showNpcs && !isBoss && !isPlayer)
@@ -58,7 +59,7 @@ namespace AetherBlackbox.DrawingLogic
                     CurrentHp = frame.Hp[i]
                 };
 
-                if (isBoss)
+                if (isBoss || isNpc)
                     DrawBossIcon(drawList, state, screenPos);
                 else
                     DrawPlayerIcon(drawList, state, meta, screenPos);

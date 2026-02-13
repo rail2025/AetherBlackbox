@@ -92,6 +92,7 @@ namespace AetherBlackbox.Core
                     {
                         if (death.TimeOfDeath >= CurrentSession.StartTime && death.TimeOfDeath <= CurrentSession.EndTime)
                         {
+                            death.ReplayData = CurrentSession.ReplayData;
                             sessionDeaths.Add(death);
                         }
                     }
