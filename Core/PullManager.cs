@@ -99,11 +99,19 @@ namespace AetherBlackbox.Core
             }
 
             Service.PluginLog.Info($"EndSession: Filter found {sessionDeaths.Count} deaths in global storage.");
-            CurrentSession.Deaths = sessionDeaths;
+            // Sort deaths: Most recent first
+            CurrentSession.Deaths = sessionDeaths.OrderByDescending(d => d.TimeOfDeath).ToList();
+
+            // Determine Boss Name (highest damage taken)
+            if (CurrentSession.DamageByTarget.Count > 0)
+            {
+                var bossName = CurrentSession.DamageByTarget.OrderByDescending(x => x.Value).First().Key;
+                CurrentSession.ZoneName = bossName;
+            }
 
             if (CurrentSession.ReplayData?.Header != null)
             {
-                CurrentSession.ReplayData.Header.DeathLog = sessionDeaths
+                CurrentSession.ReplayData.Header.DeathLog = CurrentSession.Deaths
                     .Select(d => $"{d.PlayerName} ({(d.TimeOfDeath - CurrentSession.StartTime):mm\\:ss})")
                     .ToList();
             }

@@ -117,6 +117,7 @@ namespace AetherBlackbox.Core
             lastCaptureTime = DateTime.MinValue;
             IsRecording = true;
             initialWaymarks.Clear();
+            lastRecordedStates.Clear();
 
             var controller = MarkingController.Instance();
             if (controller != null)

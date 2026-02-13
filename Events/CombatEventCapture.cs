@@ -1,17 +1,18 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using AetherBlackbox.Core;
+using AetherBlackbox.Game;
 using Dalamud.Game.ClientState.Objects.SubKinds;
+using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Hooking;
 using Dalamud.Utility.Signatures;
-using AetherBlackbox.Game;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Common.Math;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Action = Lumina.Excel.Sheets.Action;
 using Status = Lumina.Excel.Sheets.Status;
-using AetherBlackbox.Core;
 
 namespace AetherBlackbox.Events;
 
@@ -78,6 +79,27 @@ public class CombatEventCapture : IDisposable {
                 var actionTargetId = (uint)(targetEntityIds[i] & uint.MaxValue);
                 if (!plugin.ConditionEvaluator.ShouldCapture(actionTargetId))
                     continue;
+                var targetObj = Service.ObjectTable.SearchById(actionTargetId);
+                if (plugin.PullManager.IsInSession && targetObj is IBattleNpc npc)
+                {
+                    for (var k = 0; k < 8; k++)
+                    {
+                        ref var eff = ref effectArray[i].Effects[k];
+                        if ((ActionEffectType)eff.Type is ActionEffectType.Damage or ActionEffectType.BlockedDamage or ActionEffectType.ParriedDamage)
+                        {
+                            uint dmg = eff.Value;
+                            if ((eff.Param4 & 0x40) == 0x40) dmg += (uint)eff.Param3 << 16;
+
+                            var npcName = npc.Name.TextValue;
+                            if (!string.IsNullOrEmpty(npcName))
+                            {
+                                if (!plugin.PullManager.CurrentSession!.DamageByTarget.ContainsKey(npcName))
+                                    plugin.PullManager.CurrentSession.DamageByTarget[npcName] = 0;
+                                plugin.PullManager.CurrentSession.DamageByTarget[npcName] += dmg;
+                            }
+                        }
+                    }
+                }
                 if (Service.ObjectTable.SearchById(actionTargetId) is not IPlayerCharacter p)
                     continue;
                 for (var j = 0; j < 8; j++) {

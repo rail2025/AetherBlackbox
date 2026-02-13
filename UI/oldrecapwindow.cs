@@ -211,7 +211,7 @@ public class AetherBlackboxWindow : Window {
 
     public override void OnClose() {
         if (plugin.Configuration.ShowTip && !hasShownTip) {
-            Service.ChatGui.Print("[AetherBlackbox] Tip: You can reopen this window using /adr");
+            Service.ChatGui.Print("[AetherBlackbox] Tip: You can reopen this window using /abb");
             hasShownTip = true;
         }
     }
