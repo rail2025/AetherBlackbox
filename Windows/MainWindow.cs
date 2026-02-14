@@ -410,13 +410,18 @@ namespace AetherBlackbox.Windows
                     replayTimeOffset += ImGui.GetIO().DeltaTime;
                     if (replayTimeOffset >= 0f) { replayTimeOffset = 0f; isPlaybackActive = false; }
                 }
+                if (ActiveDeathReplay.TerritoryTypeId == 992)
+                {
+                    DrawMapCalibrationPanel();
+                }
             }
 
             float selectionInfoHeight = (selectedEntityId != 0 && ActiveDeathReplay != null) ? (140f * ImGuiHelpers.GlobalScale) : (ImGui.GetStyle().WindowPadding.Y * 2);
             float canvasAvailableHeight = ImGui.GetContentRegionAvail().Y - selectionInfoHeight;
             canvasAvailableHeight = Math.Max(canvasAvailableHeight, 50f * ImGuiHelpers.GlobalScale);
-
             if (ImGui.BeginChild("CanvasDrawingArea", new Vector2(0, canvasAvailableHeight), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
+           
+
             {
                 currentCanvasDrawSize = ImGui.GetContentRegionAvail();
                 DrawCanvas();
@@ -432,6 +437,44 @@ namespace AetherBlackbox.Windows
                 }
             }
         }
+        
+        private void DrawMapCalibrationPanel()
+        {
+            ImGui.Separator();
+            ImGui.Text("Arena Calibration:");
+            ImGui.SameLine();
+
+            bool mapLocked = configuration.IsMapLocked;
+            if (ImGui.Checkbox("Lock", ref mapLocked))
+            {
+                configuration.IsMapLocked = mapLocked;
+                configuration.Save();
+            }
+
+            ImGui.BeginDisabled(mapLocked);
+
+            float buttonSize = ImGui.GetFrameHeight();
+            if (ImGui.Button("Up", new Vector2(0, buttonSize))) { configuration.MapOffsetZ -= 1f; configuration.Save(); }
+            ImGui.SameLine();
+            if (ImGui.Button("Down", new Vector2(0, buttonSize))) { configuration.MapOffsetZ += 1f; configuration.Save(); }
+            ImGui.SameLine();
+            if (ImGui.Button("Left", new Vector2(0, buttonSize))) { configuration.MapOffsetX -= 1f; configuration.Save(); }
+            ImGui.SameLine();
+            if (ImGui.Button("Right", new Vector2(0, buttonSize))) { configuration.MapOffsetX += 1f; configuration.Save(); }
+            //ImGui.SameLine();
+            ImGui.SameLine(0, 20f * ImGuiHelpers.GlobalScale);
+
+            float mapScale = configuration.MapScaleMultiplier;
+            ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
+            if (ImGui.SliderFloat("Scale", ref mapScale, 0.5f, 2.0f))
+            {
+                configuration.MapScaleMultiplier = mapScale;
+                configuration.Save();
+            }
+
+            ImGui.EndDisabled();
+        }
+        
 
         private void DrawSelectionInfo()
         {
@@ -457,7 +500,7 @@ namespace AetherBlackbox.Windows
 
                 ImGui.TableSetColumnIndex(0);
                 string displayName = meta.Name;
-                if (configuration.AnonymizeNames)
+                if (configuration.AnonymizeNames && meta.ClassJobId != 0)
                 {
                     var jobRow = Service.DataManager.GetExcelSheet<ClassJob>().GetRowOrDefault(meta.ClassJobId);
                     displayName = jobRow.HasValue ? jobRow.Value.Abbreviation.ToString() : "Job";
@@ -530,7 +573,7 @@ namespace AetherBlackbox.Windows
                         {
                             ImGui.TextDisabled("Targeting:");
                             string targetDisplayName = targetMeta.Name;
-                            if (configuration.AnonymizeNames)
+                            if (configuration.AnonymizeNames && targetMeta.ClassJobId != 0)
                             {
                                 var jobRow = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.ClassJob>()
                                     .GetRowOrDefault(targetMeta.ClassJobId);
@@ -660,7 +703,8 @@ namespace AetherBlackbox.Windows
                     plugin.Configuration.ShowReplayHp,
                     plugin.Configuration.AnonymizeNames,
                     canvasZoom,
-                    canvasPanOffset
+                    canvasPanOffset,
+                    plugin.Configuration
                 );
 
                 // Draw Selection Circle
@@ -819,6 +863,10 @@ namespace AetherBlackbox.Windows
             {
                 ImGui.Image(iconWrap.Handle, new Vector2(24, 24) * ImGuiHelpers.GlobalScale, Vector2.Zero, Vector2.One, new Vector4(1, 1, 1, alpha));
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip(action.Value.Name.ToString());
+            }
+            else
+            {
+                ImGui.TextColored(new Vector4(1.0f, 1.0f, 1.0f, alpha), action.Value.Name.ToString());
             }
         }
 

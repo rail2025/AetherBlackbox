@@ -43,7 +43,12 @@
 	  <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.7" />
 	  <PackageReference Include="SixLabors.ImageSharp.Web" Version="3.2.0" />
 	  <PackageReference Include="SkiaSharp" Version="3.119.2" />
+	  <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="3.119.2" />
 	  <PackageReference Include="Svg.Skia" Version="3.4.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Update="DalamudPackager" Version="14.0.2" />
 	</ItemGroup>
 
 	

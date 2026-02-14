@@ -26,7 +26,7 @@ public class Configuration : IPluginConfiguration
     public EventFilter EventFilter { get; set; } = EventFilter.Default;
     public bool ShowCombatHistogram { get; set; } = false;
 
-    public bool ShowReplayNpcs { get; set; } = true;
+    public bool ShowReplayNpcs { get; set; } = false;
     public bool ShowReplayHp { get; set; } = true;
 
     public bool IsMainWindowMovable { get; set; } = true;
@@ -42,6 +42,10 @@ public class Configuration : IPluginConfiguration
     public int KeepReplaysForDays { get; set; } = 14;
 
     public bool AnonymizeNames { get; set; } = false;
+    public float MapOffsetX { get; set; } = 0.0f;
+    public float MapOffsetZ { get; set; } = 0.0f;
+    public float MapScaleMultiplier { get; set; } = 1.0f;
+    public bool IsMapLocked { get; set; } = true;
     public int Version { get; set; } = 2;
 
     [JsonExtensionData]

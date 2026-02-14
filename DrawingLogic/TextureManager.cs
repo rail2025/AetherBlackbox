@@ -1,5 +1,6 @@
 using AetherBlackbox;
 using Dalamud.Interface.Textures.TextureWraps;
+using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;
 using SkiaSharp;
 using Svg.Skia;
@@ -246,6 +247,15 @@ namespace AetherBlackbox.DrawingLogic
                     Service.PluginLog?.Debug($"[TextureManager] Rasterizing SVG for: {resourcePath}");
                     using var stream = new MemoryStream(rawImageBytes);
                     finalUsableBytes = RasterizeSvg(stream);
+                }
+
+                else if (resourcePath.EndsWith(".webp", StringComparison.OrdinalIgnoreCase))
+                {
+                    Service.PluginLog?.Debug($"[TextureManager] Converting WebP to PNG for: {resourcePath}");
+                    using var image = Image.Load(rawImageBytes);
+                    using var ms = new MemoryStream();
+                    image.SaveAsPng(ms);
+                    finalUsableBytes = ms.ToArray();
                 }
 
                 if (finalUsableBytes != null)

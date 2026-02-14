@@ -16,13 +16,13 @@ namespace AetherBlackbox.DrawingLogic
         // Configurable scale: Pixels per In-Game Yard
         public const float DefaultPixelsPerYard = 8f;
 
-        public void Draw(ImDrawListPtr drawList, ReplayFrame frame, Dictionary<uint, ReplayMetadata> metadata, List<WaymarkSnapshot> waymarks, Vector2 canvasOrigin, Vector2 canvasSize, Vector3 centerWorldPos, uint territoryTypeId, bool showNpcs, bool showHp, bool anonymizeNames, float zoom, Vector2 panOffset)
+        public void Draw(ImDrawListPtr drawList, ReplayFrame frame, Dictionary<uint, ReplayMetadata> metadata, List<WaymarkSnapshot> waymarks, Vector2 canvasOrigin, Vector2 canvasSize, Vector3 centerWorldPos, uint territoryTypeId, bool showNpcs, bool showHp, bool anonymizeNames, float zoom, Vector2 panOffset, Configuration config)
         {
             if (frame == null || frame.Ids.Count == 0) return;
             var canvasCenter = (canvasOrigin + (canvasSize / 2)) + panOffset;
             float scale = DefaultPixelsPerYard * ImGuiHelpers.GlobalScale * zoom;
 
-            DrawMapBackground(drawList, territoryTypeId, canvasOrigin, canvasSize, centerWorldPos, zoom, panOffset);
+            DrawMapBackground(drawList, territoryTypeId, canvasOrigin, canvasSize, centerWorldPos, zoom, panOffset, waymarks, config);
             DrawWaymarks(drawList, waymarks, canvasOrigin, canvasSize, centerWorldPos, zoom, panOffset);
 
             for (int i = 0; i < frame.Ids.Count; i++)
@@ -132,7 +132,7 @@ namespace AetherBlackbox.DrawingLogic
         }
         private uint _lastLoggedTerritory = 0;
 
-        private void DrawMapBackground(ImDrawListPtr drawList, uint territoryTypeId, Vector2 canvasOrigin, Vector2 canvasSize, Vector3 centerWorldPos, float zoom, Vector2 panOffset)
+        private void DrawMapBackground(ImDrawListPtr drawList, uint territoryTypeId, Vector2 canvasOrigin, Vector2 canvasSize, Vector3 centerWorldPos, float zoom, Vector2 panOffset, List<WaymarkSnapshot> waymarks, Configuration config)
         {
             var territoryNullable = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.TerritoryType>().GetRowOrDefault(territoryTypeId);
             if (!territoryNullable.HasValue) return;
@@ -222,14 +222,42 @@ namespace AetherBlackbox.DrawingLogic
                     Service.PluginLog.Warning("Territory has no linked Map row (RowId 0).");
                 }
             }
+            
+            if (texture == null && territoryTypeId == 992)
+            {
+                if (shouldLog) Service.PluginLog.Debug("Applying fallback map for Territory 992.");
+                texture = TextureManager.GetTexture("PluginImages/arenas/m12p1.webp");
+            }
 
             if (texture != null)
             {
                 var canvasCenter = (canvasOrigin + (canvasSize / 2)) + panOffset;
-                float mapCurrentSize = 1024f * ImGuiHelpers.GlobalScale * zoom;
+                float scale = DefaultPixelsPerYard * ImGuiHelpers.GlobalScale * zoom;
 
-                Vector2 mapTopLeft = canvasCenter - new Vector2(mapCurrentSize / 2);
-                Vector2 mapBottomRight = canvasCenter + new Vector2(mapCurrentSize / 2);
+                Vector3 mapAnchorPos = centerWorldPos;
+                float finalMapSize = 512f * ImGuiHelpers.GlobalScale * zoom;
+
+                if (territoryTypeId == 992)
+                {
+                    finalMapSize *= config.MapScaleMultiplier;
+
+                    var activeWaymarks = waymarks?.Where(w => w.Active).ToList();
+                    if (activeWaymarks != null && activeWaymarks.Count > 0)
+                    {
+                        float avgX = activeWaymarks.Average(w => w.X);
+                        float avgZ = activeWaymarks.Average(w => w.Z);
+                        mapAnchorPos = new Vector3(avgX, 0, avgZ);
+                    }
+
+                    mapAnchorPos.X += config.MapOffsetX;
+                    mapAnchorPos.Z += config.MapOffsetZ;
+                }
+
+                var relPos = mapAnchorPos - centerWorldPos;
+                var mapScreenCenter = canvasCenter + new Vector2(relPos.X * scale, relPos.Z * scale);
+
+                Vector2 mapTopLeft = mapScreenCenter - new Vector2(finalMapSize / 2);
+                Vector2 mapBottomRight = mapScreenCenter + new Vector2(finalMapSize / 2);
 
                 drawList.PushClipRect(canvasOrigin, canvasOrigin + canvasSize, true);
                 drawList.AddImage(texture.Handle, mapTopLeft, mapBottomRight);
