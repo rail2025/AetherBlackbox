@@ -19,6 +19,7 @@
 		<DalamudApiLevel>14</DalamudApiLevel>
 		<IsPackable>false</IsPackable>
 		<PackageOutputPath>$(OutputPath)release\</PackageOutputPath>
+		<AcceptsFeedback>false</AcceptsFeedback>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
