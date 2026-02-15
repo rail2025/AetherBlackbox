@@ -34,11 +34,14 @@
 	<ItemGroup>
 	  <EmbeddedResource Include="PluginImages\**\*" />
 	</ItemGroup>
-		
-	<ItemGroup>
-	  <EmbeddedResource Include="icon.png" />
-	</ItemGroup>
 
+	<ItemGroup>
+		<Content Include="icon.png">
+			<Pack>true</Pack>
+			<PackagePath></PackagePath>
+		</Content>
+	</ItemGroup>
+	
 	<ItemGroup>
 	 
 	  <PackageReference Include="SixLabors.Fonts" Version="2.1.3" />

@@ -27,6 +27,6 @@
     "DownloadLinkUpdate": "https://github.com/rail2025/AetherBlackbox/releases/download/v1.0.1/latest.zip",
     "DownloadLinkTesting": "https://github.com/rail2025/AetherBlackbox/releases/download/v1.0.1/latest.zip",
     "SupportsProfiles": true,
-    "IconUrl": "https://raw.githubusercontent.com/rail2025/AetherBlackbox/refs/heads/master/icon.png"
+    "IconUrl": "https://raw.githubusercontent.com/rail2025/AetherBlackbox/master/icon.png"
   }
 ]
