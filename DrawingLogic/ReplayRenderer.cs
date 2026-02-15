@@ -222,11 +222,23 @@ namespace AetherBlackbox.DrawingLogic
                     Service.PluginLog.Warning("Territory has no linked Map row (RowId 0).");
                 }
             }
-            
-            if (texture == null && territoryTypeId == 992)
+
+            if (texture == null)
             {
-                if (shouldLog) Service.PluginLog.Debug("Applying fallback map for Territory 992.");
-                texture = TextureManager.GetTexture("PluginImages/arenas/m12p1.webp");
+                string? fallbackImage = territoryTypeId switch
+                {
+                    992 or 1321 => "m9.webp",
+                    1323 => "m10.webp",
+                    1325 => "m11p1.webp",
+                    1327 => "m12p1.webp",
+                    _ => null
+                };
+
+                if (fallbackImage != null)
+                {
+                    if (shouldLog) Service.PluginLog.Debug($"Applying fallback map for Territory {territoryTypeId}.");
+                    texture = TextureManager.GetTexture($"PluginImages/arenas/{fallbackImage}");
+                }
             }
 
             if (texture != null)
@@ -237,7 +249,7 @@ namespace AetherBlackbox.DrawingLogic
                 Vector3 mapAnchorPos = centerWorldPos;
                 float finalMapSize = 512f * ImGuiHelpers.GlobalScale * zoom;
 
-                if (territoryTypeId == 992)
+                if (territoryTypeId == 992 || territoryTypeId == 1321 || territoryTypeId == 1323 || territoryTypeId == 1325 || territoryTypeId == 1327)
                 {
                     finalMapSize *= config.MapScaleMultiplier;
 

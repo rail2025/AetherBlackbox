@@ -157,6 +157,7 @@ namespace AetherBlackbox.Core
             public Dictionary<uint, ReplayMetadata>? Metadata { get; set; }
             public List<ReplayFrame>? Frames { get; set; }
             public List<WaymarkSnapshot>? Waymarks { get; set; }
+            public List<Death>? Deaths { get; set; }
         }
 
         public List<ReplayFileHeader> GetSavedReplays()
@@ -217,9 +218,18 @@ namespace AetherBlackbox.Core
                         Metadata = body.Metadata,
                         Frames = body.Frames,
                         Waymarks = body.Waymarks
-                    }
+                    },
+                    Deaths = body.Deaths ?? new List<Death>()
                 };
 
+                if (session.Deaths != null)
+                {
+                    foreach (var death in session.Deaths)
+                    {
+                        death.ReplayData = session.ReplayData;
+                    }
+                }
+            
                 History.Add(session);
                 return session;
             }
@@ -250,7 +260,7 @@ namespace AetherBlackbox.Core
                     writer.Write(headerJson);
                 }
 
-                var body = new { session.ReplayData.Metadata, session.ReplayData.Frames, session.ReplayData.Waymarks };
+                var body = new { session.ReplayData.Metadata, session.ReplayData.Frames, session.ReplayData.Waymarks, session.Deaths };
 
                 using var gzip = new GZipStream(fs, CompressionLevel.Optimal);
                 using var sw = new StreamWriter(gzip);

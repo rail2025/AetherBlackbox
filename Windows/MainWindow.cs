@@ -410,7 +410,9 @@ namespace AetherBlackbox.Windows
                     replayTimeOffset += ImGui.GetIO().DeltaTime;
                     if (replayTimeOffset >= 0f) { replayTimeOffset = 0f; isPlaybackActive = false; }
                 }
-                if (ActiveDeathReplay.TerritoryTypeId == 992)
+                if (ActiveDeathReplay.TerritoryTypeId == 992 || ActiveDeathReplay.TerritoryTypeId == 1321 ||
+                    ActiveDeathReplay.TerritoryTypeId == 1323 || ActiveDeathReplay.TerritoryTypeId == 1325 ||
+                    ActiveDeathReplay.TerritoryTypeId == 1327)
                 {
                     DrawMapCalibrationPanel();
                 }
@@ -481,7 +483,8 @@ namespace AetherBlackbox.Windows
             if (ActiveDeathReplay == null || ActiveDeathReplay.ReplayData.Frames.Count == 0) return;
 
             var recording = ActiveDeathReplay.ReplayData;
-            var targetOffset = recording.Frames.Last().TimeOffset + replayTimeOffset;
+            var deathTimeOffset = selectedPull != null ? (float)(ActiveDeathReplay.TimeOfDeath - selectedPull.StartTime).TotalSeconds : recording.Frames.Last().TimeOffset;
+            var targetOffset = deathTimeOffset + replayTimeOffset;
             var closestFrame = recording.Frames.MinBy(f => Math.Abs(f.TimeOffset - targetOffset));
             if (closestFrame == null) return;
 
@@ -616,7 +619,8 @@ namespace AetherBlackbox.Windows
             if (isReplayMode && ActiveDeathReplay != null && ActiveDeathReplay.ReplayData.Frames.Count > 0)
             {
                 recording = ActiveDeathReplay.ReplayData;
-                var targetOffset = recording.Frames.Last().TimeOffset + replayTimeOffset;
+                var deathTimeOffset = selectedPull != null ? (float)(ActiveDeathReplay.TimeOfDeath - selectedPull.StartTime).TotalSeconds : recording.Frames.Last().TimeOffset;
+                var targetOffset = deathTimeOffset + replayTimeOffset;
                 closestFrame = recording.Frames.MinBy(f => Math.Abs(f.TimeOffset - targetOffset));
 
                 if (cachedArenaCenter == null && recording.Frames.Count > 0 && recording.Frames[0].Ids.Count > 0)
@@ -858,7 +862,7 @@ namespace AetherBlackbox.Windows
             var action = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>().GetRowOrDefault(actionId);
             if (!action.HasValue) return;
 
-            var iconWrap = TextureManager.GetTexture($"luminaicon:{action.Value.Icon}");
+            var iconWrap = action.Value.Icon != 0 ? TextureManager.GetTexture($"luminaicon:{action.Value.Icon}") : null;
             if (iconWrap != null)
             {
                 ImGui.Image(iconWrap.Handle, new Vector2(24, 24) * ImGuiHelpers.GlobalScale, Vector2.Zero, Vector2.One, new Vector4(1, 1, 1, alpha));
