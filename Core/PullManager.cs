@@ -43,7 +43,8 @@ namespace AetherBlackbox.Core
                     {
                         if (File.GetCreationTime(file) < cutoff)
                         {
-                            try { File.Delete(file); deleted++; } catch { }
+                            try { File.Delete(file); deleted++; }
+                            catch (Exception ex) { Service.PluginLog.Warning(ex, $"Failed to delete old replay file: {file}"); }
                         }
                     }
                     if (deleted > 0) Service.PluginLog.Info($"[PullManager] Auto-cleanup: Deleted {deleted} replay files older than {days} days.");
@@ -101,7 +102,11 @@ namespace AetherBlackbox.Core
 
             Service.PluginLog.Info($"EndSession: Filter found {sessionDeaths.Count} deaths in global storage.");
             // Sort deaths: Most recent first
-            CurrentSession.Deaths = sessionDeaths.OrderByDescending(d => d.TimeOfDeath).ToList();
+            lock (CurrentSession.Deaths)
+            {
+                CurrentSession.Deaths.Clear();
+                CurrentSession.Deaths.AddRange(sessionDeaths.OrderByDescending(d => d.TimeOfDeath));
+            }
 
             // Determine Boss Name (highest damage taken)
             if (CurrentSession.DamageByTarget.Count > 0)
@@ -144,7 +149,10 @@ namespace AetherBlackbox.Core
         {
             if (IsInSession && CurrentSession != null)
             {
-                CurrentSession.Deaths.Add(death);
+                lock (CurrentSession.Deaths)
+                {
+                    CurrentSession.Deaths.Add(death);
+                }
                 return;
             }
 
@@ -266,7 +274,11 @@ namespace AetherBlackbox.Core
                 var folder = Path.Combine(Service.PluginInterface.ConfigDirectory.FullName, "replays");
                 if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
-                var cleanZone = string.Join("", session.ZoneName.Split(Path.GetInvalidFileNameChars()));
+                var cleanZone = session.ZoneName;
+                foreach (var c in Path.GetInvalidFileNameChars())
+                {
+                    cleanZone = cleanZone.Replace(c.ToString(), "");
+                }
                 if (string.IsNullOrWhiteSpace(cleanZone)) cleanZone = "Unknown";
 
                 var filename = $"{session.StartTime:yyyy-MM-dd_HH-mm-ss}_{cleanZone}.json.gz";

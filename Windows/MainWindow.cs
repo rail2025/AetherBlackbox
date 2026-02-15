@@ -32,6 +32,22 @@ namespace AetherBlackbox.Windows
         private string logSearchTerm = "";
         private readonly ReplayRenderer replayRenderer;
 
+        private ReplayFrame? GetClosestFrame(ReplayRecording recording, float targetOffset)
+        {
+            if (recording.Frames.Count == 0) return null;
+            int left = 0, right = recording.Frames.Count - 1;
+            while (left <= right)
+            {
+                int mid = left + (right - left) / 2;
+                if (recording.Frames[mid].TimeOffset == targetOffset) return recording.Frames[mid];
+                if (recording.Frames[mid].TimeOffset < targetOffset) left = mid + 1;
+                else right = mid - 1;
+            }
+            if (left >= recording.Frames.Count) return recording.Frames[right];
+            if (right < 0) return recording.Frames[left];
+            return Math.Abs(recording.Frames[left].TimeOffset - targetOffset) < Math.Abs(recording.Frames[right].TimeOffset - targetOffset) ? recording.Frames[left] : recording.Frames[right];
+        }
+
         // Replay
         public Death? ActiveDeathReplay { get; set; }
         private bool isReplayMode = false;
@@ -485,7 +501,7 @@ namespace AetherBlackbox.Windows
             var recording = ActiveDeathReplay.ReplayData;
             var deathTimeOffset = selectedPull != null ? (float)(ActiveDeathReplay.TimeOfDeath - selectedPull.StartTime).TotalSeconds : recording.Frames.Last().TimeOffset;
             var targetOffset = deathTimeOffset + replayTimeOffset;
-            var closestFrame = recording.Frames.MinBy(f => Math.Abs(f.TimeOffset - targetOffset));
+            var closestFrame = GetClosestFrame(recording, targetOffset);
             if (closestFrame == null) return;
 
             int idx = closestFrame.Ids.IndexOf((uint)selectedEntityId);
@@ -621,7 +637,7 @@ namespace AetherBlackbox.Windows
                 recording = ActiveDeathReplay.ReplayData;
                 var deathTimeOffset = selectedPull != null ? (float)(ActiveDeathReplay.TimeOfDeath - selectedPull.StartTime).TotalSeconds : recording.Frames.Last().TimeOffset;
                 var targetOffset = deathTimeOffset + replayTimeOffset;
-                closestFrame = recording.Frames.MinBy(f => Math.Abs(f.TimeOffset - targetOffset));
+                closestFrame = GetClosestFrame(recording, targetOffset);
 
                 if (cachedArenaCenter == null && recording.Frames.Count > 0 && recording.Frames[0].Ids.Count > 0)
                 {
