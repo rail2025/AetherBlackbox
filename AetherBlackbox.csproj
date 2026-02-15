@@ -20,6 +20,9 @@
 		<IsPackable>false</IsPackable>
 		<PackageOutputPath>$(OutputPath)release\</PackageOutputPath>
 		<AcceptsFeedback>false</AcceptsFeedback>
+		<DebugType>none</DebugType>
+		<DebugSymbols>false</DebugSymbols>
+		<Optimize>true</Optimize>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
