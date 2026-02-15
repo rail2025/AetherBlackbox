@@ -539,7 +539,7 @@ namespace AetherBlackbox.Windows
                 ImGui.Text("Used:"); ImGui.SameLine();
                 DrawActionIconSmall(current, 1.0f);
 
-                if (closestFrame.Statuses != null && idx < closestFrame.Statuses.Count && closestFrame.Statuses[idx].Count > 0)
+                if (closestFrame.Statuses != null && idx < closestFrame.Statuses.Count && closestFrame.Statuses[idx] != null && closestFrame.Statuses[idx].Count > 0)
                 {
                     foreach (var status in closestFrame.Statuses[idx])
                     {
