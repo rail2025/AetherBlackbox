@@ -35,7 +35,7 @@ namespace AetherBlackbox.Core
         public DateTime Timestamp;
         public EntityType Type;
         public uint ModelId;
-        public List<ReplayStatus> Statuses;
+        public List<ReplayStatus>? Statuses;
         public ReplayCast Cast;
         public ulong TargetId;
         public uint LastLoggedActionId;
@@ -65,7 +65,7 @@ namespace AetherBlackbox.Core
         public List<float> Z { get; set; } = new(); // Only store Z (Depth)
         public List<float> Rot { get; set; } = new();
         public List<uint> Hp { get; set; } = new();
-        public List<List<ReplayStatus>> Statuses { get; set; } = new();
+        public List<List<ReplayStatus>?> Statuses { get; set; } = new();
         public List<ReplayCast> Casts { get; set; } = new();
         public List<ulong> Targets { get; set; } = new();
         public List<uint> Actions { get; set; } = new();
@@ -78,6 +78,7 @@ namespace AetherBlackbox.Core
         public float Rotation;
         public uint CurrentHp;
         public DateTime DeathTime;
+        public uint StatusHash;
     }
     public class PositionRecorder : IDisposable
     {
@@ -224,7 +225,10 @@ namespace AetherBlackbox.Core
                 }
                 if (obj is IPlayerCharacter player)
                 {
-                    bool statusChanged = lastState.ObjectId == 0 || player.StatusList.Length != lastRecordedStates[player.EntityId].ObjectId;
+                    uint sHash = 0;
+                    unchecked { foreach (var s in player.StatusList) sHash = (sHash * 397) ^ s.StatusId ^ s.Param; }
+
+                    bool statusChanged = lastState.ObjectId == 0 || sHash != lastRecordedStates[player.EntityId].StatusHash;
 
                     if (!shouldRecordMovement && !shouldRecordAttributes && !statusChanged && !isNewEntity && !player.IsCasting && actionToLog == 0)
                         continue;
@@ -239,7 +243,7 @@ namespace AetherBlackbox.Core
                         ClassJobId = player.ClassJob.RowId,
                         Timestamp = snapshotTime,
                         Type = EntityType.Player,
-                        Statuses = player.StatusList.Select(s => new ReplayStatus { Id = s.StatusId, Duration = s.RemainingTime, StackCount = s.Param }).ToList(),
+                        Statuses = statusChanged ? player.StatusList.Select(s => new ReplayStatus { Id = s.StatusId, Duration = s.RemainingTime, StackCount = s.Param }).ToList() : null,
                         Cast = player.IsCasting ? new ReplayCast { ActionId = player.CastActionId, Current = player.CurrentCastTime, Total = player.TotalCastTime } : default,
                         TargetId = player.TargetObjectId,
                         LastLoggedActionId = actionToLog
@@ -252,7 +256,8 @@ namespace AetherBlackbox.Core
                         Position = player.Position,
                         Rotation = player.Rotation,
                         CurrentHp = player.CurrentHp,
-                        ObjectId = (uint)player.StatusList.Length
+                        ObjectId = 1,
+                        StatusHash = sHash
                     };
                     if (actionToLog != 0)
                     {
@@ -282,6 +287,10 @@ namespace AetherBlackbox.Core
                         lastRecordedStates[npc.EntityId] = new ReplayEntityState { Position = npc.Position, Rotation = npc.Rotation, DeathTime = snapshotTime };
                     }
 
+                    uint sHash = 0;
+                    unchecked { foreach (var s in npc.StatusList) sHash = (sHash * 397) ^ s.StatusId ^ s.Param; }
+                    bool statusChanged = lastRecordedStates[npc.EntityId].ObjectId == 0 || sHash != lastRecordedStates[npc.EntityId].StatusHash;
+
                     var snapshot = new EntityPositionSnapshot
                     {
                         ObjectId = npc.EntityId,
@@ -293,7 +302,7 @@ namespace AetherBlackbox.Core
                         Timestamp = snapshotTime,
                         Type = npc.IsTargetable ? EntityType.Boss : EntityType.Npc,
                         ModelId = (uint)npc.BaseId,
-                        Statuses = npc.StatusList.Select(s => new ReplayStatus { Id = s.StatusId, Duration = s.RemainingTime, StackCount = s.Param }).ToList(),
+                        Statuses = statusChanged ? npc.StatusList.Select(s => new ReplayStatus { Id = s.StatusId, Duration = s.RemainingTime, StackCount = s.Param }).ToList() : null,
                         Cast = npc.IsCasting ? new ReplayCast { ActionId = npc.CastActionId, Current = npc.CurrentCastTime, Total = npc.TotalCastTime } : default,
                         TargetId = npc.TargetObjectId,
                         LastLoggedActionId = actionToLog
@@ -306,6 +315,8 @@ namespace AetherBlackbox.Core
                         existingState.Position = npc.Position;
                         existingState.Rotation = npc.Rotation;
                         existingState.CurrentHp = npc.CurrentHp;
+                        existingState.ObjectId = 1;
+                        existingState.StatusHash = sHash;
                         lastRecordedStates[npc.EntityId] = existingState;
                     }
 
@@ -394,7 +405,7 @@ namespace AetherBlackbox.Core
                         frame.Z.Add((float)Math.Round(entity.Position.Z, 2));
                         frame.Rot.Add((float)Math.Round(entity.Rotation, 2));
                         frame.Hp.Add(entity.CurrentHp);
-                        frame.Statuses.Add(entity.Statuses ?? new());
+                        frame.Statuses.Add(entity.Statuses);
                         frame.Casts.Add(entity.Cast);
                         frame.Targets.Add(entity.TargetId);
                         frame.Actions.Add(entity.LastLoggedActionId);

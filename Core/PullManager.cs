@@ -126,6 +126,20 @@ namespace AetherBlackbox.Core
             CurrentSession = null;
         }
 
+        private class CategoryShortener : Newtonsoft.Json.Serialization.ISerializationBinder
+        {
+            public void BindToName(Type type, out string? assemblyName, out string? typeName)
+            {
+                assemblyName = null;
+                typeName = type.Name;
+            }
+
+            public Type BindToType(string? assemblyName, string typeName)
+            {
+                return Type.GetType($"AetherBlackbox.Events.CombatEvent+{typeName}") ?? typeof(Events.CombatEvent);
+            }
+        }
+
         public void AddDeath(Death death)
         {
             if (IsInSession && CurrentSession != null)
@@ -140,7 +154,10 @@ namespace AetherBlackbox.Core
                 // 15-second grace period for late packets
                 if ((death.TimeOfDeath - lastSession.EndTime.Value).TotalSeconds <= 15)
                 {
-                    lastSession.Deaths.Add(death);
+                    lock (lastSession.Deaths)
+                    {
+                        lastSession.Deaths.Add(death);
+                    }
                     Service.PluginLog.Information($"Late arrival: Attached death of {death.PlayerName} to finished Session #{lastSession.PullNumber}");
                 }
             }
@@ -203,8 +220,11 @@ namespace AetherBlackbox.Core
                 using var gzip = new GZipStream(fs, CompressionMode.Decompress);
                 using var sr = new StreamReader(gzip);
                 using var jr = new JsonTextReader(sr);
-
-                var serializer = new JsonSerializer();
+                var serializer = new JsonSerializer
+                {
+                    TypeNameHandling = TypeNameHandling.Auto,
+                    SerializationBinder = new CategoryShortener()
+                };
                 var body = serializer.Deserialize<SavedReplayBody>(jr);
                 if (body == null) return null;
 
@@ -260,13 +280,21 @@ namespace AetherBlackbox.Core
                     writer.Write(headerJson);
                 }
 
-                var body = new { session.ReplayData.Metadata, session.ReplayData.Frames, session.ReplayData.Waymarks, session.Deaths };
+                List<Death> safeDeaths;
+                lock (session.Deaths)
+                {
+                    safeDeaths = session.Deaths.ToList();
+                }
+                var body = new { session.ReplayData.Metadata, session.ReplayData.Frames, session.ReplayData.Waymarks, Deaths = safeDeaths };
 
                 using var gzip = new GZipStream(fs, CompressionLevel.Optimal);
                 using var sw = new StreamWriter(gzip);
                 using var jw = new JsonTextWriter(sw);
-
-                var serializer = new JsonSerializer();
+                var serializer = new JsonSerializer
+                {
+                    TypeNameHandling = TypeNameHandling.Auto,
+                    SerializationBinder = new CategoryShortener()
+                };
                 serializer.Serialize(jw, body);
 
                 Service.PluginLog.Debug($"[PullManager] Saved replay: {filename}");
