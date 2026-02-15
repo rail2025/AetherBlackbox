@@ -86,7 +86,7 @@ namespace AetherBlackbox.Windows
         public List<BaseDrawable> SelectedDrawables => selectedDrawables;
         public PageManager PageManager => pageManager;
 
-        public MainWindow(Plugin plugin, string id = "") : base($"Aether Blackbox v1.0.0 - Powered by Death Recap by Kouzukii and AetherDraw by rail{id}###Aether Blackbox MainWindow{id}")
+        public MainWindow(Plugin plugin, string id = "") : base($"Aether Blackbox v{typeof(Plugin).Assembly.GetName().Version} - Powered by Death Recap by Kouzukii and AetherDraw by rail{id}###Aether Blackbox MainWindow{id}")
         {
             this.plugin = plugin;
             this.configuration = plugin.Configuration;
@@ -526,7 +526,8 @@ namespace AetherBlackbox.Windows
                 }
                 ImGui.Text($"{displayName}");
                 ImGui.SameLine();
-                ImGui.TextColored(new Vector4(0.5f, 1f, 0.5f, 1f), $"(HP: {closestFrame.Hp[idx]} / {meta.MaxHp})");
+                uint currentHp = (closestFrame.Hp != null && idx < closestFrame.Hp.Count) ? closestFrame.Hp[idx] : 0;
+                ImGui.TextColored(new Vector4(0.5f, 1f, 0.5f, 1f), $"(HP: {currentHp} / {meta.MaxHp})");
                 ImGui.SameLine(250);
 
                 uint upcoming = GetActionInRange(targetOffset, 0.1f, 1.5f);
@@ -539,9 +540,10 @@ namespace AetherBlackbox.Windows
                 ImGui.Text("Used:"); ImGui.SameLine();
                 DrawActionIconSmall(current, 1.0f);
 
-                if (closestFrame.Statuses != null && idx < closestFrame.Statuses.Count && closestFrame.Statuses[idx] != null && closestFrame.Statuses[idx].Count > 0)
+                var activeStatuses = GetActiveStatuses(recording, (uint)selectedEntityId, targetOffset);
+                if (activeStatuses.Count > 0)
                 {
-                    foreach (var status in closestFrame.Statuses[idx])
+                    foreach (var status in activeStatuses)
                     {
                         var sheetStatus = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Status>().GetRowOrDefault(status.Id);
                         if (sheetStatus == null) continue;
@@ -550,7 +552,7 @@ namespace AetherBlackbox.Windows
                         if (icon != null)
                         {
                             ImGui.Image(icon.Handle, new Vector2(24, 24) * ImGuiHelpers.GlobalScale);
-                            if (ImGui.IsItemHovered()) ImGui.SetTooltip($"{sheetStatus.Value.Name}\n{status.Duration:F0}s");
+                            if (ImGui.IsItemHovered()) ImGui.SetTooltip($"{sheetStatus.Value.Name}\n{status.RemainingDuration:F1}s");
                             ImGui.SameLine();
                         }
                     }
@@ -600,7 +602,7 @@ namespace AetherBlackbox.Windows
                             }
                             ImGui.Text($"{targetDisplayName}");
 
-                            float targetHpPct = (float)closestFrame.Hp[targetIdx] / targetMeta.MaxHp;
+                            float targetHpPct = (closestFrame.Hp != null && targetIdx < closestFrame.Hp.Count) ? (float)closestFrame.Hp[targetIdx] / targetMeta.MaxHp : 0f;
                             ImGui.ProgressBar(targetHpPct, new Vector2(ImGui.GetContentRegionAvail().X, 15 * ImGuiHelpers.GlobalScale), $"{targetHpPct * 100:F1}%");
                         }
                         else
@@ -731,7 +733,7 @@ namespace AetherBlackbox.Windows
                 if (selectedEntityId != 0)
                 {
                     int selIdx = closestFrame.Ids.IndexOf((uint)selectedEntityId);
-                    if (selIdx != -1)
+                    if (selIdx != -1 && closestFrame.X != null && selIdx < closestFrame.X.Count && closestFrame.Z != null && selIdx < closestFrame.Z.Count)
                     {
                         var entityPos = new Vector3(closestFrame.X[selIdx], 0, closestFrame.Z[selIdx]);
                         var relPos = entityPos - centerPos;
@@ -869,6 +871,42 @@ namespace AetherBlackbox.Windows
                 }
             }
             return 0;
+        }
+
+        private List<(uint Id, float RemainingDuration)> GetActiveStatuses(ReplayRecording recording, uint entityId, float currentTime)
+        {
+            var activeStatuses = new Dictionary<uint, float>();
+
+            for (int i = recording.Frames.Count - 1; i >= 0; i--)
+            {
+                var frame = recording.Frames[i];
+                if (frame.TimeOffset > currentTime) continue;
+                if (currentTime - frame.TimeOffset > 120f) break;
+
+                int idx = frame.Ids.IndexOf(entityId);
+                if (idx != -1 && frame.Statuses != null && idx < frame.Statuses.Count && frame.Statuses[idx] != null)
+                {
+                    foreach (var status in frame.Statuses[idx])
+                    {
+                        if (!activeStatuses.ContainsKey(status.Id))
+                        {
+                            float timeElapsed = currentTime - frame.TimeOffset;
+                            float remaining = status.Duration - timeElapsed;
+
+                            if (remaining > 0)
+                            {
+                                activeStatuses[status.Id] = remaining;
+                            }
+                            else
+                            {
+                                activeStatuses[status.Id] = 0f;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return activeStatuses.Where(kvp => kvp.Value > 0f).Select(kvp => (kvp.Key, kvp.Value)).ToList();
         }
 
         private void DrawActionIconSmall(uint actionId, float alpha)
