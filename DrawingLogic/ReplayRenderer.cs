@@ -16,14 +16,22 @@ namespace AetherBlackbox.DrawingLogic
         // Configurable scale: Pixels per In-Game Yard
         public const float DefaultPixelsPerYard = 8f;
 
+        public record ViewContext(Vector2 CanvasOrigin, Vector2 CanvasSize, Vector3 CenterWorldPos, float Zoom, Vector2 PanOffset);
+
         public void Draw(ImDrawListPtr drawList, ReplayFrame frame, Dictionary<uint, ReplayMetadata> metadata, List<WaymarkSnapshot> waymarks, Vector2 canvasOrigin, Vector2 canvasSize, Vector3 centerWorldPos, uint territoryTypeId, bool showNpcs, bool showHp, bool anonymizeNames, float zoom, Vector2 panOffset, Configuration config)
         {
-            if (frame == null || frame.Ids.Count == 0) return;
-            var canvasCenter = (canvasOrigin + (canvasSize / 2)) + panOffset;
-            float scale = DefaultPixelsPerYard * ImGuiHelpers.GlobalScale * zoom;
+            var view = new ViewContext(canvasOrigin, canvasSize, centerWorldPos, zoom, panOffset);
+            DrawInternal(drawList, frame, metadata, waymarks, territoryTypeId, showNpcs, showHp, anonymizeNames, view, config);
+        }
 
-            DrawMapBackground(drawList, territoryTypeId, canvasOrigin, canvasSize, centerWorldPos, zoom, panOffset, waymarks, config);
-            DrawWaymarks(drawList, waymarks, canvasOrigin, canvasSize, centerWorldPos, zoom, panOffset);
+        private void DrawInternal(ImDrawListPtr drawList, ReplayFrame frame, Dictionary<uint, ReplayMetadata> metadata, List<WaymarkSnapshot> waymarks, uint territoryTypeId, bool showNpcs, bool showHp, bool anonymizeNames, ViewContext view, Configuration config)
+        {
+            if (frame == null || frame.Ids.Count == 0) return;
+            var canvasCenter = (view.CanvasOrigin + (view.CanvasSize / 2)) + view.PanOffset;
+            float scale = DefaultPixelsPerYard * ImGuiHelpers.GlobalScale * view.Zoom;
+
+            DrawMapBackground(drawList, territoryTypeId, view, waymarks, config);
+            DrawWaymarks(drawList, waymarks, view);
 
             for (int i = 0; i < frame.Ids.Count; i++)
             {
@@ -39,16 +47,15 @@ namespace AetherBlackbox.DrawingLogic
                 if (!showNpcs && !isBoss && !isPlayer)
                     continue;
 
-                // frame.Z[i] maps to World Z. World Y (height) is ignored unless future fights have overlap vertical?.
                 var entityPos = new Vector3(frame.X[i], 0, frame.Z[i]);
-                var relPos = entityPos - centerWorldPos;
+                var relPos = entityPos - view.CenterWorldPos;
 
                 var screenX = canvasCenter.X + (relPos.X * scale);
                 var screenY = canvasCenter.Y + (relPos.Z * scale);
                 var screenPos = new Vector2(screenX, screenY);
 
-                if (screenPos.X < canvasOrigin.X - 50 || screenPos.X > canvasOrigin.X + canvasSize.X + 50 ||
-                    screenPos.Y < canvasOrigin.Y - 50 || screenPos.Y > canvasOrigin.Y + canvasSize.Y + 50)
+                if (screenPos.X < view.CanvasOrigin.X - 50 || screenPos.X > view.CanvasOrigin.X + view.CanvasSize.X + 50 ||
+                    screenPos.Y < view.CanvasOrigin.Y - 50 || screenPos.Y > view.CanvasOrigin.Y + view.CanvasSize.Y + 50)
                     continue;
 
                 var state = new ReplayEntityState
@@ -71,21 +78,23 @@ namespace AetherBlackbox.DrawingLogic
 
         private void DrawBossIcon(ImDrawListPtr drawList, ReplayEntityState state, Vector2 center)
         {
+            if (_bossIconTexture == null)
+                _bossIconTexture = TextureManager.GetTexture("PluginImages/svg/boss.svg");
+
+            if (_bossIconTexture == null)
+                return;
+
             float size = 40f * ImGuiHelpers.GlobalScale;
-            var texture = TextureManager.GetTexture("PluginImages/svg/boss.svg");
 
-            if (texture != null)
-            {
-                float rot = state.Rotation + (float)Math.PI;
-                float c = (float)Math.Cos(rot), s = (float)Math.Sin(rot);
-                Vector2 Rot(float x, float y) => new Vector2(x * c - y * s, x * s + y * c) + center;
+            float rot = state.Rotation + (float)Math.PI;
+            float c = (float)Math.Cos(rot), s = (float)Math.Sin(rot);
+            Vector2 Rot(float x, float y) => new Vector2(x * c - y * s, x * s + y * c) + center;
 
-                drawList.AddImageQuad(texture.Handle,
-                    Rot(-size / 2, -size / 2), Rot(size / 2, -size / 2),
-                    Rot(size / 2, size / 2), Rot(-size / 2, size / 2),
-                    new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1),
-                    0xFFFFFFFF);
-            }
+            drawList.AddImageQuad(_bossIconTexture.Handle,
+                Rot(-size / 2, -size / 2), Rot(size / 2, -size / 2),
+                Rot(size / 2, size / 2), Rot(-size / 2, size / 2),
+                new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1),
+                0xFFFFFFFF);
         }
 
         private void DrawPlayerIcon(ImDrawListPtr drawList, ReplayEntityState state, ReplayMetadata meta, Vector2 screenPos)
@@ -93,8 +102,14 @@ namespace AetherBlackbox.DrawingLogic
             float iconSize = 28f * ImGuiHelpers.GlobalScale;
             float iconRadius = iconSize / 2;
 
-            string iconName = GetJobIconName(meta.ClassJobId);
-            var texture = TextureManager.GetTexture($"PluginImages/toolbar/{iconName}");
+            if (!_jobIconCache.TryGetValue(meta.ClassJobId, out var texture) || texture == null)
+            {
+                string iconName = GetJobIconName(meta.ClassJobId);
+                texture = TextureManager.GetTexture($"PluginImages/toolbar/{iconName}");
+
+                if (texture != null && texture.Handle != IntPtr.Zero)
+                    _jobIconCache[meta.ClassJobId] = texture;
+            }
 
             if (texture != null && texture.Handle != IntPtr.Zero)
             {
@@ -131,123 +146,28 @@ namespace AetherBlackbox.DrawingLogic
             drawList.AddRect(barStart, barEnd, 0xFF000000);
         }
         private uint _lastLoggedTerritory = 0;
+        private readonly Dictionary<uint, IDalamudTextureWrap?> _jobIconCache = new();
+        private readonly Dictionary<int, IDalamudTextureWrap?> _waymarkIconCache = new();
+        private IDalamudTextureWrap? _bossIconTexture;
+        private readonly Dictionary<uint, IDalamudTextureWrap?> _mapCache = new();
 
-        private void DrawMapBackground(ImDrawListPtr drawList, uint territoryTypeId, Vector2 canvasOrigin, Vector2 canvasSize, Vector3 centerWorldPos, float zoom, Vector2 panOffset, List<WaymarkSnapshot> waymarks, Configuration config)
+        private void DrawMapBackground(ImDrawListPtr drawList, uint territoryTypeId, ViewContext view, List<WaymarkSnapshot> waymarks, Configuration config)
         {
-            var territoryNullable = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.TerritoryType>().GetRowOrDefault(territoryTypeId);
-            if (!territoryNullable.HasValue) return;
-
-            var territory = territoryNullable.Value;
-            string bgPath = territory.Bg.ToString();
-
-            IDalamudTextureWrap? texture = null;
-            bool shouldLog = _lastLoggedTerritory != territoryTypeId;
-            if (shouldLog)
+            if (!_mapCache.TryGetValue(territoryTypeId, out var texture) || texture == null)
             {
-                _lastLoggedTerritory = territoryTypeId;
-                Service.PluginLog.Debug($"[ADR] Resolving Background for Territory {territoryTypeId}...");
+                texture = ResolveMapTexture(territoryTypeId);
+
+                if (texture != null && texture.Handle != IntPtr.Zero)
+                    _mapCache[territoryTypeId] = texture;
             }
 
-            if (!string.IsNullOrEmpty(bgPath))
-            {
-                var lastSlash = bgPath.LastIndexOf('/');
-                if (lastSlash != -1)
-                {
-                    var folderPath = bgPath.Substring(0, lastSlash);
-                    var assetName = bgPath.Substring(lastSlash + 1);
-                    var rootPath = folderPath.Replace("/level", "").Replace("/bgpart", "");
-
-                    string[] searchPaths = {
-                        $"{rootPath}/bgpart/{assetName}_floor_a.tex",
-                        $"{rootPath}/bgpart/{assetName}_arena_a.tex",
-                        $"{rootPath}/texture/{assetName}_floor_a.tex",
-                        $"{rootPath}/texture/{assetName}_a.tex",
-                        $"{rootPath}/texture/{assetName}_d.tex"
-                    };
-
-                    foreach (var path in searchPaths)
-                    {
-                        var asset = Service.TextureProvider.GetFromGame(path);
-                        if (asset != null)
-                        {
-                            texture = asset.GetWrapOrDefault();
-                            if (texture != null)
-                            {
-                                if (shouldLog) Service.PluginLog.Debug($"[ADR] FOUND 3D Asset: {path}");
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (texture == null)
-            {
-                var mapRef = territory.Map;
-                if (shouldLog) Service.PluginLog.Debug($"3D Asset failed. Trying 2D Map. MapRowId: {mapRef.RowId}");
-
-                if (mapRef.RowId > 0)
-                {
-                    var mapData = mapRef.Value;
-                    var mapIdStr = mapData.Id.ToString();
-
-                    if (shouldLog) Service.PluginLog.Debug($"Map Data ID: '{mapIdStr}'");
-
-                    var split = mapIdStr.Split('/');
-                    if (split.Length == 2)
-                    {
-                        // standard UI map path: ui/map/{region}/{zone}/{region}_{zone}_m.tex maybe
-                        string mapTexPath = $"ui/map/{mapIdStr}/{split[0]}_{split[1]}_m.tex";
-
-                        if (shouldLog) Service.PluginLog.Debug($"Constructed Map Path: {mapTexPath}");
-
-                        var mapAsset = Service.TextureProvider.GetFromGame(mapTexPath);
-                        if (mapAsset != null)
-                        {
-                            texture = mapAsset.GetWrapOrDefault();
-                            if (shouldLog && texture != null) Service.PluginLog.Debug($"SUCCESS: Loaded 2D Map.");
-                        }
-                        else if (shouldLog)
-                        {
-                            Service.PluginLog.Warning($"2D Map file does not exist: {mapTexPath}");
-                        }
-                    }
-                    else if (shouldLog)
-                    {
-                        Service.PluginLog.Warning($"Map ID '{mapIdStr}' format unexpected (expected 'region/zone').");
-                    }
-                }
-                else if (shouldLog)
-                {
-                    Service.PluginLog.Warning("Territory has no linked Map row (RowId 0).");
-                }
-            }
-
-            if (texture == null)
-            {
-                string? fallbackImage = territoryTypeId switch
-                {
-                    992 or 1321 => "m9.webp",
-                    1323 => "m10.webp",
-                    1325 => "m11p1.webp",
-                    1327 => "m12p1.webp",
-                    _ => null
-                };
-
-                if (fallbackImage != null)
-                {
-                    if (shouldLog) Service.PluginLog.Debug($"Applying fallback map for Territory {territoryTypeId}.");
-                    texture = TextureManager.GetTexture($"PluginImages/arenas/{fallbackImage}");
-                }
-            }
+            var canvasCenter = (view.CanvasOrigin + (view.CanvasSize / 2)) + view.PanOffset;
 
             if (texture != null)
             {
-                var canvasCenter = (canvasOrigin + (canvasSize / 2)) + panOffset;
-                float scale = DefaultPixelsPerYard * ImGuiHelpers.GlobalScale * zoom;
-
-                Vector3 mapAnchorPos = centerWorldPos;
-                float finalMapSize = 512f * ImGuiHelpers.GlobalScale * zoom;
+                float scale = DefaultPixelsPerYard * ImGuiHelpers.GlobalScale * view.Zoom;
+                Vector3 mapAnchorPos = view.CenterWorldPos;
+                float finalMapSize = 512f * ImGuiHelpers.GlobalScale * view.Zoom;
 
                 if (territoryTypeId == 992 || territoryTypeId == 1321 || territoryTypeId == 1323 || territoryTypeId == 1325 || territoryTypeId == 1327)
                 {
@@ -265,33 +185,116 @@ namespace AetherBlackbox.DrawingLogic
                     mapAnchorPos.Z += config.MapOffsetZ;
                 }
 
-                var relPos = mapAnchorPos - centerWorldPos;
+                var relPos = mapAnchorPos - view.CenterWorldPos;
                 var mapScreenCenter = canvasCenter + new Vector2(relPos.X * scale, relPos.Z * scale);
 
                 Vector2 mapTopLeft = mapScreenCenter - new Vector2(finalMapSize / 2);
                 Vector2 mapBottomRight = mapScreenCenter + new Vector2(finalMapSize / 2);
 
-                drawList.PushClipRect(canvasOrigin, canvasOrigin + canvasSize, true);
+                drawList.PushClipRect(view.CanvasOrigin, view.CanvasOrigin + view.CanvasSize, true);
                 drawList.AddImage(texture.Handle, mapTopLeft, mapBottomRight);
                 drawList.PopClipRect();
             }
             else
             {
-                var canvasCenter = (canvasOrigin + (canvasSize / 2)) + panOffset;
-                float mapCurrentSize = 1024f * ImGuiHelpers.GlobalScale * zoom;
+                float mapCurrentSize = 1024f * ImGuiHelpers.GlobalScale * view.Zoom;
 
                 Vector2 mapTopLeft = canvasCenter - new Vector2(mapCurrentSize / 2);
                 Vector2 mapBottomRight = canvasCenter + new Vector2(mapCurrentSize / 2);
 
-                drawList.PushClipRect(canvasOrigin, canvasOrigin + canvasSize, true);
+                drawList.PushClipRect(view.CanvasOrigin, view.CanvasOrigin + view.CanvasSize, true);
                 drawList.AddRectFilled(mapTopLeft, mapBottomRight, 0x1234FFFF);
                 drawList.PopClipRect();
-
-                if (shouldLog) Service.PluginLog.Warning($"Failed to resolve ANY background for Territory {territoryTypeId}.");
             }
         }
 
-        
+        private IDalamudTextureWrap? ResolveMapTexture(uint territoryTypeId)
+        {
+            var territoryNullable = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.TerritoryType>().GetRowOrDefault(territoryTypeId);
+            if (!territoryNullable.HasValue) return null;
+
+            var territory = territoryNullable.Value;
+            string bgPath = territory.Bg.ToString();
+            IDalamudTextureWrap? texture = null;
+            bool shouldLog = _lastLoggedTerritory != territoryTypeId;
+
+            if (shouldLog)
+            {
+                _lastLoggedTerritory = territoryTypeId;
+                Service.PluginLog.Debug($"[ADR] Resolving Background for Territory {territoryTypeId}...");
+            }
+
+            if (!string.IsNullOrEmpty(bgPath))
+            {
+                var lastSlash = bgPath.LastIndexOf('/');
+                if (lastSlash != -1)
+                {
+                    var folderPath = bgPath.Substring(0, lastSlash);
+                    var assetName = bgPath.Substring(lastSlash + 1);
+                    var rootPath = folderPath.Replace("/level", "").Replace("/bgpart", "");
+
+                    string[] searchPaths = {
+                $"{rootPath}/bgpart/{assetName}_floor_a.tex",
+                $"{rootPath}/bgpart/{assetName}_arena_a.tex",
+                $"{rootPath}/texture/{assetName}_floor_a.tex",
+                $"{rootPath}/texture/{assetName}_a.tex",
+                $"{rootPath}/texture/{assetName}_d.tex"
+            };
+
+                    foreach (var path in searchPaths)
+                    {
+                        var asset = Service.TextureProvider.GetFromGame(path);
+                        if (asset != null)
+                        {
+                            texture = asset.GetWrapOrDefault();
+                            if (texture != null)
+                                break;
+                        }
+                    }
+                }
+            }
+
+            if (texture == null)
+            {
+                var mapRef = territory.Map;
+                if (mapRef.RowId > 0)
+                {
+                    var mapData = mapRef.Value;
+                    var mapIdStr = mapData.Id.ToString();
+                    var split = mapIdStr.Split('/');
+                    if (split.Length == 2)
+                    {
+                        string mapTexPath = $"ui/map/{mapIdStr}/{split[0]}_{split[1]}_m.tex";
+                        var mapAsset = Service.TextureProvider.GetFromGame(mapTexPath);
+                        if (mapAsset != null)
+                            texture = mapAsset.GetWrapOrDefault();
+                    }
+                }
+            }
+
+            if (texture == null)
+            {
+                string? fallbackImage = territoryTypeId switch
+                {
+                    992 or 1321 => "m9.webp",
+                    1323 => "m10.webp",
+                    1325 => "m11p1.webp",
+                    1327 => "m12p1.webp",
+                    _ => null
+                };
+
+                if (fallbackImage != null)
+                    texture = TextureManager.GetTexture($"PluginImages/arenas/{fallbackImage}");
+            }
+
+            if (texture == null && shouldLog)
+                Service.PluginLog.Warning($"Failed to resolve ANY background for Territory {territoryTypeId}.");
+
+            return texture;
+        }
+
+
+
         private string GetJobIconName(uint jobId)
         {
             return jobId switch
@@ -323,39 +326,48 @@ namespace AetherBlackbox.DrawingLogic
                 _ => "caster.png" // Fallback
             };
         }
-        private void DrawWaymarks(ImDrawListPtr drawList, List<WaymarkSnapshot> waymarks, Vector2 origin, Vector2 size, Vector3 centerWorldPos, float zoom, Vector2 panOffset)
+        private void DrawWaymarks(ImDrawListPtr drawList, List<WaymarkSnapshot> waymarks, ViewContext view)
         {
             if (waymarks == null) return;
-            var canvasCenter = (origin + (size / 2)) + panOffset;
-            float scale = ReplayRenderer.DefaultPixelsPerYard * ImGuiHelpers.GlobalScale * zoom;
+
+            var canvasCenter = (view.CanvasOrigin + (view.CanvasSize / 2)) + view.PanOffset;
+            float scale = DefaultPixelsPerYard * ImGuiHelpers.GlobalScale * view.Zoom;
 
             foreach (var wm in waymarks)
             {
                 if (!wm.Active) continue;
 
-                var relPos = new Vector3(wm.X, 0, wm.Z) - centerWorldPos;
+                var relPos = new Vector3(wm.X, 0, wm.Z) - view.CenterWorldPos;
                 var screenX = canvasCenter.X + (relPos.X * scale);
                 var screenY = canvasCenter.Y + (relPos.Z * scale);
                 var screenPos = new Vector2(screenX, screenY);
 
-                if (screenPos.X < origin.X - 30 || screenPos.X > origin.X + size.X + 30 ||
-                    screenPos.Y < origin.Y - 30 || screenPos.Y > origin.Y + size.Y + 30)
+                if (screenPos.X < view.CanvasOrigin.X - 30 || screenPos.X > view.CanvasOrigin.X + view.CanvasSize.X + 30 ||
+                    screenPos.Y < view.CanvasOrigin.Y - 30 || screenPos.Y > view.CanvasOrigin.Y + view.CanvasSize.Y + 30)
                     continue;
 
-                string iconName = wm.ID switch
+                if (!_waymarkIconCache.TryGetValue(wm.ID, out var texture) || texture == null)
                 {
-                    0 => "A.png",
-                    1 => "B.png",
-                    2 => "C.png",
-                    3 => "D.png",
-                    4 => "1_waymark.png",
-                    5 => "2_waymark.png",
-                    6 => "3_waymark.png",
-                    7 => "4_waymark.png",
-                    _ => "A.png"
-                };
+                    string iconName = wm.ID switch
+                    {
+                        0 => "A.png",
+                        1 => "B.png",
+                        2 => "C.png",
+                        3 => "D.png",
+                        4 => "1_waymark.png",
+                        5 => "2_waymark.png",
+                        6 => "3_waymark.png",
+                        7 => "4_waymark.png",
+                        _ => "A.png"
+                    };
 
-                var texture = TextureManager.GetTexture($"PluginImages/toolbar/{iconName}");
+                    texture = TextureManager.GetTexture($"PluginImages/toolbar/{iconName}");
+
+                    if (texture != null && texture.Handle != IntPtr.Zero)
+                        _waymarkIconCache[wm.ID] = texture;
+                }
+
+
                 if (texture != null)
                 {
                     float iconSize = 24f * ImGuiHelpers.GlobalScale;
@@ -363,6 +375,5 @@ namespace AetherBlackbox.DrawingLogic
                 }
             }
         }
-        
     }
 }
