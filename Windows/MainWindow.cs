@@ -70,6 +70,7 @@ namespace AetherBlackbox.Windows
 
         private PullSession? selectedPull;
         private const float SidebarWidth = 350f;
+        private const ulong EmptyTargetID = 0xE0000000;
 
         public interface IPlanAction
         {
@@ -158,8 +159,7 @@ namespace AetherBlackbox.Windows
                 }
             }
 
-            if (this.selectedDrawables.Count > 0 && this.previousSelectionCount == 0)
-            { }
+            // TODO: Reserved for future selection highlight thing
             this.previousSelectionCount = this.selectedDrawables.Count;
         }
 
@@ -587,7 +587,7 @@ namespace AetherBlackbox.Windows
                 if (closestFrame.Targets != null && idx < closestFrame.Targets.Count)
                 {
                     ulong targetId = closestFrame.Targets[idx];
-                    if (targetId != 0 && targetId != 0xE0000000)
+                    if (targetId != 0 && targetId != EmptyTargetID)
                     {
                         int targetIdx = closestFrame.Ids.IndexOf((uint)targetId);
                         if (targetIdx != -1 && recording.Metadata.TryGetValue((uint)targetId, out var targetMeta))

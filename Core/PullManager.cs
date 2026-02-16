@@ -274,11 +274,7 @@ namespace AetherBlackbox.Core
                 var folder = Path.Combine(Service.PluginInterface.ConfigDirectory.FullName, "replays");
                 if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
-                var cleanZone = session.ZoneName;
-                foreach (var c in Path.GetInvalidFileNameChars())
-                {
-                    cleanZone = cleanZone.Replace(c.ToString(), "");
-                }
+                var cleanZone = string.Concat(session.ZoneName.Split(Path.GetInvalidFileNameChars()));
                 if (string.IsNullOrWhiteSpace(cleanZone)) cleanZone = "Unknown";
 
                 var filename = $"{session.StartTime:yyyy-MM-dd_HH-mm-ss}_{cleanZone}.json.gz";

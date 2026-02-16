@@ -46,21 +46,16 @@ namespace AetherBlackbox.DrawingLogic
                 {
                     if (uint.TryParse(resourcePath.AsSpan("luminaicon:".Length), out uint iconId))
                     {
-                        // Construct the internal game path for the icon
                         var iconPath = $"ui/icon/{iconId / 1000 * 1000:000000}/{iconId:000000}.tex";
-
-                        // Use GetTexture (which IS a method of ITextureProvider)
                         var iconTex = Service.TextureProvider.GetFromGame(iconPath);
 
                         if (iconTex != null)
                         {
-                            // Convert it to IDalamudTextureWrap using GetWrapOrDefault()
                             var wrappedTex = iconTex.GetWrapOrDefault();
-                           
                             return wrappedTex;
                         }
                     }
-                    FailedDownloads.Add(resourcePath); // Failed to parse or get icon
+                    FailedDownloads.Add(resourcePath);
                     return null;
                 }
                 catch (Exception ex)
@@ -75,12 +70,10 @@ namespace AetherBlackbox.DrawingLogic
             {
                 if (LoadedTextures.TryGetValue(resourcePath, out var tex))
                 {
-                    // using .Equals() to resolve ambiguity
                     if (tex == null || tex.Handle.Handle.Equals(IntPtr.Zero))
                     {
                         LoadedTextures.TryRemove(resourcePath, out _);
                         tex?.Dispose();
-                        // Fall through to regeneration logic below
                     }
                     else
                     {
