@@ -37,17 +37,24 @@ namespace AetherBlackbox.Core
                 var cutoff = DateTime.Now.AddDays(-days);
                 Task.Run(() =>
                 {
-                    var files = Directory.GetFiles(folder, "*.json.gz");
-                    int deleted = 0;
-                    foreach (var file in files)
+                    try
                     {
-                        if (File.GetCreationTime(file) < cutoff)
+                        var files = Directory.GetFiles(folder, "*.json.gz");
+                        int deleted = 0;
+                        foreach (var file in files)
                         {
-                            try { File.Delete(file); deleted++; }
-                            catch (Exception ex) { Service.PluginLog.Warning(ex, $"Failed to delete old replay file: {file}"); }
+                            if (File.GetCreationTime(file) < cutoff)
+                            {
+                                try { File.Delete(file); deleted++; }
+                                catch (Exception ex) { Service.PluginLog.Warning(ex, $"Failed to delete old replay file: {file}"); }
+                            }
                         }
+                        if (deleted > 0) Service.PluginLog.Info($"[PullManager] Auto-cleanup: Deleted {deleted} replay files older than {days} days.");
                     }
-                    if (deleted > 0) Service.PluginLog.Info($"[PullManager] Auto-cleanup: Deleted {deleted} replay files older than {days} days.");
+                    catch (Exception ex)
+                    {
+                        Service.PluginLog.Error(ex, "Background cleanup task encountered a critical error.");
+                    }
                 });
             }
             catch (Exception ex)
@@ -274,8 +281,9 @@ namespace AetherBlackbox.Core
                 var folder = Path.Combine(Service.PluginInterface.ConfigDirectory.FullName, "replays");
                 if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
-                var cleanZone = string.Concat(session.ZoneName.Split(Path.GetInvalidFileNameChars()));
-                if (string.IsNullOrWhiteSpace(cleanZone)) cleanZone = "Unknown";
+                var invalidChars = Path.GetInvalidFileNameChars();
+                var cleanZone = new string(session.ZoneName.Select(c => invalidChars.Contains(c) ? '_' : c).ToArray());
+                if (string.IsNullOrWhiteSpace(cleanZone) || cleanZone.All(c => c == '_')) cleanZone = "Unknown";
 
                 var filename = $"{session.StartTime:yyyy-MM-dd_HH-mm-ss}_{cleanZone}.json.gz";
                 var fullPath = Path.Combine(folder, filename);

@@ -21,10 +21,17 @@ namespace AetherBlackbox.DrawingLogic
 {
     public static class TextureManager
     {
+        private class ThreadSafeStringSet
+        {
+            private readonly ConcurrentDictionary<string, byte> _dict = new();
+            public void Add(string item) => _dict.TryAdd(item, 0);
+            public bool Contains(string item) => _dict.ContainsKey(item);
+        }
+
         private static readonly ConcurrentDictionary<string, IDalamudTextureWrap?> LoadedTextures = new();
         private static readonly ConcurrentDictionary<string, byte[]?> LoadedImageData = new();
-        private static readonly ConcurrentBag<string> FailedDownloads = new();
-        private static readonly ConcurrentBag<string> PendingDownloads = new();
+        private static readonly ThreadSafeStringSet FailedDownloads = new();
+        private static readonly ThreadSafeStringSet PendingDownloads = new();
         private static readonly Dictionary<string, Task<IDalamudTextureWrap>> PendingCreationTasks = new();
         private static readonly ConcurrentQueue<(string resourcePath, byte[] data)> TextureCreationQueue = new();
         private static readonly HttpClient HttpClient = new();

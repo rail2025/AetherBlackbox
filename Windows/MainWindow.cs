@@ -472,13 +472,26 @@ namespace AetherBlackbox.Windows
             ImGui.BeginDisabled(mapLocked);
 
             float buttonSize = ImGui.GetFrameHeight();
-            if (ImGui.Button("Up", new Vector2(0, buttonSize))) { configuration.MapOffsetZ -= 1f; configuration.Save(); }
-            ImGui.SameLine();
-            if (ImGui.Button("Down", new Vector2(0, buttonSize))) { configuration.MapOffsetZ += 1f; configuration.Save(); }
-            ImGui.SameLine();
-            if (ImGui.Button("Left", new Vector2(0, buttonSize))) { configuration.MapOffsetX -= 1f; configuration.Save(); }
-            ImGui.SameLine();
-            if (ImGui.Button("Right", new Vector2(0, buttonSize))) { configuration.MapOffsetX += 1f; configuration.Save(); }
+            var mapControls = new (string Label, System.Action OffsetAction)[]
+            {
+                ("Up", () => configuration.MapOffsetZ -= 1f),
+                ("Down", () => configuration.MapOffsetZ += 1f),
+                ("Left", () => configuration.MapOffsetX -= 1f),
+                ("Right", () => configuration.MapOffsetX += 1f)
+            };
+
+            for (int i = 0; i < mapControls.Length; i++)
+            {
+                if (ImGui.Button(mapControls[i].Label, new Vector2(0, buttonSize)))
+                {
+                    mapControls[i].OffsetAction.Invoke();
+                    configuration.Save();
+                }
+
+                if (i < mapControls.Length - 1)
+                    ImGui.SameLine();
+            }
+
             //ImGui.SameLine();
             ImGui.SameLine(0, 20f * ImGuiHelpers.GlobalScale);
 
@@ -761,14 +774,32 @@ namespace AetherBlackbox.Windows
 
         private int GetLayerPriority(DrawMode mode)
         {
+            string modeName = mode.ToString();
+
+            if (modeName == nameof(DrawMode.TextTool)) return 10;
+            if (modeName == nameof(DrawMode.EmojiImage)) return 6;
+            if (modeName == nameof(DrawMode.Image)) return 0;
+
+            if (modeName.StartsWith("Waymark") ||
+                modeName.StartsWith("Role") ||
+                modeName.StartsWith("Party") ||
+                modeName.StartsWith("Dot") ||
+                modeName.EndsWith("Icon") ||
+                modeName is "SquareImage" or "CircleMarkImage" or "TriangleImage" or "PlusImage")
+            {
+                return 5;
+            }
+
+            if (modeName.EndsWith("AoEImage") ||
+                modeName is "BossImage" or "FlareImage" or "LineStackImage" or "SpreadImage" or "StackImage")
+            {
+                return 3;
+            }
+
             return mode switch
             {
-                DrawMode.TextTool => 10,
-                DrawMode.EmojiImage => 6,
-                DrawMode.Image => 0,
-                DrawMode.Waymark1Image or DrawMode.Waymark2Image or DrawMode.Waymark3Image or DrawMode.Waymark4Image or DrawMode.WaymarkAImage or DrawMode.WaymarkBImage or DrawMode.WaymarkCImage or DrawMode.WaymarkDImage or DrawMode.RoleTankImage or DrawMode.RoleHealerImage or DrawMode.RoleMeleeImage or DrawMode.RoleRangedImage or DrawMode.Party1Image or DrawMode.Party2Image or DrawMode.Party3Image or DrawMode.Party4Image or DrawMode.Party5Image or DrawMode.Party6Image or DrawMode.Party7Image or DrawMode.Party8Image or DrawMode.SquareImage or DrawMode.CircleMarkImage or DrawMode.TriangleImage or DrawMode.PlusImage or DrawMode.StackIcon or DrawMode.SpreadIcon or DrawMode.TetherIcon or DrawMode.BossIconPlaceholder or DrawMode.AddMobIcon or DrawMode.Dot1Image or DrawMode.Dot2Image or DrawMode.Dot3Image or DrawMode.Dot4Image or DrawMode.Dot5Image or DrawMode.Dot6Image or DrawMode.Dot7Image or DrawMode.Dot8Image => 5,
-                DrawMode.BossImage or DrawMode.CircleAoEImage or DrawMode.DonutAoEImage or DrawMode.FlareImage or DrawMode.LineStackImage or DrawMode.SpreadImage or DrawMode.StackImage => 3,
-                DrawMode.Pen or DrawMode.StraightLine or DrawMode.Rectangle or DrawMode.Circle or DrawMode.Arrow or DrawMode.Cone or DrawMode.Dash or DrawMode.Donut => 2,
+                DrawMode.Pen or DrawMode.StraightLine or DrawMode.Rectangle or DrawMode.Circle or
+                DrawMode.Arrow or DrawMode.Cone or DrawMode.Dash or DrawMode.Donut => 2,
                 _ => 1,
             };
         }
@@ -858,18 +889,58 @@ namespace AetherBlackbox.Windows
         }
         private uint GetActionInRange(float currentTime, float startOffset, float endOffset)
         {
-            if (ActiveDeathReplay == null) return 0;
-            var recording = ActiveDeathReplay.ReplayData;
+            if (ActiveDeathReplay == null)
+                return 0;
 
-            foreach (var f in recording.Frames)
+            var frames = ActiveDeathReplay.ReplayData?.Frames;
+            if (frames == null || frames.Count == 0)
+                return 0;
+
+            float targetStart = currentTime + startOffset;
+            float targetEnd = currentTime + endOffset;
+
+            if (targetEnd < targetStart)
+                return 0;
+
+            int left = 0;
+            int right = frames.Count - 1;
+            int startIndex = frames.Count;
+
+            while (left <= right)
             {
-                if (f.TimeOffset >= currentTime + startOffset && f.TimeOffset <= currentTime + endOffset)
+                int mid = (left + right) / 2;
+
+                if (frames[mid].TimeOffset < targetStart)
+                    left = mid + 1;
+                else
                 {
-                    int idx = f.Ids.IndexOf((uint)selectedEntityId);
-                    if (idx != -1 && f.Actions != null && f.Actions.Count > idx && f.Actions[idx] != 0)
-                        return f.Actions[idx];
+                    startIndex = mid;
+                    right = mid - 1;
                 }
             }
+
+            if (startIndex >= frames.Count)
+                return 0;
+
+            for (int i = startIndex; i < frames.Count; i++)
+            {
+                var f = frames[i];
+
+                if (f.TimeOffset > targetEnd)
+                    break;
+
+                if (f.Ids == null || f.Actions == null)
+                    continue;
+
+                int idx = f.Ids.IndexOf((uint)selectedEntityId);
+                if (idx >= 0 && idx < f.Actions.Count)
+                {
+                    uint action = f.Actions[idx];
+                    if (action != 0)
+                        return action;
+                }
+            }
+
             return 0;
         }
 
