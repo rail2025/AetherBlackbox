@@ -230,8 +230,6 @@ namespace AetherBlackbox.Core
 
                     bool statusChanged = lastState.ObjectId == 0 || sHash != lastRecordedStates[player.EntityId].StatusHash;
 
-                    if (!shouldRecordMovement && !shouldRecordAttributes && !statusChanged && !isNewEntity && !player.IsCasting && actionToLog == 0)
-                        continue;
                     var snapshot = new EntityPositionSnapshot
                     {
                         ObjectId = player.EntityId,

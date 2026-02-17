@@ -38,7 +38,13 @@ namespace AetherBlackbox.DrawingLogic
             }
         }
 
-        private static readonly ConcurrentDictionary<string, IDalamudTextureWrap?> LoadedTextures = new();
+        private class TextureEntry
+        {
+            public IDalamudTextureWrap? Texture;
+            public Task<IDalamudTextureWrap>? PendingCreationTask;
+        }
+
+        private static readonly ConcurrentDictionary<string, TextureEntry> LoadedTextures = new();
         private static readonly ConcurrentDictionary<string, byte[]?> LoadedImageData = new();
         private static readonly ThreadSafeStringSet FailedDownloads = new();
         private static readonly ThreadSafeStringSet PendingDownloads = new();
@@ -58,7 +64,6 @@ namespace AetherBlackbox.DrawingLogic
 
             if (resourcePath.StartsWith("luminaicon:"))
             {
-          
                 try
                 {
                     if (uint.TryParse(resourcePath.AsSpan("luminaicon:".Length), out uint iconId))
@@ -83,57 +88,42 @@ namespace AetherBlackbox.DrawingLogic
                 }
             }
 
-            if (resourcePath.StartsWith("emoji:"))
+            if (!LoadedTextures.TryGetValue(resourcePath, out var entry))
             {
-                if (LoadedTextures.TryGetValue(resourcePath, out var tex))
+                if (!PendingDownloads.Contains(resourcePath) && !PendingCreationTasks.ContainsKey(resourcePath))
                 {
-                    if (tex == null || tex.Handle.Handle.Equals(IntPtr.Zero))
+                    if (resourcePath.StartsWith("emoji:"))
                     {
-                        LoadedTextures.TryRemove(resourcePath, out _);
-                        tex?.Dispose();
+                        string emojiChar = resourcePath.Substring("emoji:".Length);
+                        if (!string.IsNullOrEmpty(emojiChar))
+                        {
+                            Service.PluginLog?.Debug($"[TextureManager] Lazy-loading emoji texture: {emojiChar}");
+                            PendingDownloads.Add(resourcePath);
+                            Task.Run(() => GenerateAndLoadEmojiTexture(emojiChar, resourcePath));
+                        }
                     }
                     else
                     {
-                        return tex;
-                    }
-                }
-
-                // Lazy Load: If not in cache and not pending, trigger generation now.
-                if (!PendingDownloads.Contains(resourcePath))
-                {
-                    string emojiChar = resourcePath.Substring("emoji:".Length);
-                    if (!string.IsNullOrEmpty(emojiChar))
-                    {
-                        Service.PluginLog?.Debug($"[TextureManager] Lazy-loading emoji texture: {emojiChar}");
+                        Service.PluginLog?.Debug($"[TextureManager] New texture request. Initiating download for: {resourcePath}");
                         PendingDownloads.Add(resourcePath);
-                        Task.Run(() => GenerateAndLoadEmojiTexture(emojiChar, resourcePath));
+                        Task.Run(() => LoadTextureInBackground(resourcePath));
                     }
                 }
                 return null;
             }
 
-            if (LoadedTextures.TryGetValue(resourcePath, out var existingTex))
+            if (entry.PendingCreationTask != null)
+                return null;
+
+            if (entry.Texture == null || entry.Texture.Handle.Handle.Equals(IntPtr.Zero))
             {
-                // using .Equals() to resolve ambiguity
-                if (existingTex == null || existingTex.Handle.Handle.Equals(IntPtr.Zero))
-                {
-                    LoadedTextures.TryRemove(resourcePath, out _);
-                    existingTex?.Dispose();
-                    return null;
-                }
-                return existingTex;
+                LoadedTextures.TryRemove(resourcePath, out _);
+                entry.Texture?.Dispose();
+                return null;
             }
 
-            if (!PendingDownloads.Contains(resourcePath) && !PendingCreationTasks.ContainsKey(resourcePath))
-            {
-                Service.PluginLog?.Debug($"[TextureManager] New texture request. Initiating download for: {resourcePath}");
-                PendingDownloads.Add(resourcePath);
-                Task.Run(() => LoadTextureInBackground(resourcePath));
-            }
-
-            return null;
+            return entry.Texture;
         }
-
 
         public static void PreloadEmojiTexture(string emojiChar)
         {
@@ -159,6 +149,7 @@ namespace AetherBlackbox.DrawingLogic
             {
                 Service.PluginLog?.Error(ex, $"[TextureManager] Failed to generate texture for emoji: {emojiChar}");
                 FailedDownloads.Add(resourcePath);
+                PendingDownloads.Remove(resourcePath);
             }
         }
 
@@ -172,11 +163,18 @@ namespace AetherBlackbox.DrawingLogic
         {
             if (Service.TextureProvider == null) return;
 
-            if (TextureCreationQueue.TryDequeue(out var item))
+            while (TextureCreationQueue.TryDequeue(out var item))
             {
                 Service.PluginLog?.Debug($"[TextureManager] Dequeued data for {item.resourcePath}. Starting texture creation task.");
                 var creationTask = Service.TextureProvider.CreateFromImageAsync(item.data);
                 PendingCreationTasks[item.resourcePath] = creationTask;
+
+                if (!LoadedTextures.TryGetValue(item.resourcePath, out var entry))
+                {
+                    entry = new TextureEntry();
+                    LoadedTextures[item.resourcePath] = entry;
+                }
+                entry.PendingCreationTask = creationTask;
             }
 
             if (PendingCreationTasks.Any())
@@ -189,9 +187,10 @@ namespace AetherBlackbox.DrawingLogic
                     Service.PluginLog?.Debug($"[TextureManager] Task for {resourcePath} completed with status: {task.Status}");
                     try
                     {
-                        if (task.IsCompletedSuccessfully)
+                        if (task.IsCompletedSuccessfully && LoadedTextures.TryGetValue(resourcePath, out var entry))
                         {
-                            LoadedTextures[resourcePath] = task.Result;
+                            entry.Texture = task.Result;
+                            entry.PendingCreationTask = null;
                             Service.PluginLog?.Info($"[TextureManager] Successfully created and cached texture for: {resourcePath}");
                         }
                         else
@@ -209,6 +208,7 @@ namespace AetherBlackbox.DrawingLogic
                     finally
                     {
                         PendingCreationTasks.Remove(resourcePath);
+                        PendingDownloads.Remove(resourcePath);
                     }
                 }
             }
@@ -219,7 +219,7 @@ namespace AetherBlackbox.DrawingLogic
             try
             {
                 byte[]? rawImageBytes = null;
-                if(resourcePath.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                if (resourcePath.StartsWith("http", StringComparison.OrdinalIgnoreCase))
                 {
                     using var request = new HttpRequestMessage(HttpMethod.Get, resourcePath);
                     if (resourcePath.Contains("raidplan.io"))
@@ -230,17 +230,11 @@ namespace AetherBlackbox.DrawingLogic
                     response.EnsureSuccessStatusCode();
                     rawImageBytes = await response.Content.ReadAsByteArrayAsync();
                 }
-                /*else 
-                if (File.Exists(resourcePath))
-                {
-                    rawImageBytes = await File.ReadAllBytesAsync(resourcePath);
-                }*/
                 else
                 {
                     var assembly = Assembly.GetExecutingAssembly();
                     var targetName = $"{assembly.GetName().Name}.{resourcePath.Replace("\\", ".").Replace("/", ".")}";
 
-                    // Fuzzy match: Find name ignoring case
                     var foundResource = assembly.GetManifestResourceNames()
                         .FirstOrDefault(n => n.Equals(targetName, StringComparison.OrdinalIgnoreCase));
 
@@ -282,9 +276,6 @@ namespace AetherBlackbox.DrawingLogic
             {
                 Service.PluginLog?.Error(ex, $"[TextureManager] Download/processing failed for: {resourcePath}");
                 FailedDownloads.Add(resourcePath);
-            }
-            finally
-            {
                 PendingDownloads.Remove(resourcePath);
             }
         }
@@ -330,7 +321,7 @@ namespace AetherBlackbox.DrawingLogic
         {
             foreach (var texPair in LoadedTextures)
             {
-                texPair.Value?.Dispose();
+                texPair.Value.Texture?.Dispose();
             }
             LoadedTextures.Clear();
             HttpClient.Dispose();
