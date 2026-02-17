@@ -257,15 +257,22 @@ public class CombatEventCapture : IDisposable {
 
             var effects = (StatusEffectAddEntry*)message->Effects;
             var effectCount = Math.Min(message->EffectCount, 4u);
-            for (uint j = 0; j < effectCount; j++) {
+            string? cachedSource = null;
+            uint lastSourceId = 0;
+
+            for (uint j = 0; j < effectCount; j++)
+            {
                 var effect = effects[j];
                 var effectId = effect.EffectId;
-                if (effectId <= 0)
+                if (effectId <= 0 || effect.Duration < 0)
                     continue;
-                // negative durations will remove effect
-                if (effect.Duration < 0)
-                    continue;
-                var source = Service.ObjectTable.SearchById(effect.SourceActorId)?.Name.TextValue;
+
+                if (cachedSource == null || effect.SourceActorId != lastSourceId)
+                {
+                    cachedSource = Service.ObjectTable.SearchById(effect.SourceActorId)?.Name.TextValue;
+                    lastSourceId = effect.SourceActorId;
+                }
+
                 var status = Service.DataManager.GetExcelSheet<Status>().GetRowOrDefault(effectId);
 
                 combatEvents.AddEntry(targetId,
@@ -277,7 +284,7 @@ public class CombatEventCapture : IDisposable {
                         Status = status?.Name.ExtractText(),
                         Description = status?.Description.ExtractText(),
                         Category = (StatusCategory)(status?.StatusCategory ?? 0),
-                        Source = source,
+                        Source = cachedSource,
                         Duration = effect.Duration
                     });
             }

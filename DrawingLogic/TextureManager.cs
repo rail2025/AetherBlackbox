@@ -28,6 +28,10 @@ namespace AetherBlackbox.DrawingLogic
             {
                 lock (_set) _set.Add(item);
             }
+            public void Remove(string item)
+            {
+                lock (_set) _set.Remove(item);
+            }
             public bool Contains(string item)
             {
                 lock (_set) return _set.Contains(item);
@@ -278,6 +282,10 @@ namespace AetherBlackbox.DrawingLogic
             {
                 Service.PluginLog?.Error(ex, $"[TextureManager] Download/processing failed for: {resourcePath}");
                 FailedDownloads.Add(resourcePath);
+            }
+            finally
+            {
+                PendingDownloads.Remove(resourcePath);
             }
         }
 

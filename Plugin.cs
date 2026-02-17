@@ -59,7 +59,7 @@ public class Plugin : IDalamudPlugin
         RecapConfigWindow = new RecapConfigWindow(this);
         RecapWindow = new AetherBlackboxWindow(this);
 
-        // Use CanvasConfigWindow for the Canvas config, NOT RecapConfigWindow
+        // Use CanvasConfigWindow is for the Canvas config, if/when drawing tools are added back
         CanvasConfigWindow = new CanvasConfigWindow(this);
         AboutWindow = new AboutWindow();
 

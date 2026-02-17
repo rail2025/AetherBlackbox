@@ -95,6 +95,13 @@ namespace AetherBlackbox.DrawingLogic
                 Rot(size / 2, size / 2), Rot(-size / 2, size / 2),
                 new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1),
                 0xFFFFFFFF);
+            float iconRadius = size / 2;
+            var rotX = (float)Math.Sin(state.Rotation);
+            var rotY = (float)Math.Cos(state.Rotation);
+            var arrowStart = center;
+            var arrowEnd = center + (new Vector2(rotX, rotY) * (iconRadius + (5f * ImGuiHelpers.GlobalScale)));
+
+            drawList.AddLine(arrowStart, arrowEnd, ImGui.GetColorU32(new Vector4(1f, 0f, 0f, 0.8f)), 3f * ImGuiHelpers.GlobalScale);
         }
 
         private void DrawPlayerIcon(ImDrawListPtr drawList, ReplayEntityState state, ReplayMetadata meta, Vector2 screenPos)

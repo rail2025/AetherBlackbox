@@ -189,8 +189,8 @@ namespace AetherBlackbox.Core
             foreach (var obj in Service.ObjectTable)
             {
                 uint currentAction = 0;
-
-                bool isNewEntity = false;
+                bool isNewEntity = !lastRecordedStates.ContainsKey(obj.EntityId);
+                /*bool isNewEntity = false;
                 if (plugin.PullManager?.CurrentSession != null)
                 {
                     var metadata = plugin.PullManager.CurrentSession.ReplayData.Metadata;
@@ -198,7 +198,7 @@ namespace AetherBlackbox.Core
                     {
                         isNewEntity = true;
                     }
-                }
+                }*/ // infinite display of entitites
 
                 bool shouldRecordMovement = true;
                 bool shouldRecordAttributes = false;

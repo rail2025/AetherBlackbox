@@ -86,20 +86,19 @@ namespace AetherBlackbox.Core
             if (CurrentSession == null) return;
 
             CurrentSession.EndTime = DateTime.Now;
-            Service.PluginLog.Info($"EndSession: CurrentSession has {CurrentSession.Deaths.Count} deaths BEFORE filter. Window: {CurrentSession.StartTime:HH:mm:ss.fff} to {CurrentSession.EndTime:Value:HH:mm:ss.fff}");
+            Service.PluginLog.Info($"EndSession: CurrentSession has {CurrentSession.Deaths.Count} deaths BEFORE filter.");
             plugin.PositionRecorder.StopRecording();
             CurrentSession.ReplayData = plugin.PositionRecorder.GetReplayData();
 
             lock (CurrentSession.Deaths)
             {
-                foreach (var death in CurrentSession.Deaths)
+                var sorted = CurrentSession.Deaths.OrderByDescending(d => d.TimeOfDeath).ToList();
+                CurrentSession.Deaths.Clear();
+                foreach (var death in sorted)
                 {
                     death.ReplayData = CurrentSession.ReplayData;
+                    CurrentSession.Deaths.Add(death);
                 }
-
-                var sortedDeaths = CurrentSession.Deaths.OrderByDescending(d => d.TimeOfDeath).ToList();
-                CurrentSession.Deaths.Clear();
-                CurrentSession.Deaths.AddRange(sortedDeaths);
             }
 
             // Determine Boss Name (highest damage taken)
