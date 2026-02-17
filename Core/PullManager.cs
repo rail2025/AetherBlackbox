@@ -90,29 +90,16 @@ namespace AetherBlackbox.Core
             plugin.PositionRecorder.StopRecording();
             CurrentSession.ReplayData = plugin.PositionRecorder.GetReplayData();
 
-            var sessionDeaths = new List<AetherBlackbox.Events.Death>();
-
-            if (plugin.DeathsPerPlayer != null)
-            {
-                foreach (var playerDeaths in plugin.DeathsPerPlayer.Values)
-                {
-                    foreach (var death in playerDeaths)
-                    {
-                        if (death.TimeOfDeath >= CurrentSession.StartTime && death.TimeOfDeath <= CurrentSession.EndTime)
-                        {
-                            death.ReplayData = CurrentSession.ReplayData;
-                            sessionDeaths.Add(death);
-                        }
-                    }
-                }
-            }
-
-            Service.PluginLog.Info($"EndSession: Filter found {sessionDeaths.Count} deaths in global storage.");
-            // Sort deaths: Most recent first
             lock (CurrentSession.Deaths)
             {
+                foreach (var death in CurrentSession.Deaths)
+                {
+                    death.ReplayData = CurrentSession.ReplayData;
+                }
+
+                var sortedDeaths = CurrentSession.Deaths.OrderByDescending(d => d.TimeOfDeath).ToList();
                 CurrentSession.Deaths.Clear();
-                CurrentSession.Deaths.AddRange(sessionDeaths.OrderByDescending(d => d.TimeOfDeath));
+                CurrentSession.Deaths.AddRange(sortedDeaths);
             }
 
             // Determine Boss Name (highest damage taken)
@@ -133,7 +120,7 @@ namespace AetherBlackbox.Core
             var sessionToSave = CurrentSession;
             Task.Run(() => SaveSession(sessionToSave));
 
-            Service.PluginLog.Information($"Session {CurrentSession.PullNumber} ended. Recorded {sessionDeaths.Count} deaths.");
+            Service.PluginLog.Information($"Session {CurrentSession.PullNumber} ended. Recorded {CurrentSession.Deaths.Count} deaths.");
 
             CurrentSession = null;
         }

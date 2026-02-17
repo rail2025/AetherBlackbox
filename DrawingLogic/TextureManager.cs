@@ -23,9 +23,15 @@ namespace AetherBlackbox.DrawingLogic
     {
         private class ThreadSafeStringSet
         {
-            private readonly ConcurrentDictionary<string, byte> _dict = new();
-            public void Add(string item) => _dict.TryAdd(item, 0);
-            public bool Contains(string item) => _dict.ContainsKey(item);
+            private readonly HashSet<string> _set = new();
+            public void Add(string item)
+            {
+                lock (_set) _set.Add(item);
+            }
+            public bool Contains(string item)
+            {
+                lock (_set) return _set.Contains(item);
+            }
         }
 
         private static readonly ConcurrentDictionary<string, IDalamudTextureWrap?> LoadedTextures = new();

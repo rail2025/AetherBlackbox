@@ -112,6 +112,7 @@ public class Plugin : IDalamudPlugin
         PositionRecorder.Dispose();
         PullManager.Dispose();
         Capture.Dispose();
+        DrawingLogic.TextureManager.Dispose();
         RecapConfigWindow.Dispose();
         CanvasConfigWindow.Dispose();
         MainWindow.Dispose();
