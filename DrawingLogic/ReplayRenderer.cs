@@ -228,7 +228,7 @@ namespace AetherBlackbox.DrawingLogic
             if (shouldLog)
             {
                 _lastLoggedTerritory = territoryTypeId;
-                Service.PluginLog.Debug($"[ADR] Resolving Background for Territory {territoryTypeId}...");
+                Service.PluginLog.Debug($"[ABB] Resolving Background for Territory {territoryTypeId}...");
             }
 
             if (!string.IsNullOrEmpty(bgPath))
@@ -238,15 +238,21 @@ namespace AetherBlackbox.DrawingLogic
                 {
                     var folderPath = bgPath.Substring(0, lastSlash);
                     var assetName = bgPath.Substring(lastSlash + 1);
-                    var rootPath = folderPath.Replace("/level", "").Replace("/bgpart", "");
 
-                    string[] searchPaths = {
-                $"{rootPath}/bgpart/{assetName}_floor_a.tex",
-                $"{rootPath}/bgpart/{assetName}_arena_a.tex",
-                $"{rootPath}/texture/{assetName}_floor_a.tex",
-                $"{rootPath}/texture/{assetName}_a.tex",
-                $"{rootPath}/texture/{assetName}_d.tex"
-            };
+                    if (folderPath.EndsWith("/level", StringComparison.Ordinal))
+                        folderPath = folderPath[..^6];
+
+                    string[] searchPaths =
+                    {
+                        $"{folderPath}/bgpart/floor_a.tex",
+                        $"{folderPath}/bgpart/arena_a.tex",
+
+                        $"{folderPath}/bgpart/{assetName}_floor_a.tex",
+                        $"{folderPath}/bgpart/{assetName}_arena_a.tex",
+
+                        $"{folderPath}/bgpart/{assetName}/floor_a.tex",
+                        $"{folderPath}/bgpart/{assetName}/arena_a.tex",
+                    };
 
                     foreach (var path in searchPaths)
                     {
@@ -255,11 +261,24 @@ namespace AetherBlackbox.DrawingLogic
                         {
                             texture = asset.GetWrapOrDefault();
                             if (texture != null)
+                            {
+                                if (shouldLog)
+                                    Service.PluginLog.Debug($"[ABB] Found texture at: {path}");
                                 break;
+                            }
+                            else if (shouldLog)
+                            {
+                                Service.PluginLog.Debug($"[ABB] Asset loaded but wrap is null: {path}");
+                            }
+                        }
+                        else if (shouldLog)
+                        {
+                            Service.PluginLog.Debug($"[ABB] Not found: {path}");
                         }
                     }
                 }
             }
+
 
             if (texture == null)
             {

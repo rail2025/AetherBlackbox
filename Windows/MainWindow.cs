@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 namespace AetherBlackbox.Windows
@@ -65,6 +66,9 @@ namespace AetherBlackbox.Windows
         private float currentBrushThickness;
         private bool currentShapeFilled = false;
         private Vector2 currentCanvasDrawSize;
+
+        private bool isLaserMode = false;
+        private DrawableLaser? currentLaser = null;
 
         private List<Lumina.Excel.Sheets.Status> statusSearchResults = new();
 
@@ -347,7 +351,6 @@ namespace AetherBlackbox.Windows
         {
             if (ActiveDeathReplay != null)
             {
-                ImGui.SameLine();
                 if (ImGui.Button(isPlaybackActive ? "Pause" : "Play"))
                 {
                     isPlaybackActive = !isPlaybackActive;
@@ -373,30 +376,21 @@ namespace AetherBlackbox.Windows
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip("Reset View");
 
                 ImGui.SameLine();
-
                 DrawTimeline();
 
                 ImGui.SameLine();
-
                 if (ImGuiComponents.IconButton("OpenAbout", FontAwesomeIcon.InfoCircle))
-                {
                     plugin.AboutWindow.IsOpen = !plugin.AboutWindow.IsOpen;
-                }
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip("About Aether Blackbox");
 
                 ImGui.SameLine();
-
                 if (ImGuiComponents.IconButton("OpenConfig", FontAwesomeIcon.Cog))
-                {
                     plugin.RecapConfigWindow.IsOpen = !plugin.RecapConfigWindow.IsOpen;
-                }
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip("Open Aether Blackbox Settings");
 
                 ImGui.SameLine();
-
                 if (ImGuiComponents.IconButton("ReplaySettings", FontAwesomeIcon.Eye))
                     ImGui.OpenPopup("replay_settings_popup");
-
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip("Replay Visibility Settings");
 
                 if (ImGui.BeginPopup("replay_settings_popup"))
@@ -424,8 +418,13 @@ namespace AetherBlackbox.Windows
                 if (isPlaybackActive)
                 {
                     replayTimeOffset += ImGui.GetIO().DeltaTime;
-                    if (replayTimeOffset >= 0f) { replayTimeOffset = 0f; isPlaybackActive = false; }
+                    if (replayTimeOffset >= 0f)
+                    {
+                        replayTimeOffset = 0f;
+                        isPlaybackActive = false;
+                    }
                 }
+
                 if (ActiveDeathReplay.TerritoryTypeId == 992 || ActiveDeathReplay.TerritoryTypeId == 1321 ||
                     ActiveDeathReplay.TerritoryTypeId == 1323 || ActiveDeathReplay.TerritoryTypeId == 1325 ||
                     ActiveDeathReplay.TerritoryTypeId == 1327)
@@ -435,14 +434,12 @@ namespace AetherBlackbox.Windows
             }
 
             float selectionInfoHeight = (selectedEntityId != 0 && ActiveDeathReplay != null) ? (140f * ImGuiHelpers.GlobalScale) : (ImGui.GetStyle().WindowPadding.Y * 2);
-            float canvasAvailableHeight = ImGui.GetContentRegionAvail().Y - selectionInfoHeight;
-            canvasAvailableHeight = Math.Max(canvasAvailableHeight, 50f * ImGuiHelpers.GlobalScale);
-            if (ImGui.BeginChild("CanvasDrawingArea", new Vector2(0, canvasAvailableHeight), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
-           
 
+            if (ImGui.BeginChild("CanvasDrawingArea", new Vector2(0, -selectionInfoHeight), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
             {
                 currentCanvasDrawSize = ImGui.GetContentRegionAvail();
-                DrawCanvas();
+                if (currentCanvasDrawSize.X > 0 && currentCanvasDrawSize.Y > 0)
+                    DrawCanvas(); // canvas draws only
                 ImGui.EndChild();
             }
 
@@ -455,7 +452,7 @@ namespace AetherBlackbox.Windows
                 }
             }
         }
-        
+
         private void DrawMapCalibrationPanel()
         {
             ImGui.Separator();
@@ -504,8 +501,28 @@ namespace AetherBlackbox.Windows
             }
 
             ImGui.EndDisabled();
+
+            ImGui.SameLine();
+
+            bool isSelect = !isLaserMode;
+            if (isSelect) ImGui.PushStyleColor(ImGuiCol.Button, ImGui.GetColorU32(ImGuiCol.ButtonActive));
+            if (ImGui.Button("Select")) isLaserMode = false;
+            if (isSelect) ImGui.PopStyleColor();
+
+            ImGui.SameLine();
+            bool isLaser = isLaserMode;
+            if (isLaser) ImGui.PushStyleColor(ImGuiCol.Button, ImGui.GetColorU32(ImGuiCol.ButtonActive));
+            if (ImGui.Button("Laser")) isLaserMode = true;
+            if (isLaser) ImGui.PopStyleColor();
+
+            ImGui.SameLine();
+
+            if (ImGui.Button("Live"))
+            {
+                // Placeholder for live sync window
+            }
         }
-        
+
 
         private void DrawSelectionInfo()
         {
@@ -668,109 +685,140 @@ namespace AetherBlackbox.Windows
 
             ImGui.InvisibleButton("##CanvasInput", canvasSizeForImGuiDrawing);
 
-            if (ImGui.IsItemHovered())
+            bool hovered = ImGui.IsItemHovered();
+            bool active = ImGui.IsItemActive();
+
+            if (hovered)
             {
                 float wheel = ImGui.GetIO().MouseWheel;
                 if (wheel != 0) canvasZoom = Math.Clamp(canvasZoom + (wheel * 0.1f), 0.1f, 5.0f);
             }
 
-            if (ImGui.IsItemActive())
+            if (active)
             {
-                // Pan (Drag)
-                if (ImGui.IsMouseDragging(ImGuiMouseButton.Left))
+                if (isLaserMode)
                 {
-                    canvasPanOffset += ImGui.GetIO().MouseDelta;
-                }
-                // Click (Select) - Only if NOT dragging
-                else if (ImGui.IsMouseClicked(ImGuiMouseButton.Left) && closestFrame != null && recording != null)
-                {
-                    selectedEntityId = 0;
-                    float bestDist = float.MaxValue;
-
-                    var effectiveCanvasCenter = (canvasOriginScreen + currentCanvasDrawSize / 2) + canvasPanOffset;
-                    float effectiveScale = 8f * ImGuiHelpers.GlobalScale * canvasZoom;
-
-                    for (int i = 0; i < closestFrame.Ids.Count; i++)
+                    var mousePos = ImGui.GetMousePos() - canvasOriginScreen;
+                    if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                     {
-                        if (i >= closestFrame.X.Count || i >= closestFrame.Z.Count) continue;
-                        var entityPos = new Vector3(closestFrame.X[i], 0, closestFrame.Z[i]);
-                        var relPos = entityPos - centerPos;
-                        var screenX = effectiveCanvasCenter.X + (relPos.X * effectiveScale);
-                        var screenY = effectiveCanvasCenter.Y + (relPos.Z * effectiveScale);
+                        currentLaser = new DrawableLaser(mousePos, new Vector4(0.718f, 0.973f, 0.718f, 1.0f), 2f);
+                    }
+                    else if (ImGui.IsMouseDragging(ImGuiMouseButton.Left))
+                    {
+                        if (currentLaser == null) currentLaser = new DrawableLaser(mousePos, new Vector4(0.718f, 0.973f, 0.718f, 1.0f), 2f);
+                        currentLaser.AddPoint(mousePos);
+                    }
+                }
+                else
+                {
+                    // Pan (Drag)
+                    if (ImGui.IsMouseDragging(ImGuiMouseButton.Left))
+                    {
+                        canvasPanOffset += ImGui.GetIO().MouseDelta;
+                    }
+                    // Click (Select) - Only if NOT dragging
+                    else if (ImGui.IsMouseClicked(ImGuiMouseButton.Left) && closestFrame != null && recording != null)
+                    {
+                        selectedEntityId = 0;
+                        float bestDist = float.MaxValue;
 
-                        float dist = Vector2.Distance(ImGui.GetMousePos(), new Vector2(screenX, screenY));
-                        if (dist < 25f * ImGuiHelpers.GlobalScale * canvasZoom && dist < bestDist)
+                        var effectiveCanvasCenter = (canvasOriginScreen + currentCanvasDrawSize / 2) + canvasPanOffset;
+                        float effectiveScale = 8f * ImGuiHelpers.GlobalScale * canvasZoom;
+
+                        for (int i = 0; i < closestFrame.Ids.Count; i++)
                         {
-                            bestDist = dist;
-                            selectedEntityId = closestFrame.Ids[i];
+                            if (i >= closestFrame.X.Count || i >= closestFrame.Z.Count) continue;
+                            var entityPos = new Vector3(closestFrame.X[i], 0, closestFrame.Z[i]);
+                            var relPos = entityPos - centerPos;
+                            var screenX = effectiveCanvasCenter.X + (relPos.X * effectiveScale);
+                            var screenY = effectiveCanvasCenter.Y + (relPos.Z * effectiveScale);
+
+                            float dist = Vector2.Distance(ImGui.GetMousePos(), new Vector2(screenX, screenY));
+                            if (dist < 25f * ImGuiHelpers.GlobalScale * canvasZoom && dist < bestDist)
+                            {
+                                bestDist = dist;
+                                selectedEntityId = closestFrame.Ids[i];
+                            }
                         }
                     }
                 }
-            }
+             }
+            
 
             drawList.AddRectFilled(canvasOriginScreen, canvasOriginScreen + canvasSizeForImGuiDrawing, ImGui.GetColorU32(new Vector4(0.15f, 0.15f, 0.17f, 1.0f)));
-            if (configuration.IsGridVisible)
-            {
-                float scaledGridCellSize = configuration.GridSize * ImGuiHelpers.GlobalScale;
-                if (scaledGridCellSize > 2)
+                if (configuration.IsGridVisible)
                 {
-                    var gridColor = ImGui.GetColorU32(new Vector4(0.3f, 0.3f, 0.3f, 1.0f));
-                    for (float x = scaledGridCellSize; x < canvasSizeForImGuiDrawing.X; x += scaledGridCellSize)
-                        drawList.AddLine(new Vector2(canvasOriginScreen.X + x, canvasOriginScreen.Y), new Vector2(canvasOriginScreen.X + x, canvasOriginScreen.Y + canvasSizeForImGuiDrawing.Y), gridColor, Math.Max(1f, 1.0f * ImGuiHelpers.GlobalScale));
-                    for (float y = scaledGridCellSize; y < canvasSizeForImGuiDrawing.Y; y += scaledGridCellSize)
-                        drawList.AddLine(new Vector2(canvasOriginScreen.X, canvasOriginScreen.Y + y), new Vector2(canvasOriginScreen.X + canvasSizeForImGuiDrawing.X, canvasOriginScreen.Y + y), gridColor, Math.Max(1f, 1.0f * ImGuiHelpers.GlobalScale));
-                }
-            }
-            drawList.AddRect(canvasOriginScreen - Vector2.One, canvasOriginScreen + canvasSizeForImGuiDrawing + Vector2.One, ImGui.GetColorU32(new Vector4(0.4f, 0.4f, 0.45f, 1f)), 0f, ImDrawFlags.None, Math.Max(1f, 1.0f * ImGuiHelpers.GlobalScale));
-
-            if (closestFrame != null && recording != null)
-            {
-                replayRenderer.Draw(
-                    drawList,
-                    closestFrame,
-                    recording.Metadata,
-                    recording.Waymarks,
-                    canvasOriginScreen,
-                    currentCanvasDrawSize,
-                    centerPos,
-                    ActiveDeathReplay.TerritoryTypeId,
-                    plugin.Configuration.ShowReplayNpcs,
-                    plugin.Configuration.ShowReplayHp,
-                    plugin.Configuration.AnonymizeNames,
-                    canvasZoom,
-                    canvasPanOffset,
-                    plugin.Configuration
-                );
-
-                // Draw Selection Circle
-                if (selectedEntityId != 0)
-                {
-                    int selIdx = closestFrame.Ids.IndexOf((uint)selectedEntityId);
-                    if (selIdx != -1 && closestFrame.X != null && selIdx < closestFrame.X.Count && closestFrame.Z != null && selIdx < closestFrame.Z.Count)
+                    float scaledGridCellSize = configuration.GridSize * ImGuiHelpers.GlobalScale;
+                    if (scaledGridCellSize > 2)
                     {
-                        var entityPos = new Vector3(closestFrame.X[selIdx], 0, closestFrame.Z[selIdx]);
-                        var relPos = entityPos - centerPos;
-                        var canvasCenter = (canvasOriginScreen + currentCanvasDrawSize / 2) + canvasPanOffset;
-                        float scale = 8f * ImGuiHelpers.GlobalScale * canvasZoom;
-
-                        var screenX = canvasCenter.X + (relPos.X * scale);
-                        var screenY = canvasCenter.Y + (relPos.Z * scale);
-
-                        drawList.AddCircle(new Vector2(screenX, screenY), 22f * ImGuiHelpers.GlobalScale, 0xFF00D7FF, 0, 3f);
+                        var gridColor = ImGui.GetColorU32(new Vector4(0.3f, 0.3f, 0.3f, 1.0f));
+                        for (float x = scaledGridCellSize; x < canvasSizeForImGuiDrawing.X; x += scaledGridCellSize)
+                            drawList.AddLine(new Vector2(canvasOriginScreen.X + x, canvasOriginScreen.Y), new Vector2(canvasOriginScreen.X + x, canvasOriginScreen.Y + canvasSizeForImGuiDrawing.Y), gridColor, Math.Max(1f, 1.0f * ImGuiHelpers.GlobalScale));
+                        for (float y = scaledGridCellSize; y < canvasSizeForImGuiDrawing.Y; y += scaledGridCellSize)
+                            drawList.AddLine(new Vector2(canvasOriginScreen.X, canvasOriginScreen.Y + y), new Vector2(canvasOriginScreen.X + canvasSizeForImGuiDrawing.X, canvasOriginScreen.Y + y), gridColor, Math.Max(1f, 1.0f * ImGuiHelpers.GlobalScale));
                     }
                 }
-            }
+                drawList.AddRect(canvasOriginScreen - Vector2.One, canvasOriginScreen + canvasSizeForImGuiDrawing + Vector2.One, ImGui.GetColorU32(new Vector4(0.4f, 0.4f, 0.45f, 1f)), 0f, ImDrawFlags.None, Math.Max(1f, 1.0f * ImGuiHelpers.GlobalScale));
 
-            // User Drawings
-            ImGui.PushClipRect(canvasOriginScreen, canvasOriginScreen + canvasSizeForImGuiDrawing, true);
-            var drawablesSnapshot = pageManager.GetCurrentPageDrawables()?.ToList();
-            if (drawablesSnapshot != null && drawablesSnapshot.Any())
-            {
-                foreach (var drawable in drawablesSnapshot) drawable.Draw(drawList, canvasOriginScreen);
-            }
-            canvasController.GetCurrentDrawingObjectForPreview()?.Draw(drawList, canvasOriginScreen);
-            ImGui.PopClipRect();
+                if (closestFrame != null && recording != null)
+                {
+                    replayRenderer.Draw(
+                        drawList,
+                        closestFrame,
+                        recording.Metadata,
+                        recording.Waymarks,
+                        canvasOriginScreen,
+                        currentCanvasDrawSize,
+                        centerPos,
+                        ActiveDeathReplay.TerritoryTypeId,
+                        plugin.Configuration.ShowReplayNpcs,
+                        plugin.Configuration.ShowReplayHp,
+                        plugin.Configuration.AnonymizeNames,
+                        canvasZoom,
+                        canvasPanOffset,
+                        plugin.Configuration
+                    );
+
+                    // Draw Selection Circle
+                    if (selectedEntityId != 0)
+                    {
+                        int selIdx = closestFrame.Ids.IndexOf((uint)selectedEntityId);
+                        if (selIdx != -1 && closestFrame.X != null && selIdx < closestFrame.X.Count && closestFrame.Z != null && selIdx < closestFrame.Z.Count)
+                        {
+                            var entityPos = new Vector3(closestFrame.X[selIdx], 0, closestFrame.Z[selIdx]);
+                            var relPos = entityPos - centerPos;
+                            var canvasCenter = (canvasOriginScreen + currentCanvasDrawSize / 2) + canvasPanOffset;
+                            float scale = 8f * ImGuiHelpers.GlobalScale * canvasZoom;
+
+                            var screenX = canvasCenter.X + (relPos.X * scale);
+                            var screenY = canvasCenter.Y + (relPos.Z * scale);
+
+                            drawList.AddCircle(new Vector2(screenX, screenY), 22f * ImGuiHelpers.GlobalScale, 0xFF00D7FF, 0, 3f);
+                        }
+                    }
+                }
+
+                // User Drawings
+                ImGui.PushClipRect(canvasOriginScreen, canvasOriginScreen + canvasSizeForImGuiDrawing, true);
+                var drawablesSnapshot = pageManager.GetCurrentPageDrawables()?.ToList();
+                if (drawablesSnapshot != null && drawablesSnapshot.Any())
+                {
+                    foreach (var drawable in drawablesSnapshot) drawable.Draw(drawList, canvasOriginScreen);
+                }
+                canvasController.GetCurrentDrawingObjectForPreview()?.Draw(drawList, canvasOriginScreen);
+
+                if (currentLaser != null)
+                {
+                    currentLaser.Draw(drawList, canvasOriginScreen);
+                    if ((DateTime.Now - currentLaser.LastUpdateTime).TotalSeconds > 1.2)
+                    {
+                        currentLaser = null;
+                    }
+                }
+
+                ImGui.PopClipRect();
         }
+        
 
         private int GetLayerPriority(DrawMode mode)
         {
