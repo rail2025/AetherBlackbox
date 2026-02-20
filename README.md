@@ -5,10 +5,12 @@ Visually see your positions prior to death!
 
 Shows healing, damage taken, debuffs, buffs and barriers.
 Searchable status/effects, snap to timeline, zoom, pan, and more.
-
 <br>
 <img width="1007" height="642" alt="abb main window" src="https://github.com/user-attachments/assets/9079f588-a708-4c50-8508-643517b5a869" />
 <br>
+<img width="1007" alt="abb demo" src="https://github.com/user-attachments/assets/d1607f4a-031c-4486-9377-281b3f969505" />
+<br>
+
 
 ## Credits & Attribution
 
