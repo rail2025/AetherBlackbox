@@ -35,7 +35,7 @@ public class AboutWindow : Window, IDisposable
         ImGui.TextDisabled("(Core logic, event capturing, and data structures)");
         ImGui.Unindent();
 
-        ImGui.BulletText("AetherDraw by rail");
+        ImGui.BulletText("AetherBlackbox by rail");
         ImGui.Indent();
         ImGui.TextDisabled("(Canvas engine, drawing tools, and rendering)");
         ImGui.Unindent();
