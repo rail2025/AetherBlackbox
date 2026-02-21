@@ -31,7 +31,7 @@ namespace AetherBlackbox.Networking
             {
                 webSocket = new ClientWebSocket();
                 cancellationTokenSource = new CancellationTokenSource();
-                Uri connectUri = new Uri($"{serverUri}?passphrase={Uri.EscapeDataString(passphrase)}&client=ad");
+                Uri connectUri = new Uri($"{serverUri}?passphrase={Uri.EscapeDataString(passphrase)}&client=abb");
 
                 await webSocket.ConnectAsync(connectUri, cancellationTokenSource.Token);
 
@@ -143,7 +143,7 @@ namespace AetherBlackbox.Networking
             }
             catch (Exception ex)
             {
-                AetherBlackbox.Plugin.Log?.Error($"Failed to parse text message: {ex.Message}");
+                Service.PluginLog?.Error($"Failed to parse text message: {ex.Message}");
             }
         }
 
