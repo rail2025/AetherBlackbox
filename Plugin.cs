@@ -38,6 +38,7 @@ public class Plugin : IDalamudPlugin
     public MainWindow MainWindow { get; init; }
     public CanvasConfigWindow CanvasConfigWindow { get; init; }
     public AboutWindow AboutWindow { get; init; }
+    public LiveSessionWindow LiveSessionWindow { get; init; }
     public ConditionEvaluator ConditionEvaluator { get; init; }
 
     public CombatEventCapture Capture { get; init; }
@@ -67,6 +68,7 @@ public class Plugin : IDalamudPlugin
         AboutWindow = new AboutWindow();
 
         MainWindow = new MainWindow(this);
+        LiveSessionWindow = new LiveSessionWindow(this);
 
         WindowSystem = new WindowSystem(Name);
         WindowSystem.AddWindow(RecapConfigWindow);
@@ -74,6 +76,7 @@ public class Plugin : IDalamudPlugin
         WindowSystem.AddWindow(CanvasConfigWindow);
         WindowSystem.AddWindow(MainWindow);
         WindowSystem.AddWindow(AboutWindow);
+        WindowSystem.AddWindow(LiveSessionWindow);
 
         Service.PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
         Service.PluginInterface.UiBuilder.OpenConfigUi += () => RecapConfigWindow.IsOpen = true;
@@ -120,6 +123,7 @@ public class Plugin : IDalamudPlugin
         RecapConfigWindow.Dispose();
         CanvasConfigWindow.Dispose();
         MainWindow.Dispose();
+        LiveSessionWindow.Dispose();
         AboutWindow.Dispose();
     }
 

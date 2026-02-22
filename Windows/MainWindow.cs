@@ -74,6 +74,8 @@ namespace AetherBlackbox.Windows
 
 		public bool isNetworkHost { get; private set; } = false;
 		private float lastTimeSyncBroadcast = 0f;
+		private float lastLaserBroadcast = 0f;
+		private List<DrawableLaser> remoteLasers = new();
 
 		private PullSession? selectedPull;
         private const float SidebarWidth = 350f;
@@ -146,12 +148,29 @@ namespace AetherBlackbox.Windows
 					replayTimeOffset = Serialization.PayloadSerializer.DeserializeTimeSync(payload.Data!);
 				}
 			}
+			else if (payload.Action == Networking.PayloadActionType.DrawLaser)
+			{
+				var (points, color) = Serialization.PayloadSerializer.DeserializeDrawLaser(payload.Data!);
+				remoteLasers.Add(new DrawableLaser(points, color, 2f));
+			}
 		}
 
 		private void BroadcastTimeSync()
 		{
 			if (!plugin.NetworkManager.IsConnected || !isNetworkHost) return;
 			var payload = new Networking.NetworkPayload { Action = Networking.PayloadActionType.TimeSync, Data = Serialization.PayloadSerializer.SerializeTimeSync(replayTimeOffset) };
+			_ = plugin.NetworkManager.SendStateUpdateAsync(payload);
+		}
+        private void BroadcastLaser()
+		{
+			if (currentLaser == null || !plugin.NetworkManager.IsConnected) return;
+			var points = currentLaser.GetPoints();
+			if (points.Count == 0) return;
+			var payload = new Networking.NetworkPayload
+			{
+				Action = Networking.PayloadActionType.DrawLaser,
+				Data = Serialization.PayloadSerializer.SerializeDrawLaser(points, new Vector4(0.718f, 0.973f, 0.718f, 1.0f))
+			};
 			_ = plugin.NetworkManager.SendStateUpdateAsync(payload);
 		}
 
@@ -595,7 +614,7 @@ namespace AetherBlackbox.Windows
 
             if (ImGui.Button("Live"))
             {
-                // Placeholder for live sync window
+				plugin.LiveSessionWindow.IsOpen = !plugin.LiveSessionWindow.IsOpen;
             }
         }
 
@@ -784,7 +803,16 @@ namespace AetherBlackbox.Windows
                         if (currentLaser == null) currentLaser = new DrawableLaser(mousePos, new Vector4(0.718f, 0.973f, 0.718f, 1.0f), 2f);
                         currentLaser.AddPoint(mousePos);
                     }
-                }
+					if (plugin.NetworkManager.IsConnected)
+					{
+						lastLaserBroadcast += ImGui.GetIO().DeltaTime;
+						if (lastLaserBroadcast >= 0.05f)
+						{
+							BroadcastLaser();
+							lastLaserBroadcast = 0f;
+						}
+					}
+				}
                 else
                 {
                     // Pan (Drag)
@@ -891,8 +919,17 @@ namespace AetherBlackbox.Windows
                         currentLaser = null;
                     }
                 }
+			    for (int i = remoteLasers.Count - 1; i >= 0; i--)
+			    {
+				    var laser = remoteLasers[i];
+				    laser.Draw(drawList, canvasOriginScreen);
+				    if ((DateTime.Now - laser.LastUpdateTime).TotalSeconds > 1.2)
+				    {
+					    remoteLasers.RemoveAt(i);
+				    }
+			    }
 
-                ImGui.PopClipRect();
+			ImGui.PopClipRect();
         }
         
 
