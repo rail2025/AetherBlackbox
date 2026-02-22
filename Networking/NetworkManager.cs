@@ -10,7 +10,7 @@ namespace AetherBlackbox.Networking
 {
     public class NetworkManager : IDisposable
     {
-        public const string ApiBaseUrl = "https://AetherBlackbox-server.onrender.com";
+        public const string ApiBaseUrl = "https://aetherdraw-server.onrender.com";
 
         private ClientWebSocket? webSocket;
         private CancellationTokenSource? cancellationTokenSource;        

@@ -19,7 +19,7 @@ namespace AetherBlackbox.Windows
         private enum LiveSessionState { Choice, PassphraseEntry, Loading }
         private LiveSessionState currentState = LiveSessionState.Choice;
 
-        private string serverAddress = "wss://AetherBlackbox-server.onrender.com/ws";
+        private string serverAddress = "wss://aetherdraw-server.onrender.com/ws";
         private string inputPassphrase = "";
         private string generatedPassphrase = "";
         private string statusMessage = "Disconnected";

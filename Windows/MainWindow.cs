@@ -612,11 +612,26 @@ namespace AetherBlackbox.Windows
 
             ImGui.SameLine();
 
-            if (ImGui.Button("Live"))
-            {
-				plugin.LiveSessionWindow.IsOpen = !plugin.LiveSessionWindow.IsOpen;
-            }
-        }
+			if (plugin.NetworkManager.IsConnected)
+			{
+				ImGui.PushStyleColor(ImGuiCol.Button, ImGui.GetColorU32(new Vector4(0.8f, 0.2f, 0.2f, 1.0f)));
+				ImGui.PushStyleColor(ImGuiCol.ButtonHovered, ImGui.GetColorU32(new Vector4(1.0f, 0.3f, 0.3f, 1.0f)));
+				ImGui.PushStyleColor(ImGuiCol.ButtonActive, ImGui.GetColorU32(new Vector4(0.6f, 0.1f, 0.1f, 1.0f)));
+				if (ImGui.Button("Disconnect"))
+				{
+					_ = plugin.NetworkManager.DisconnectAsync();
+				}
+				ImGui.PopStyleColor(3);
+				if (ImGui.IsItemHovered()) ImGui.SetTooltip("Leave the Live Session");
+			}
+			else
+			{
+				if (ImGui.Button("Live"))
+				{
+					plugin.LiveSessionWindow.IsOpen = !plugin.LiveSessionWindow.IsOpen;
+				}
+			}
+		}
 
 
         private void DrawSelectionInfo()
