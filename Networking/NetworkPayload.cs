@@ -7,15 +7,11 @@ namespace AetherBlackbox.Networking
         AddObjects,
         DeleteObjects,
         UpdateObjects,
-        ClearPage,
-        ReplacePage,
-        AddNewPage,
-        DeletePage,
-        UpdateGrid,
-        UpdateGridVisibility,
-        MovePage,
         SessionLock,
         Undo,
+        TimeSync,
+        EncounterSync,
+        DrawLaser,
     }
 
     [Serializable]

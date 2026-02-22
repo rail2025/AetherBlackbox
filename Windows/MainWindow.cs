@@ -72,7 +72,10 @@ namespace AetherBlackbox.Windows
 
         private List<Lumina.Excel.Sheets.Status> statusSearchResults = new();
 
-        private PullSession? selectedPull;
+		public bool isNetworkHost { get; private set; } = false;
+		private float lastTimeSyncBroadcast = 0f;
+
+		private PullSession? selectedPull;
         private const float SidebarWidth = 350f;
         private const ulong EmptyTargetID = 0xE0000000;
 
@@ -112,12 +115,53 @@ namespace AetherBlackbox.Windows
             this.currentBrushColor = new Vector4(this.configuration.DefaultBrushColorR, this.configuration.DefaultBrushColorG, this.configuration.DefaultBrushColorB, this.configuration.DefaultBrushColorA);
             var initialThicknessPresets = new float[] { 1.5f, 4f, 7f, 10f };
             this.currentBrushThickness = initialThicknessPresets.Contains(this.configuration.DefaultBrushThickness) ? this.configuration.DefaultBrushThickness : initialThicknessPresets[1];
-        }
 
-        public void Dispose()
-        { }
+			this.plugin.NetworkManager.OnHostStatusReceived += OnHostStatusReceived;
+			this.plugin.NetworkManager.OnStateUpdateReceived += OnStateUpdateReceived;
+		}
 
-        public void OpenReplay(Death death)
+		private void OnHostStatusReceived(bool status)
+		{
+			this.isNetworkHost = status;
+		}
+		private void OnStateUpdateReceived(Networking.NetworkPayload payload)
+		{
+			if (payload.Action == Networking.PayloadActionType.EncounterSync)
+			{
+				var (territoryType, pullNumber, activeDeathId) = Serialization.PayloadSerializer.DeserializeEncounterSync(payload.Data!);
+				if (selectedPull?.PullNumber != pullNumber || (ActiveDeathReplay != null && (ulong)ActiveDeathReplay.TimeOfDeath.Ticks != activeDeathId))
+				{
+					var newPull = plugin.PullManager.History.FirstOrDefault(p => p.PullNumber == pullNumber);
+					if (newPull != null)
+					{
+						var targetDeath = newPull.Deaths.FirstOrDefault(d => (ulong)d.TimeOfDeath.Ticks == activeDeathId) ?? newPull.Deaths.FirstOrDefault();
+						if (targetDeath != null) OpenReplay(targetDeath);
+					}
+				}
+			}
+			else if (payload.Action == Networking.PayloadActionType.TimeSync)
+			{
+				if (selectedPull != null && ActiveDeathReplay != null && !isNetworkHost)
+				{
+					replayTimeOffset = Serialization.PayloadSerializer.DeserializeTimeSync(payload.Data!);
+				}
+			}
+		}
+
+		private void BroadcastTimeSync()
+		{
+			if (!plugin.NetworkManager.IsConnected || !isNetworkHost) return;
+			var payload = new Networking.NetworkPayload { Action = Networking.PayloadActionType.TimeSync, Data = Serialization.PayloadSerializer.SerializeTimeSync(replayTimeOffset) };
+			_ = plugin.NetworkManager.SendStateUpdateAsync(payload);
+		}
+
+		public void Dispose()
+		{
+			this.plugin.NetworkManager.OnHostStatusReceived -= OnHostStatusReceived;
+			this.plugin.NetworkManager.OnStateUpdateReceived -= OnStateUpdateReceived;
+		}
+
+		public void OpenReplay(Death death)
         {
             selectedPull = plugin.PullManager.History.FirstOrDefault(p => p.Deaths.Contains(death));
             ActiveDeathReplay = death;
@@ -126,7 +170,17 @@ namespace AetherBlackbox.Windows
             isPlaybackActive = false;
             cachedArenaCenter = null;
             IsOpen = true;
-        }
+
+			if (plugin.NetworkManager.IsConnected && isNetworkHost && selectedPull != null)
+			{
+				var payload = new Networking.NetworkPayload
+				{
+					Action = Networking.PayloadActionType.EncounterSync,
+					Data = Serialization.PayloadSerializer.SerializeEncounterSync(death.TerritoryTypeId, (int)selectedPull.PullNumber, (ulong)death.TimeOfDeath.Ticks)
+				};
+				_ = plugin.NetworkManager.SendStateUpdateAsync(payload);
+			}
+		}
 
         public override void PreDraw() => Flags = configuration.IsMainWindowMovable ? ImGuiWindowFlags.None : ImGuiWindowFlags.NoMove;
 
@@ -298,9 +352,13 @@ namespace AetherBlackbox.Windows
 
                     if (ImGui.Selectable($"{relativeSeconds:F1}s##{evt.GetHashCode()}", false, ImGuiSelectableFlags.SpanAllColumns))
                     {
-                        replayTimeOffset = (float)relativeSeconds;
-                        isPlaybackActive = false;
-                    }
+						if (isNetworkHost || !plugin.NetworkManager.IsConnected)
+						{
+							replayTimeOffset = (float)relativeSeconds;
+							isPlaybackActive = false;
+							BroadcastTimeSync();
+						}
+					}
 
                     ImGui.TableNextColumn();
                     string source = evt switch
@@ -351,14 +409,26 @@ namespace AetherBlackbox.Windows
         {
             if (ActiveDeathReplay != null)
             {
-                if (ImGui.Button(isPlaybackActive ? "Pause" : "Play"))
-                {
-                    isPlaybackActive = !isPlaybackActive;
-                    if (isPlaybackActive && replayTimeOffset >= 0f) replayTimeOffset = -20f;
-                }
-                ImGui.SameLine();
+				if (plugin.NetworkManager.IsConnected)
+				{
+					if (isNetworkHost)
+						ImGui.TextColored(new Vector4(0.2f, 1.0f, 0.2f, 1.0f), "Live: HOST");
+					else
+						ImGui.TextColored(new Vector4(1.0f, 0.5f, 0.2f, 1.0f), "Live: VIEWER");
+					ImGui.SameLine();
+				}
 
-                if (ImGuiComponents.IconButton("##ZoomOut", FontAwesomeIcon.SearchMinus))
+				bool isHostOrOffline = isNetworkHost || !plugin.NetworkManager.IsConnected;
+				if (!isHostOrOffline) ImGui.BeginDisabled();
+				if (ImGui.Button(isPlaybackActive ? "Pause" : "Play"))
+				{
+					isPlaybackActive = !isPlaybackActive;
+					if (isPlaybackActive && replayTimeOffset >= 0f) replayTimeOffset = -20f;
+				}
+				if (!isHostOrOffline) ImGui.EndDisabled();
+				ImGui.SameLine();
+
+				if (ImGuiComponents.IconButton("##ZoomOut", FontAwesomeIcon.SearchMinus))
                     canvasZoom = Math.Clamp(canvasZoom - 0.25f, 0.1f, 5.0f);
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip("Zoom Out");
 
@@ -423,7 +493,13 @@ namespace AetherBlackbox.Windows
                         replayTimeOffset = 0f;
                         isPlaybackActive = false;
                     }
-                }
+					lastTimeSyncBroadcast += ImGui.GetIO().DeltaTime;
+					if (lastTimeSyncBroadcast >= 0.5f)
+					{
+						BroadcastTimeSync();
+						lastTimeSyncBroadcast = 0f;
+					}
+				}
 
                 if (ActiveDeathReplay.TerritoryTypeId == 992 || ActiveDeathReplay.TerritoryTypeId == 1321 ||
                     ActiveDeathReplay.TerritoryTypeId == 1323 || ActiveDeathReplay.TerritoryTypeId == 1325 ||
@@ -866,15 +942,22 @@ namespace AetherBlackbox.Windows
 
             drawList.AddRectFilled(cursor, cursor + new Vector2(width, height), ImGui.GetColorU32(ImGuiCol.FrameBg), 4f);
 
-            ImGui.InvisibleButton("##TimelineScrubber", new Vector2(width, height));
-            if (ImGui.IsItemActive())
-            {
-                isPlaybackActive = false;
-                float mouseRatio = Math.Clamp((ImGui.GetMousePos().X - cursor.X) / width, 0f, 1f);
-                replayTimeOffset = minTime + (mouseRatio * totalRange);
-            }
+			ImGui.InvisibleButton("##TimelineScrubber", new Vector2(width, height));
+			if (ImGui.IsItemActive() && (isNetworkHost || !plugin.NetworkManager.IsConnected))
+			{
+				isPlaybackActive = false;
+				float mouseRatio = Math.Clamp((ImGui.GetMousePos().X - cursor.X) / width, 0f, 1f);
+				replayTimeOffset = minTime + (mouseRatio * totalRange);
+				lastTimeSyncBroadcast += ImGui.GetIO().DeltaTime;
+				if (lastTimeSyncBroadcast >= 0.1f)
+				{
+					BroadcastTimeSync();
+					lastTimeSyncBroadcast = 0f;
+				}
+			}
+			if (ImGui.IsItemDeactivated() && isNetworkHost) BroadcastTimeSync();
 
-            foreach (var evt in ActiveDeathReplay.Events)
+			foreach (var evt in ActiveDeathReplay.Events)
             {
                 float relativeTime = (float)(evt.Snapshot.Time - ActiveDeathReplay.TimeOfDeath).TotalSeconds;
                 if (relativeTime < minTime || relativeTime > maxTime) continue;

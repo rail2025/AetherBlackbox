@@ -121,7 +121,7 @@ namespace AetherBlackbox.Windows
                 ImGui.PopTextWrapPos();
                 ImGui.Spacing();
 
-                bool inParty = Plugin.PartyList != null && Plugin.PartyList.Length > 0;
+                bool inParty = Service.PartyList != null && Service.PartyList.Length > 0;
                 using (ImRaii.Disabled(!inParty))
                 {
                     if (ImGui.Button("Quick Sync##QuickSyncButton", new Vector2(paneWidth, 0)))
@@ -215,12 +215,12 @@ namespace AetherBlackbox.Windows
 
         private string GetPartyIdHash()
         {
-            if (Plugin.PartyList == null || Plugin.PartyList.Length == 0)
+            if (Service.PartyList == null || Service.PartyList.Length == 0)
             {
                 return "";
             }
 
-            var contentIds = Plugin.PartyList.Select(p => p.ContentId).ToList();
+            var contentIds = Service.PartyList.Select(p => p.ContentId).ToList();
             contentIds.Sort();
             var combinedIdString = string.Join(",", contentIds);
 

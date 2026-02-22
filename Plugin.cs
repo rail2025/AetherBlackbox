@@ -19,6 +19,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using AetherBlackbox.Networking;
 
 namespace AetherBlackbox;
 
@@ -41,6 +42,7 @@ public class Plugin : IDalamudPlugin
 
     public CombatEventCapture Capture { get; init; }
     public NotificationHandler NotificationHandler { get; init; }
+    public NetworkManager NetworkManager { get; init; }
 
     public Dictionary<ulong, List<Death>> DeathsPerPlayer { get; } = new();
     public Dictionary<ulong, IPlayerCharacter> Players { get; } = new();
@@ -55,6 +57,7 @@ public class Plugin : IDalamudPlugin
         PullManager = new PullManager(this);
         Capture = new CombatEventCapture(this);
         NotificationHandler = new NotificationHandler(this);
+        NetworkManager = new NetworkManager();
         Service.Condition.ConditionChange += OnConditionChange;
         RecapConfigWindow = new RecapConfigWindow(this);
         RecapWindow = new AetherBlackboxWindow(this);
@@ -112,6 +115,7 @@ public class Plugin : IDalamudPlugin
         PositionRecorder.Dispose();
         PullManager.Dispose();
         Capture.Dispose();
+        NetworkManager.Dispose();
         DrawingLogic.TextureManager.Dispose();
         RecapConfigWindow.Dispose();
         CanvasConfigWindow.Dispose();
