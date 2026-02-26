@@ -893,8 +893,6 @@ namespace AetherBlackbox.Windows
                         recording,
                         closestFrame,
                         targetOffset,
-                        //recording.Metadata,
-                        //recording.Waymarks,
                         canvasOriginScreen,
                         currentCanvasDrawSize,
                         centerPos,

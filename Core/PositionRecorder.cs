@@ -14,7 +14,7 @@ namespace AetherBlackbox.Core
     public struct ReplayStatus { public uint Id; public float Duration; public uint StackCount; public uint SourceId; }
     public struct ReplayCast { public uint ActionId; public float Current; public float Total; }
     public struct WaymarkSnapshot { public int ID; public float X; public float Z; public bool Active; }
-    public enum EntityType { Player, Boss, Npc }
+    public enum EntityType { Player, Boss, Npc, Pet }
     public class SearchHeader
     {
         public int SchemaVersion { get; set; } = 1;
@@ -190,16 +190,7 @@ namespace AetherBlackbox.Core
             {
                 uint currentAction = 0;
                 bool isNewEntity = !lastRecordedStates.ContainsKey(obj.EntityId);
-                /*bool isNewEntity = false;
-                if (plugin.PullManager?.CurrentSession != null)
-                {
-                    var metadata = plugin.PullManager.CurrentSession.ReplayData.Metadata;
-                    if (!metadata.ContainsKey(obj.EntityId))
-                    {
-                        isNewEntity = true;
-                    }
-                }*/ // infinite display of entitites
-
+                
                 bool shouldRecordMovement = true;
                 bool shouldRecordAttributes = false;
                 if (lastRecordedStates.TryGetValue(obj.EntityId, out var lastState))
@@ -288,7 +279,7 @@ namespace AetherBlackbox.Core
                     uint sHash = 0;
                     unchecked { foreach (var s in npc.StatusList) sHash = (sHash * 397) ^ s.StatusId ^ s.Param ^ s.SourceId; }
                     bool statusChanged = lastRecordedStates[npc.EntityId].ObjectId == 0 || sHash != lastRecordedStates[npc.EntityId].StatusHash;
-
+                    
                     var snapshot = new EntityPositionSnapshot
                     {
                         ObjectId = npc.EntityId,

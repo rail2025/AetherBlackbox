@@ -29,6 +29,8 @@ public class Configuration : IPluginConfiguration
     public bool ShowReplayNpcs { get; set; } = false;
     public bool ShowReplayHp { get; set; } = true;
     public bool ShowReplayStatuses { get; set; } = true;
+    public bool ShowCanvasStatusIcons { get; set; } = true;
+    public List<uint> AllowedPlayerStatuses { get; set; } = new();
 
     public bool IsMainWindowMovable { get; set; } = true;
     public float DefaultBrushColorR { get; set; } = 1.0f;
