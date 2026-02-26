@@ -28,6 +28,7 @@ public class Configuration : IPluginConfiguration
 
     public bool ShowReplayNpcs { get; set; } = false;
     public bool ShowReplayHp { get; set; } = true;
+    public bool ShowReplayStatuses { get; set; } = true;
 
     public bool IsMainWindowMovable { get; set; } = true;
     public float DefaultBrushColorR { get; set; } = 1.0f;

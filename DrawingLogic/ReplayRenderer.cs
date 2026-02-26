@@ -1,13 +1,19 @@
 ﻿using AetherBlackbox.Core;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Animation;
 using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility;
+using FFXIVClientStructs.FFXIV.Common.Lua;
 using Lumina.Excel.Sheets;
 using Lumina.Excel.Sheets.Experimental;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
+using System.Reflection;
+using static FFXIVClientStructs.FFXIV.Client.LayoutEngine.ILayoutInstance;
 
 namespace AetherBlackbox.DrawingLogic
 {
@@ -70,61 +76,75 @@ namespace AetherBlackbox.DrawingLogic
                     DrawBossIcon(drawList, state, screenPos);
                 else
                     DrawPlayerIcon(drawList, state, meta, screenPos);
-                    DrawPlayerMechanicStatuses(drawList, recording, id, targetOffset, screenPos);
+                    if (config.ShowReplayStatuses)
+                        DrawPlayerMechanicStatuses(drawList, recording, id, targetOffset, screenPos);
 
                 if (showHp && (isPlayer || isBoss))
                     DrawHpBar(drawList, state, meta, screenPos);                
             }
         }
-        private void DrawPlayerMechanicStatuses(ImDrawListPtr drawList, ReplayRecording recording, uint entityId, float currentTime, Vector2 screenPos)
+        
+        private static readonly HashSet<uint> IgnoredStatuses = new()
         {
-            var activeStatuses = new Dictionary<uint, ReplayStatus>();
+            317,  // Fey Illumination
+            318,  // Whispering Dawn
+            1223, // Fey Union
+            1942, // Consolation
+            1943, // Seraphic Illumination
+            715,  // Excogitation
+            1917, // Seraphic Veil
+            // todo: add any other specific player/pet buff IDs to ignore
+        };
 
-            for (int i = recording.Frames.Count - 1; i >= 0; i--)
+    private void DrawPlayerMechanicStatuses(ImDrawListPtr drawList, ReplayRecording recording, uint entityId, float currentTime, Vector2 screenPos)
+    {
+        var activeStatuses = new Dictionary<uint, ReplayStatus>();
+
+        for (int i = recording.Frames.Count - 1; i >= 0; i--)
+        {
+            var f = recording.Frames[i];
+            if (f.TimeOffset > currentTime) continue;
+
+            int idx = f.Ids.IndexOf(entityId);
+            if (idx != -1 && f.Statuses != null && idx < f.Statuses.Count && f.Statuses[idx] != null)
             {
-                var f = recording.Frames[i];
-                if (f.TimeOffset > currentTime) continue;
-                if (currentTime - f.TimeOffset > 120f) break;
-
-                int idx = f.Ids.IndexOf(entityId);
-                if (idx != -1 && f.Statuses != null && idx < f.Statuses.Count && f.Statuses[idx] != null)
+                foreach (var status in f.Statuses[idx])
                 {
-                    foreach (var status in f.Statuses[idx])
-                    {
-                        if (!activeStatuses.ContainsKey(status.Id))
-                        {
-                            float remaining = status.Duration - (currentTime - f.TimeOffset);
-                            if (remaining > 0) activeStatuses[status.Id] = new ReplayStatus { Id = status.Id, Duration = remaining, StackCount = status.StackCount, SourceId = status.SourceId };
-                            else activeStatuses[status.Id] = new ReplayStatus { Id = status.Id, Duration = 0f };
-                        }
-                    }
+                    float remaining = status.Duration - (currentTime - f.TimeOffset);
+                    if (remaining > 0)
+                        activeStatuses[status.Id] = new ReplayStatus { Id = status.Id, Duration = remaining, StackCount = status.StackCount, SourceId = status.SourceId };
                 }
-            }
-
-            int drawCount = 0;
-            float iconSize = 16f * ImGuiHelpers.GlobalScale;
-            Vector2 baseOffset = new Vector2(10f, -20f) * ImGuiHelpers.GlobalScale;
-
-            foreach (var status in activeStatuses.Values)
-            {
-                if (status.Duration <= 0f) continue;
-                if (drawCount >= 3) break;
-
-                if (status.SourceId == 0 || !recording.Metadata.TryGetValue(status.SourceId, out var sourceMeta)) continue;
-                if (sourceMeta.Type is not EntityType.Boss and not EntityType.Npc) continue;
-
-                var sheetStatus = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Status>()?.GetRowOrDefault(status.Id);
-                if (sheetStatus == null || sheetStatus.Value.Icon == 0) continue;
-
-                var iconWrap = Service.TextureProvider.GetFromGameIcon(sheetStatus.Value.Icon).GetWrapOrDefault();
-                if (iconWrap != null)
-                {
-                    Vector2 drawPos = screenPos + baseOffset + new Vector2(drawCount * (iconSize + 2f), 0);
-                    drawList.AddImage(iconWrap.Handle, drawPos, drawPos + new Vector2(iconSize, iconSize));
-                    drawCount++;
-                }
+                break;
             }
         }
+
+        int drawCount = 0;
+        float iconSize = 16f * ImGuiHelpers.GlobalScale;
+        Vector2 baseOffset = new Vector2(10f, -20f) * ImGuiHelpers.GlobalScale;
+
+        foreach (var status in activeStatuses.Values)
+        {
+            if (IgnoredStatuses.Contains(status.Id)) continue;
+
+            if (status.SourceId != 0 && recording.Metadata.TryGetValue(status.SourceId, out var sourceMeta))
+            {
+                if (sourceMeta.Type == EntityType.Player) continue;
+            }
+
+            var sheetStatus = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Status>()?.GetRowOrDefault(status.Id);
+            if (sheetStatus == null || sheetStatus.Value.Icon == 0) continue;
+
+            var iconWrap = Service.TextureProvider.GetFromGameIcon(sheetStatus.Value.Icon).GetWrapOrDefault();
+            if (iconWrap != null)
+            {
+                Vector2 drawPos = screenPos + baseOffset + new Vector2(drawCount * (iconSize + 2f), 0);
+                drawList.AddImage(iconWrap.Handle, drawPos, drawPos + new Vector2(iconSize, iconSize));
+                drawCount++;
+
+                if (drawCount >= 3) break;
+            }
+        }
+    }
 
         private void DrawBossIcon(ImDrawListPtr drawList, ReplayEntityState state, Vector2 center)
         {

@@ -501,6 +501,12 @@ namespace AetherBlackbox.Windows
                         configuration.Save();
                     }
 
+                    var showStatuses = configuration.ShowReplayStatuses;
+                    if (ImGui.Checkbox("Show Status Icons", ref showStatuses))
+                    {
+                        configuration.ShowReplayStatuses = showStatuses;
+                        configuration.Save();
+                    }
                     ImGui.EndPopup();
                 }
 
