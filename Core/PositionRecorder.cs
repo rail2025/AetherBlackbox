@@ -11,7 +11,7 @@ using Dalamud.Game.ClientState;
 
 namespace AetherBlackbox.Core
 {
-    public struct ReplayStatus { public uint Id; public float Duration; public uint StackCount; }
+    public struct ReplayStatus { public uint Id; public float Duration; public uint StackCount; public uint SourceId; }
     public struct ReplayCast { public uint ActionId; public float Current; public float Total; }
     public struct WaymarkSnapshot { public int ID; public float X; public float Z; public bool Active; }
     public enum EntityType { Player, Boss, Npc }
@@ -226,7 +226,7 @@ namespace AetherBlackbox.Core
                 if (obj is IPlayerCharacter player)
                 {
                     uint sHash = 0;
-                    unchecked { foreach (var s in player.StatusList) sHash = (sHash * 397) ^ s.StatusId ^ s.Param; }
+                    unchecked { foreach (var s in player.StatusList) sHash = (sHash * 397) ^ s.StatusId ^ s.Param ^ s.SourceId; }
 
                     bool statusChanged = lastState.ObjectId == 0 || sHash != lastRecordedStates[player.EntityId].StatusHash;
 
@@ -241,7 +241,7 @@ namespace AetherBlackbox.Core
                         ClassJobId = player.ClassJob.RowId,
                         Timestamp = snapshotTime,
                         Type = EntityType.Player,
-                        Statuses = statusChanged ? player.StatusList.Select(s => new ReplayStatus { Id = s.StatusId, Duration = s.RemainingTime, StackCount = s.Param }).ToList() : null,
+                        Statuses = statusChanged ? player.StatusList.Select(s => new ReplayStatus { Id = s.StatusId, Duration = s.RemainingTime, StackCount = s.Param, SourceId = s.SourceId }).ToList() : null,
                         Cast = player.IsCasting ? new ReplayCast { ActionId = player.CastActionId, Current = player.CurrentCastTime, Total = player.TotalCastTime } : default,
                         TargetId = player.TargetObjectId,
                         LastLoggedActionId = actionToLog
@@ -286,7 +286,7 @@ namespace AetherBlackbox.Core
                     }
 
                     uint sHash = 0;
-                    unchecked { foreach (var s in npc.StatusList) sHash = (sHash * 397) ^ s.StatusId ^ s.Param; }
+                    unchecked { foreach (var s in npc.StatusList) sHash = (sHash * 397) ^ s.StatusId ^ s.Param ^ s.SourceId; }
                     bool statusChanged = lastRecordedStates[npc.EntityId].ObjectId == 0 || sHash != lastRecordedStates[npc.EntityId].StatusHash;
 
                     var snapshot = new EntityPositionSnapshot
@@ -300,7 +300,7 @@ namespace AetherBlackbox.Core
                         Timestamp = snapshotTime,
                         Type = npc.IsTargetable ? EntityType.Boss : EntityType.Npc,
                         ModelId = (uint)npc.BaseId,
-                        Statuses = statusChanged ? npc.StatusList.Select(s => new ReplayStatus { Id = s.StatusId, Duration = s.RemainingTime, StackCount = s.Param }).ToList() : null,
+                        Statuses = statusChanged ? npc.StatusList.Select(s => new ReplayStatus { Id = s.StatusId, Duration = s.RemainingTime, StackCount = s.Param, SourceId = s.SourceId }).ToList() : null,
                         Cast = npc.IsCasting ? new ReplayCast { ActionId = npc.CastActionId, Current = npc.CurrentCastTime, Total = npc.TotalCastTime } : default,
                         TargetId = npc.TargetObjectId,
                         LastLoggedActionId = actionToLog

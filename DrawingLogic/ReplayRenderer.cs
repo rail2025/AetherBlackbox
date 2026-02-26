@@ -18,26 +18,26 @@ namespace AetherBlackbox.DrawingLogic
 
         public record ViewContext(Vector2 CanvasOrigin, Vector2 CanvasSize, Vector3 CenterWorldPos, float Zoom, Vector2 PanOffset);
 
-        public void Draw(ImDrawListPtr drawList, ReplayFrame frame, Dictionary<uint, ReplayMetadata> metadata, List<WaymarkSnapshot> waymarks, Vector2 canvasOrigin, Vector2 canvasSize, Vector3 centerWorldPos, uint territoryTypeId, bool showNpcs, bool showHp, bool anonymizeNames, float zoom, Vector2 panOffset, Configuration config)
+        public void Draw(ImDrawListPtr drawList, ReplayRecording recording, ReplayFrame frame, float targetOffset, Vector2 canvasOrigin, Vector2 canvasSize, Vector3 centerWorldPos, uint territoryTypeId, bool showNpcs, bool showHp, bool anonymizeNames, float zoom, Vector2 panOffset, Configuration config)
         {
             var view = new ViewContext(canvasOrigin, canvasSize, centerWorldPos, zoom, panOffset);
-            DrawInternal(drawList, frame, metadata, waymarks, territoryTypeId, showNpcs, showHp, anonymizeNames, view, config);
+            DrawInternal(drawList, recording, frame, targetOffset, territoryTypeId, showNpcs, showHp, anonymizeNames, view, config);
         }
 
-        private void DrawInternal(ImDrawListPtr drawList, ReplayFrame frame, Dictionary<uint, ReplayMetadata> metadata, List<WaymarkSnapshot> waymarks, uint territoryTypeId, bool showNpcs, bool showHp, bool anonymizeNames, ViewContext view, Configuration config)
+        private void DrawInternal(ImDrawListPtr drawList, ReplayRecording recording, ReplayFrame frame, float targetOffset, uint territoryTypeId, bool showNpcs, bool showHp, bool anonymizeNames, ViewContext view, Configuration config)
         {
             if (frame == null || frame.Ids.Count == 0) return;
             var canvasCenter = (view.CanvasOrigin + (view.CanvasSize / 2)) + view.PanOffset;
             float scale = DefaultPixelsPerYard * ImGuiHelpers.GlobalScale * view.Zoom;
 
-            DrawMapBackground(drawList, territoryTypeId, view, waymarks, config);
-            DrawWaymarks(drawList, waymarks, view);
+            DrawMapBackground(drawList, territoryTypeId, view, recording.Waymarks, config);
+            DrawWaymarks(drawList, recording.Waymarks, view);
 
             for (int i = 0; i < frame.Ids.Count; i++)
             {
                 var id = frame.Ids[i];
 
-                if (!metadata.TryGetValue(id, out var meta))
+                if (!recording.Metadata.TryGetValue(id, out var meta))
                     continue;
 
                 bool isBoss = meta.Type == EntityType.Boss;
@@ -70,9 +70,59 @@ namespace AetherBlackbox.DrawingLogic
                     DrawBossIcon(drawList, state, screenPos);
                 else
                     DrawPlayerIcon(drawList, state, meta, screenPos);
+                    DrawPlayerMechanicStatuses(drawList, recording, id, targetOffset, screenPos);
 
                 if (showHp && (isPlayer || isBoss))
                     DrawHpBar(drawList, state, meta, screenPos);                
+            }
+        }
+        private void DrawPlayerMechanicStatuses(ImDrawListPtr drawList, ReplayRecording recording, uint entityId, float currentTime, Vector2 screenPos)
+        {
+            var activeStatuses = new Dictionary<uint, ReplayStatus>();
+
+            for (int i = recording.Frames.Count - 1; i >= 0; i--)
+            {
+                var f = recording.Frames[i];
+                if (f.TimeOffset > currentTime) continue;
+                if (currentTime - f.TimeOffset > 120f) break;
+
+                int idx = f.Ids.IndexOf(entityId);
+                if (idx != -1 && f.Statuses != null && idx < f.Statuses.Count && f.Statuses[idx] != null)
+                {
+                    foreach (var status in f.Statuses[idx])
+                    {
+                        if (!activeStatuses.ContainsKey(status.Id))
+                        {
+                            float remaining = status.Duration - (currentTime - f.TimeOffset);
+                            if (remaining > 0) activeStatuses[status.Id] = new ReplayStatus { Id = status.Id, Duration = remaining, StackCount = status.StackCount, SourceId = status.SourceId };
+                            else activeStatuses[status.Id] = new ReplayStatus { Id = status.Id, Duration = 0f };
+                        }
+                    }
+                }
+            }
+
+            int drawCount = 0;
+            float iconSize = 16f * ImGuiHelpers.GlobalScale;
+            Vector2 baseOffset = new Vector2(10f, -20f) * ImGuiHelpers.GlobalScale;
+
+            foreach (var status in activeStatuses.Values)
+            {
+                if (status.Duration <= 0f) continue;
+                if (drawCount >= 3) break;
+
+                if (status.SourceId == 0 || !recording.Metadata.TryGetValue(status.SourceId, out var sourceMeta)) continue;
+                if (sourceMeta.Type is not EntityType.Boss and not EntityType.Npc) continue;
+
+                var sheetStatus = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Status>()?.GetRowOrDefault(status.Id);
+                if (sheetStatus == null || sheetStatus.Value.Icon == 0) continue;
+
+                var iconWrap = Service.TextureProvider.GetFromGameIcon(sheetStatus.Value.Icon).GetWrapOrDefault();
+                if (iconWrap != null)
+                {
+                    Vector2 drawPos = screenPos + baseOffset + new Vector2(drawCount * (iconSize + 2f), 0);
+                    drawList.AddImage(iconWrap.Handle, drawPos, drawPos + new Vector2(iconSize, iconSize));
+                    drawCount++;
+                }
             }
         }
 

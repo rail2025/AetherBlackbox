@@ -773,12 +773,13 @@ namespace AetherBlackbox.Windows
             ReplayFrame? closestFrame = null;
             ReplayRecording? recording = null;
             Vector3 centerPos = new Vector3(100, 0, 100);
+            float targetOffset = 0f;
 
             if (isReplayMode && ActiveDeathReplay != null && ActiveDeathReplay.ReplayData.Frames.Count > 0)
             {
                 recording = ActiveDeathReplay.ReplayData;
                 var deathTimeOffset = selectedPull != null ? (float)(ActiveDeathReplay.TimeOfDeath - selectedPull.StartTime).TotalSeconds : recording.Frames.Last().TimeOffset;
-                var targetOffset = deathTimeOffset + replayTimeOffset;
+                targetOffset = deathTimeOffset + replayTimeOffset;
                 closestFrame = GetClosestFrame(recording, targetOffset);
 
                 if (cachedArenaCenter == null && recording.Frames.Count > 0 && recording.Frames[0].Ids.Count > 0)
@@ -883,9 +884,11 @@ namespace AetherBlackbox.Windows
                 {
                     replayRenderer.Draw(
                         drawList,
+                        recording,
                         closestFrame,
-                        recording.Metadata,
-                        recording.Waymarks,
+                        targetOffset,
+                        //recording.Metadata,
+                        //recording.Waymarks,
                         canvasOriginScreen,
                         currentCanvasDrawSize,
                         centerPos,

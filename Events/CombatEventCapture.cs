@@ -115,20 +115,27 @@ public class CombatEventCapture : IDisposable {
                         amount += (uint)actionEffect.Param3 << 16;
 
                     action ??= Service.DataManager.GetExcelSheet<Action>().GetRowOrDefault(actionId);
-                    source ??= casterPtr->NameString;
+                    if (source == null && casterPtr != null)
+                        source = casterPtr->NameString;
 
                     switch ((ActionEffectType)actionEffect.Type) {
                         case ActionEffectType.Miss:
                         case ActionEffectType.Damage:
                         case ActionEffectType.BlockedDamage:
                         case ActionEffectType.ParriedDamage:
-                            if (additionalStatus == null) {
-                                var statusManager = casterPtr->GetStatusManager();
+                            if (additionalStatus == null)
+                            {
                                 additionalStatus = [];
-                                if (statusManager != null) {
-                                    foreach (ref var status in statusManager->Status) {
-                                        if (status.StatusId is 1203 or 1195 or 1193 or 860 or 1715 or 2115 or 3642)
-                                            additionalStatus.Add(status.StatusId);
+                                if (casterPtr != null)
+                                {
+                                    var statusManager = casterPtr->GetStatusManager();
+                                    if (statusManager != null)
+                                    {
+                                        foreach (ref var status in statusManager->Status)
+                                        {
+                                            if (status.StatusId is 1203 or 1195 or 1193 or 860 or 1715 or 2115 or 3642)
+                                                additionalStatus.Add(status.StatusId);
+                                        }
                                     }
                                 }
                             }
