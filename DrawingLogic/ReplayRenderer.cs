@@ -128,7 +128,8 @@ namespace AetherBlackbox.DrawingLogic
             }
 
             int drawCount = 0;
-            float iconSize = 16f * ImGuiHelpers.GlobalScale;
+            float iconWidth = 12f * ImGuiHelpers.GlobalScale;
+            float iconHeight = 16f * ImGuiHelpers.GlobalScale;
             Vector2 baseOffset = new Vector2(10f, -20f) * ImGuiHelpers.GlobalScale;
 
             foreach (var status in activeStatuses.Values)
@@ -160,11 +161,11 @@ namespace AetherBlackbox.DrawingLogic
                 var iconWrap = Service.TextureProvider.GetFromGameIcon(sheetStatus.Value.Icon).GetWrapOrDefault();
                 if (iconWrap != null)
                 {
-                    Vector2 drawPos = screenPos + baseOffset + new Vector2(drawCount * (iconSize + 2f), 0);
-                    drawList.AddImage(iconWrap.Handle, drawPos, drawPos + new Vector2(iconSize, iconSize));
+                    Vector2 drawPos = screenPos + baseOffset + new Vector2(drawCount * (iconWidth + 2f), 0);
+                    drawList.AddImage(iconWrap.Handle, drawPos, drawPos + new Vector2(iconWidth, iconHeight));
                     drawCount++;
 
-                    if (drawCount >= 3) break;
+                    if (drawCount >= 4) break;
                 }
             }
         }
