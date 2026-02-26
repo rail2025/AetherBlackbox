@@ -10,6 +10,8 @@ Searchable status/effects, snap to timeline, zoom, pan, and more.
 <br>
 <img width="1007" alt="abb demo" src="https://github.com/user-attachments/assets/d1607f4a-031c-4486-9377-281b3f969505" />
 <br>
+<img width="1007" alt="abb demo" src="https://github.com/user-attachments/assets/a62c3d79-929b-4a29-94b5-74db5e90e0b0" />
+<br>
 
 
 ## Credits & Attribution
