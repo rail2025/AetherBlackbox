@@ -57,10 +57,10 @@ public class NotificationHandler : Window {
                 label = AppendCenteredPlayerName(label, playerName);
 
             if (ImGui.Button(label, new Vector2(-1, -1))) {
-                plugin.RecapWindow.IsOpen = true;
-                if (popupDeath?.PlayerId is { } id)
-                    plugin.RecapWindow.SelectedPlayer = id;
-
+                if (popupDeath != null)
+                {
+                    plugin.MainWindow.OpenReplay(popupDeath);
+                }
                 popupDeath = null;
                 IsOpen = false;
             }

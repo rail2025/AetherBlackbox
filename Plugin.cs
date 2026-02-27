@@ -77,6 +77,7 @@ public class Plugin : IDalamudPlugin
         WindowSystem.AddWindow(MainWindow);
         WindowSystem.AddWindow(AboutWindow);
         WindowSystem.AddWindow(LiveSessionWindow);
+        WindowSystem.AddWindow(NotificationHandler);
 
         Service.PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
         Service.PluginInterface.UiBuilder.OpenConfigUi += () => RecapConfigWindow.IsOpen = true;
