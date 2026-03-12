@@ -12,6 +12,7 @@ namespace AetherBlackbox.Networking
         TimeSync,
         EncounterSync,
         DrawLaser,
+        BroadcastHeaders,
     }
 
     [Serializable]

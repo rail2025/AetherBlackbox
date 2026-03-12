@@ -59,6 +59,17 @@ public class Plugin : IDalamudPlugin
         Capture = new CombatEventCapture(this);
         NotificationHandler = new NotificationHandler(this);
         NetworkManager = new NetworkManager();
+        NetworkManager.OnConnected += () =>
+        {
+            var headers = PullManager.GetLastHeadersJson();
+            if (headers != "[]") NetworkManager.SendHeadersBroadcastAsync(headers);
+        };
+        NetworkManager.OnReplayRequested += hash => PullManager.UploadReplayByHash(hash);
+        NetworkManager.OnHeadersRequested += () =>
+        {
+            var headers = PullManager.GetLastHeadersJson();
+            if (headers != "[]") NetworkManager.SendHeadersBroadcastAsync(headers);
+        };
         Service.Condition.ConditionChange += OnConditionChange;
         RecapConfigWindow = new RecapConfigWindow(this);
         RecapWindow = new AetherBlackboxWindow(this);

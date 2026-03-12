@@ -20,6 +20,8 @@ namespace AetherBlackbox.Networking
         public event Action<NetworkPayload>? OnStateUpdateReceived;
         public event Action? OnRoomClosingWarning;
         public event Action<bool>? OnHostStatusReceived;
+        public event Action<string>? OnReplayRequested;
+        public event Action? OnHeadersRequested;
 
         public bool IsConnected => webSocket?.State == WebSocketState.Open;
 
@@ -140,6 +142,14 @@ namespace AetherBlackbox.Networking
                 {
                     OnRoomClosingWarning?.Invoke();
                 }
+                else if (type == "REQUEST_REPLAY")
+                {
+                    string? hash = obj["hash"]?.ToString();
+                    if (!string.IsNullOrEmpty(hash))
+                    {
+                        OnReplayRequested?.Invoke(hash);
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -203,7 +213,16 @@ namespace AetherBlackbox.Networking
             };
             return SendStateUpdateAsync(payload);
         }
-
+        public Task SendHeadersBroadcastAsync(string jsonPayload)
+        {
+            var payload = new NetworkPayload
+            {
+                PageIndex = -1,
+                Action = PayloadActionType.BroadcastHeaders,
+                Data = System.Text.Encoding.UTF8.GetBytes(jsonPayload)
+            };
+            return SendStateUpdateAsync(payload);
+        }
         public void Dispose()
         {
             // Ensure disconnection is awaited to prevent resource leaks.

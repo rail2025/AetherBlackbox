@@ -1,11 +1,12 @@
-﻿using System;
+﻿using AetherBlackbox.Events;
+using AetherBlackbox.Networking;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using AetherBlackbox.Events;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 
 namespace AetherBlackbox.Core
 {
@@ -119,6 +120,17 @@ namespace AetherBlackbox.Core
             var sessionToSave = CurrentSession;
             Task.Run(() => SaveSession(sessionToSave));
 
+            var headerBroadcast = new[] {
+                new {
+                    Hash = CurrentSession.IdentityHash,
+                    EventCount = CurrentSession.EventCount,
+                    Date = CurrentSession.StartTime,
+                    Zone = CurrentSession.ZoneName
+                }
+            };
+
+            plugin.NetworkManager.SendHeadersBroadcastAsync(JsonConvert.SerializeObject(headerBroadcast));
+
             Service.PluginLog.Information($"Session {CurrentSession.PullNumber} ended. Recorded {CurrentSession.Deaths.Count} deaths.");
 
             CurrentSession = null;
@@ -162,6 +174,54 @@ namespace AetherBlackbox.Core
                     Service.PluginLog.Information($"Late arrival: Attached death of {death.PlayerName} to finished Session #{lastSession.PullNumber}");
                 }
             }
+        }
+        public void UploadReplayByHash(string hash)
+        {
+            var session = History.FirstOrDefault(h => h.IdentityHash == hash);
+            if (session == null) return;
+
+            Service.PluginLog.Info($"Web Client requested replay: {hash}. Uploading EncounterSync...");
+
+            
+            byte[] replayBinary = Array.Empty<byte>();
+            using (var ms = new MemoryStream())
+            {
+                using (var writer = new BinaryWriter(ms, System.Text.Encoding.UTF8, leaveOpen: true))
+                {
+                    var headerJson = JsonConvert.SerializeObject(session.ReplayData?.Header);
+                    writer.Write(headerJson ?? "");
+                }
+
+                List<Death> safeDeaths;
+                lock (session.Deaths)
+                {
+                    safeDeaths = session.Deaths.ToList();
+                }
+                var body = new { session.ReplayData?.Metadata, session.ReplayData?.Frames, session.ReplayData?.Waymarks, Deaths = safeDeaths };
+
+                using (var gzip = new GZipStream(ms, CompressionLevel.Optimal, leaveOpen: true))
+                using (var sw = new StreamWriter(gzip))
+                using (var jw = new JsonTextWriter(sw))
+                {
+                    var serializer = new JsonSerializer
+                    {
+                        TypeNameHandling = TypeNameHandling.Auto,
+                        SerializationBinder = new CategoryShortener()
+                    };
+                    serializer.Serialize(jw, body);
+                }
+                replayBinary = ms.ToArray();
+            }
+
+            var payload = new NetworkPayload
+            {
+                PageIndex = -1,
+                Action = PayloadActionType.EncounterSync,
+                Data = replayBinary
+            };
+
+            plugin.NetworkManager.SendStateUpdateAsync(payload);
+            Service.PluginLog.Info($"[PullManager] Finished uploading EncounterSync for {hash}. Size: {replayBinary.Length / 1024} KB");
         }
         public class ReplayFileHeader
         {
@@ -305,6 +365,19 @@ namespace AetherBlackbox.Core
             {
                 Service.PluginLog.Error(ex, $"[PullManager] Failed to save replay #{session.PullNumber}");
             }
+        }
+        public string GetLastHeadersJson(int count = 20)
+        {
+            var headers = History.OrderByDescending(h => h.StartTime)
+                                 .Take(count)
+                                 .Select(h => new {
+                                     Hash = h.IdentityHash,
+                                     EventCount = h.EventCount,
+                                     Date = h.StartTime,
+                                     Zone = h.ZoneName
+                                 }).ToList();
+
+            return JsonConvert.SerializeObject(headers);
         }
         public void Dispose()
         {

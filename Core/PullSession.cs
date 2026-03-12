@@ -16,5 +16,7 @@ namespace AetherBlackbox.Core
         public Dictionary<string, long> DamageByTarget { get; set; } = new();
         public TimeSpan Duration => (EndTime ?? StartTime) - StartTime;
         public string DisplayTitle => $"Pull #{PullNumber} ({StartTime:hh:mm tt}) - {Duration:mm\\:ss} {ZoneName}";
+        public string IdentityHash => $"{ZoneName}_{StartTime.Ticks}";
+        public int EventCount => (ReplayData?.Frames?.Count ?? 0) + Deaths.Count;
     }
 }
