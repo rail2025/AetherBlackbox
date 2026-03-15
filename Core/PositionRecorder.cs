@@ -19,6 +19,7 @@ namespace AetherBlackbox.Core
     {
         public int SchemaVersion { get; set; } = 1;
         public Dictionary<uint, string> AbilityManifest { get; set; } = new();
+        public Dictionary<uint, uint> AbilityIconManifest { get; set; } = new();
         public Dictionary<uint, string> StatusManifest { get; set; } = new();
         public List<WaymarkSnapshot> WaymarkSnapshots { get; set; } = new();
         public List<string> DeathLog { get; set; } = new();
@@ -374,8 +375,17 @@ namespace AetherBlackbox.Core
                             var action = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>()?.GetRowOrDefault(entity.LastLoggedActionId);
                             if (action != null)
                                 recording.Header.AbilityManifest.Add(entity.LastLoggedActionId, action.Value.Name.ToString());
+                                recording.Header.AbilityIconManifest.Add(entity.LastLoggedActionId, action.Value.Icon);
                         }
-
+                        if (entity.Cast.ActionId != 0 && !recording.Header.AbilityManifest.ContainsKey(entity.Cast.ActionId))
+                        {
+                            var castAction = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>()?.GetRowOrDefault(entity.Cast.ActionId);
+                            if (castAction != null)
+                            {
+                                recording.Header.AbilityManifest.Add(entity.Cast.ActionId, castAction.Value.Name.ToString());
+                                recording.Header.AbilityIconManifest.Add(entity.Cast.ActionId, castAction.Value.Icon);
+                            }
+                        }
                         if (entity.Statuses != null)
                         {
                             foreach (var s in entity.Statuses)
