@@ -369,7 +369,7 @@ namespace AetherBlackbox.Core
                                 ModelId = entity.ModelId
                             };
                         }
-                       
+
                         if (entity.LastLoggedActionId != 0 && !recording.Header.AbilityManifest.ContainsKey(entity.LastLoggedActionId))
                         {
                             var action = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>()?.GetRowOrDefault(entity.LastLoggedActionId);
