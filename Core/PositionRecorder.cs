@@ -373,14 +373,16 @@ namespace AetherBlackbox.Core
                         if (entity.LastLoggedActionId != 0 && !recording.Header.AbilityManifest.ContainsKey(entity.LastLoggedActionId))
                         {
                             var action = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>()?.GetRowOrDefault(entity.LastLoggedActionId);
-                            if (action != null)
+                            if (action.HasValue)
+                            {
                                 recording.Header.AbilityManifest.Add(entity.LastLoggedActionId, action.Value.Name.ToString());
                                 recording.Header.AbilityIconManifest.Add(entity.LastLoggedActionId, action.Value.Icon);
+                            }
                         }
                         if (entity.Cast.ActionId != 0 && !recording.Header.AbilityManifest.ContainsKey(entity.Cast.ActionId))
                         {
                             var castAction = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>()?.GetRowOrDefault(entity.Cast.ActionId);
-                            if (castAction != null)
+                            if (castAction.HasValue)
                             {
                                 recording.Header.AbilityManifest.Add(entity.Cast.ActionId, castAction.Value.Name.ToString());
                                 recording.Header.AbilityIconManifest.Add(entity.Cast.ActionId, castAction.Value.Icon);
@@ -393,7 +395,7 @@ namespace AetherBlackbox.Core
                                 if (!recording.Header.StatusManifest.ContainsKey(s.Id))
                                 {
                                     var status = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Status>()?.GetRowOrDefault(s.Id);
-                                    if (status != null)
+                                    if (status.HasValue)
                                         recording.Header.StatusManifest.Add(s.Id, status.Value.Name.ToString());
                                 }
                             }
