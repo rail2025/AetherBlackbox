@@ -8,14 +8,16 @@ Visually inspect your positioning leading up to death.
 * Scrub through a timeline of events
 * Search status effects
 * Zoom, pan, and analyze encounters in a 2D replay view
+* Draw strategies and annotate directly on the replay canvas
+* Export encounter replays and drawings to share with others
 
 <br>
 
-<img width="1007" height="642" alt="abb main window" src="https://github.com/user-attachments/assets/9079f588-a708-4c50-8508-643517b5a869" />
+<img width="1007" height="642" alt="abb main window" src="https://github.com/user-attachments/assets/fab0596c-f07f-4844-bfb7-d10eb01e8bc1" />
 <br>
-<img width="1007" alt="abb demo" src="https://github.com/user-attachments/assets/d1607f4a-031c-4486-9377-281b3f969505" />
+<img width="1007" alt="abb demo" src="https://github.com/user-attachments/assets/fd3aae03-a96e-4ca6-b2d7-cef4e8121a25" />
 <br>
-<img width="1007" alt="abb demo" src="https://github.com/user-attachments/assets/a62c3d79-929b-4a29-94b5-74db5e90e0b0" />
+<img width="1007" alt="abb demo" src="https://github.com/user-attachments/assets/e2679e01-9274-454a-b884-0230e857395d" />
 <br>
 
 ---
@@ -24,7 +26,7 @@ Visually inspect your positioning leading up to death.
 
 AetherBlackbox is designed as a high-performance combat replay and visualization system with real-time multiplayer synchronization.
 
-👉 Full design details: **[architecture.md](./architecture.md)**
+design details: **[architecture.md](./architecture.md)**
 
 ### Highlights
 
