@@ -11,11 +11,11 @@ Visually inspect your positioning leading up to death.
 
 <br>
 
-<img width="1007" height="642" alt="abb main window" src="https://github.com/user-attachments/assets/9079f588-a708-4c50-8508-643517b5a869" />
+<img width="1007" height="642" alt="abb main window" src="" />
 <br>
-<img width="1007" alt="abb demo" src="https://github.com/user-attachments/assets/d1607f4a-031c-4486-9377-281b3f969505" />
+<img width="1007" alt="abb demo" src="" />
 <br>
-<img width="1007" alt="abb demo" src="https://github.com/user-attachments/assets/a62c3d79-929b-4a29-94b5-74db5e90e0b0" />
+<img width="1007" alt="abb demo" src="" />
 <br>
 
 ---
