@@ -12,17 +12,28 @@ public class ConditionEvaluator(Plugin plugin) {
         return false;
     }
 
-    public bool ShouldCapture(uint actorId) {
-        if (plugin.Configuration.Others.Capture)
+    public bool ShouldCapture(uint actorId)
+    {
+        if (actorId == Service.ObjectTable[0]?.GameObjectId)
+        {
+            if (!plugin.Configuration.Self.Capture) return false;
+            if (plugin.Configuration.Self.OnlyInstances && !Service.Condition[ConditionFlag.BoundByDuty]) return false;
+            if (plugin.Configuration.Self.DisableInPvp && Service.ClientState.IsPvP) return false;
             return true;
+        }
 
-        if (plugin.Configuration.Self.Capture && actorId == Service.ObjectTable[0]?.GameObjectId)
+        if (LookupPartyMember(actorId))
+        {
+            if (!plugin.Configuration.Party.Capture) return false;
+            if (plugin.Configuration.Party.OnlyInstances && !Service.Condition[ConditionFlag.BoundByDuty]) return false;
+            if (plugin.Configuration.Party.DisableInPvp && Service.ClientState.IsPvP) return false;
             return true;
+        }
 
-        if (plugin.Configuration.Party.Capture && LookupPartyMember(actorId))
-            return true;
-
-        return false;
+        if (!plugin.Configuration.Others.Capture) return false;
+        if (plugin.Configuration.Others.OnlyInstances && !Service.Condition[ConditionFlag.BoundByDuty]) return false;
+        if (plugin.Configuration.Others.DisableInPvp && Service.ClientState.IsPvP) return false;
+        return true;
     }
 
     public NotificationStyle GetNotificationType(uint actorId) {

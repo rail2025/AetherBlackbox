@@ -68,8 +68,9 @@ namespace AetherBlackbox.DrawingLogic
                 bool isBoss = meta.Type == EntityType.Boss;
                 bool isNpc = meta.Type == EntityType.Npc;
                 bool isPlayer = meta.ClassJobId != 0;
+                bool isPet = meta.Type == EntityType.Pet;
 
-                if (!showNpcs && !isBoss && !isPlayer)
+                if (!showNpcs && !isBoss && !isPlayer && !isPet)
                     continue;
 
                 var entityPos = new Vector3(frame.X[i], 0, frame.Z[i]);
@@ -94,6 +95,13 @@ namespace AetherBlackbox.DrawingLogic
                 if (isBoss || isNpc)
                 {
                     DrawBossIcon(drawList, state, screenPos);
+                }
+                else if (isPet)
+                {
+                    if (meta.OwnerId != 0 && recording.Metadata.TryGetValue(meta.OwnerId, out var ownerMeta))
+                    {
+                        DrawPlayerIcon(drawList, state, ownerMeta, screenPos, 0.4f);
+                    }
                 }
                 else
                 {
@@ -215,9 +223,9 @@ namespace AetherBlackbox.DrawingLogic
             drawList.AddLine(arrowStart, arrowEnd, ImGui.GetColorU32(new Vector4(1f, 0f, 0f, 0.8f)), 3f * ImGuiHelpers.GlobalScale);
         }
 
-        private void DrawPlayerIcon(ImDrawListPtr drawList, ReplayEntityState state, ReplayMetadata meta, Vector2 screenPos)
+        private void DrawPlayerIcon(ImDrawListPtr drawList, ReplayEntityState state, ReplayMetadata meta, Vector2 screenPos, float scale = 1.0f)
         {
-            float iconSize = 28f * ImGuiHelpers.GlobalScale;
+            float iconSize = 28f * ImGuiHelpers.GlobalScale * scale;
             float iconRadius = iconSize / 2;
 
             if (!_jobIconCache.TryGetValue(meta.ClassJobId, out var texture) || texture == null)

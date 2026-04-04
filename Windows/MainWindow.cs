@@ -442,9 +442,7 @@ namespace AetherBlackbox.Windows
                 }
             }
 
-            float selectionInfoHeight = (selectedEntityId != 0 && ActiveDeathReplay != null) ? (140f * ImGuiHelpers.GlobalScale) : (ImGui.GetStyle().WindowPadding.Y * 2);
-
-            if (ImGui.BeginChild("CanvasDrawingArea", new Vector2(0, -selectionInfoHeight), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
+            if (ImGui.BeginChild("CanvasDrawingArea", new Vector2(0, 0), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
             {
                 var canvasStartPos = ImGui.GetCursorPos();
                 currentCanvasDrawSize = ImGui.GetContentRegionAvail();
@@ -498,17 +496,19 @@ namespace AetherBlackbox.Windows
                     }
                     ImGui.EndChild();
                     ImGui.PopStyleColor();
+                    if (selectedEntityId != 0 && ActiveDeathReplay != null)
+                    {
+                        ImGui.SetCursorPos(canvasStartPos + new Vector2(0, currentCanvasDrawSize.Y - (140f * ImGuiHelpers.GlobalScale)));
+                        ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.12f, 0.12f, 0.14f, 0.95f));
+                        if (ImGui.BeginChild("SelectionInfoArea", new Vector2(0, 140f * ImGuiHelpers.GlobalScale), true, ImGuiWindowFlags.NoScrollbar))
+                        {
+                            DrawSelectionInfo();
+                        }
+                        ImGui.EndChild();
+                        ImGui.PopStyleColor();
+                    }
                 }
                 ImGui.EndChild();
-            }
-
-            if (selectedEntityId != 0 && ActiveDeathReplay != null)
-            {
-                if (ImGui.BeginChild("SelectionInfoArea", new Vector2(0, selectionInfoHeight), false, ImGuiWindowFlags.NoScrollbar))
-                {
-                    DrawSelectionInfo();
-                    ImGui.EndChild();
-                }
             }
         }
 
@@ -612,6 +612,15 @@ namespace AetherBlackbox.Windows
 
                         for (int i = 0; i < closestFrame.Ids.Count; i++)
                         {
+                            var id = closestFrame.Ids[i];
+                            if (!recording.Metadata.TryGetValue(id, out var meta)) continue;
+
+                            bool isBoss = meta.Type == EntityType.Boss;
+                            bool isPlayer = meta.ClassJobId != 0;
+                            bool isPet = meta.Type == EntityType.Pet;
+
+                            if (!configuration.ShowReplayNpcs && !isBoss && !isPlayer && !isPet) continue;
+
                             if (i >= closestFrame.X.Count || i >= closestFrame.Z.Count) continue;
                             var entityPos = new Vector3(closestFrame.X[i], 0, closestFrame.Z[i]);
                             var relPos = entityPos - centerPos;

@@ -53,45 +53,69 @@ namespace AetherBlackbox.Windows
                 return;
             }
 
-            for (int i = history.Count - 1; i >= 0; i--)
+            var groups = new System.Collections.Generic.List<(string Name, System.Collections.Generic.List<Core.PullSession> Pulls)>();
+            foreach (var pull in history)
             {
-                var pull = history[i];
-                var flags = ImGuiTreeNodeFlags.OpenOnArrow | ImGuiTreeNodeFlags.SpanFullWidth;
-                if (selectedPull == pull) flags |= ImGuiTreeNodeFlags.DefaultOpen;
+                int lastParen = pull.ZoneName.LastIndexOf('(');
+                string baseName = lastParen > 0 ? pull.ZoneName.Substring(0, lastParen).Trim() : pull.ZoneName;
 
-                var title = pull.DisplayTitle + (pull.IsTruncated ? " [TRUNC]" : "");
-                bool isOpen = ImGui.TreeNodeEx($"##Pull_{pull.PullNumber}", flags, title);
+                if (groups.Count == 0 || groups.Last().Name != baseName) groups.Add((baseName, new System.Collections.Generic.List<Core.PullSession>()));
+                groups.Last().Pulls.Add(pull);
+            }
 
-                ImGui.SameLine();
-                if (ImGuiComponents.IconButton($"##Delete_{pull.PullNumber}", FontAwesomeIcon.Trash))
+            for (int i = groups.Count - 1; i >= 0; i--)
+            {
+                var group = groups[i];
+                bool containsSelected = selectedPull != null && group.Pulls.Contains(selectedPull);
+                var groupFlags = ImGuiTreeNodeFlags.SpanFullWidth | (containsSelected ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.None);
+
+                if (ImGui.TreeNodeEx($"##Group_{i}", groupFlags, group.Name))
                 {
-                    plugin.PullManager.History.Remove(pull);
-                    if (selectedPull == pull) selectedPull = null;
-                    continue;
-                }
-
-                if (ImGui.IsItemClicked())
-                {
-                    selectedPull = pull;
-                    Service.PluginLog.Info($"User clicked Pull #{pull.PullNumber}. Internal Death Count: {pull.Deaths.Count}");
-                }
-
-                if (isOpen)
-                {
-                    foreach (var death in pull.Deaths)
+                    for (int j = group.Pulls.Count - 1; j >= 0; j--)
                     {
-                        ImGui.Indent();
-                        bool isSelected = (death == ActiveDeathReplay);
+                        var pull = group.Pulls[j];
+                        int lastParen = pull.ZoneName.LastIndexOf('(');
+                        string hpStr = lastParen > 0 ? pull.ZoneName.Substring(lastParen).Replace("(", "").Replace(")", "").Replace("%%", "%").Trim() : "??%";
 
-                        string displayName = GetAnonymizedName(death.PlayerName, death.ReplayData);
-                        var timeIntoPull = death.TimeOfDeath - pull.StartTime;
-                        string deathLabel = $"{displayName} ({timeIntoPull:mm\\:ss})";
+                        var flags = ImGuiTreeNodeFlags.OpenOnArrow | ImGuiTreeNodeFlags.SpanFullWidth;
+                        if (selectedPull == pull) flags |= ImGuiTreeNodeFlags.DefaultOpen;
 
-                        if (ImGui.Selectable(deathLabel, isSelected))
+                        var title = $"Pull #{pull.PullNumber} ({pull.StartTime:HH:mm}) | {hpStr} - {pull.Duration:mm\\:ss}" + (pull.IsTruncated ? " [TRUNC]" : "");
+                        bool isOpen = ImGui.TreeNodeEx($"##Pull_{pull.PullNumber}", flags, title);
+
+                        ImGui.SameLine();
+                        if (ImGuiComponents.IconButton($"##Delete_{pull.PullNumber}", FontAwesomeIcon.Trash))
                         {
-                            OpenReplay(death);
+                            plugin.PullManager.History.Remove(pull);
+                            if (selectedPull == pull) selectedPull = null;
+                            continue;
                         }
-                        ImGui.Unindent();
+
+                        if (ImGui.IsItemClicked())
+                        {
+                            selectedPull = pull;
+                            Service.PluginLog.Info($"User clicked Pull #{pull.PullNumber}. Internal Death Count: {pull.Deaths.Count}");
+                        }
+
+                        if (isOpen)
+                        {
+                            foreach (var death in pull.Deaths)
+                            {
+                                ImGui.Indent();
+                                bool isSelected = (death == ActiveDeathReplay);
+
+                                string displayName = GetAnonymizedName(death.PlayerName, death.ReplayData);
+                                var timeIntoPull = death.TimeOfDeath - pull.StartTime;
+                                string deathLabel = $"{displayName} ({timeIntoPull:mm\\:ss})";
+
+                                if (ImGui.Selectable(deathLabel, isSelected))
+                                {
+                                    OpenReplay(death);
+                                }
+                                ImGui.Unindent();
+                            }
+                            ImGui.TreePop();
+                        }
                     }
                     ImGui.TreePop();
                 }

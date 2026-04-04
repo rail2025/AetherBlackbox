@@ -40,6 +40,7 @@ namespace AetherBlackbox.Core
         public ReplayCast Cast;
         public ulong TargetId;
         public uint LastLoggedActionId;
+        public uint OwnerId;
     }
     public class ReplayRecording
     {
@@ -56,6 +57,7 @@ namespace AetherBlackbox.Core
         public uint ClassJobId { get; set; }
         public EntityType Type { get; set; }
         public uint ModelId { get; set; }
+        public uint OwnerId { get; set; }
     }
 
     public class ReplayFrame
@@ -236,7 +238,8 @@ namespace AetherBlackbox.Core
                         Statuses = statusChanged ? player.StatusList.Where(s => s != null).Select(s => new ReplayStatus { Id = s.StatusId, Duration = s.RemainingTime, StackCount = s.Param, SourceId = s.SourceId }).ToList() : null,
                         Cast = player.IsCasting ? new ReplayCast { ActionId = player.CastActionId, Current = player.CurrentCastTime, Total = player.TotalCastTime } : default,
                         TargetId = player.TargetObjectId,
-                        LastLoggedActionId = actionToLog
+                        LastLoggedActionId = actionToLog,
+                        OwnerId = player.OwnerId
                     };
 
                     frameData.Add(snapshot);
@@ -290,12 +293,13 @@ namespace AetherBlackbox.Core
                         CurrentHp = npc.CurrentHp,
                         MaxHp = npc.MaxHp,
                         Timestamp = snapshotTime,
-                        Type = npc.IsTargetable ? EntityType.Boss : EntityType.Npc,
+                        Type = (npc.OwnerId != 0 && npc.OwnerId != 0xE0000000) ? EntityType.Pet : (npc.IsTargetable ? EntityType.Boss : EntityType.Npc),
                         ModelId = (uint)npc.BaseId,
                         Statuses = statusChanged ? npc.StatusList.Where(s => s != null).Select(s => new ReplayStatus { Id = s.StatusId, Duration = s.RemainingTime, StackCount = s.Param, SourceId = s.SourceId }).ToList() : null,
                         Cast = npc.IsCasting ? new ReplayCast { ActionId = npc.CastActionId, Current = npc.CurrentCastTime, Total = npc.TotalCastTime } : default,
                         TargetId = npc.TargetObjectId,
-                        LastLoggedActionId = actionToLog
+                        LastLoggedActionId = actionToLog,
+                        OwnerId = npc.OwnerId
                     };
 
                     frameData.Add(snapshot);
@@ -366,7 +370,8 @@ namespace AetherBlackbox.Core
                                 MaxHp = entity.MaxHp,
                                 ClassJobId = entity.ClassJobId,
                                 Type = entity.Type,
-                                ModelId = entity.ModelId
+                                ModelId = entity.ModelId,
+                                OwnerId = entity.OwnerId
                             };
                         }
 
