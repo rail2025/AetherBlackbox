@@ -1,0 +1,20 @@
+{
+  "Author": "rail",
+  "Name": "Aether Blackbox",
+  "Punchline": "A visual replay of positions before death",
+  "Description": "Replay positions and events before death. /abb to open; Connects to an external websocket relay for opt-in live sync mode (no PII sent).",
+  "Changelog": "v2.0.0: added drawing tools, export function, fixed memory leak, network disconnects, zone crash\nv1.2.2: popup fix\nv1.2.0: status icons on canvas\nv1.1.0:live sync mode added\nv1.0.2: memory leak clean up, code clean up\nv1.0.1: image fix\nv1.0.0:stable release, crash fixes\nv0.0.0.4:savage bg, replay saving bug fixed\nv0.0.0.3:session delete option, entities togglw working\nv0.0.0.2:time change, code clean up\nv0.0.0.1: Initial release",
+  "InternalName": "AetherBlackbox",
+  "AssemblyVersion": "2.0.0",
+  "DalamudApiLevel": 14,
+  "RepoUrl": "https://github.com/rail2025/AetherBlackbox",
+  "ApplicableVersion": "any",
+  "Tags": [
+    "viewer",
+    "strategy",
+    "image",
+    "encounter",
+    "death",
+    "positions"
+  ]
+}
