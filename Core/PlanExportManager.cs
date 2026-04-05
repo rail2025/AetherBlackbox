@@ -22,7 +22,7 @@ namespace AetherBlackbox.Core
     public class PlanExportPayload
     {
         public string Version { get; set; } = "1.0";
-        public System.Collections.Generic.List<PlanPagePayload> Pages { get; set; } = new();
+        public List<PlanPagePayload> Pages { get; set; } = new();
     }
 
     public class PlanPagePayload
@@ -115,7 +115,7 @@ namespace AetherBlackbox.Core
                 SerializationBinder = new PluginAssemblyBinder()
             };
 
-            var drawables = JsonConvert.DeserializeObject<List<BaseDrawable>>(json, settings);
+            /*var drawables = JsonConvert.DeserializeObject<List<BaseDrawable>>(json, settings);
             if (drawables != null)
             {
                 foreach (var drawable in drawables)
@@ -123,7 +123,8 @@ namespace AetherBlackbox.Core
                     drawable.Translate(new System.Numerics.Vector2(0, -32.5f));
                 }
             }
-            return drawables;
+            return drawables;*/
+            return JsonConvert.DeserializeObject<List<BaseDrawable>>(json, settings);
         }
 
         public string GenerateExportPayload()
@@ -156,11 +157,11 @@ namespace AetherBlackbox.Core
 
                     if (drawables != null)
                     {
-                        binaryData = AetherBlackbox.Serialization.DrawableSerializer.SerializePageToBytes(drawables);
+                        binaryData = Serialization.DrawableSerializer.SerializePageToBytes(drawables);
                     }
                     else
                     {
-                        binaryData = AetherBlackbox.Serialization.DrawableSerializer.SerializePageToBytes(new System.Collections.Generic.List<AetherBlackbox.DrawingLogic.BaseDrawable>());
+                        binaryData = Serialization.DrawableSerializer.SerializePageToBytes(new List<BaseDrawable>());
                     }
 
                     plan.Pages.Add(new PlanPagePayload

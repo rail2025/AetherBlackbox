@@ -673,7 +673,7 @@ namespace AetherBlackbox.Windows
                     plugin.Configuration
                 );
 
-                // Draw Selection Circle
+                // Selection Circle
                 if (selectedEntityId != 0)
                 {
                     int selIdx = closestFrame.Ids.IndexOf((uint)selectedEntityId);
@@ -722,7 +722,6 @@ namespace AetherBlackbox.Windows
 
             ImGui.PopClipRect();
 
-            // Draw the text editor UI over the canvas if active
             canvasController.inPlaceTextEditor?.DrawEditorUI();
         }
 
@@ -860,7 +859,7 @@ namespace AetherBlackbox.Windows
                 }
             }
         }
-
+        // see following todo item
         private Vector3 CalculateCenterFromWaymarks(ReplayRecording recording)
         {
             if (recording.Waymarks == null || recording.Waymarks.Count == 0) return new Vector3(100, 0, 100);
@@ -880,8 +879,10 @@ namespace AetherBlackbox.Windows
             lock (captureLock)
             {
                 var recording = ActiveDeathReplay.ReplayData;
-                var centerPos = CalculateCenterFromWaymarks(recording);
+                //var centerPos = CalculateCenterFromWaymarks(recording); 
+                var centerPos = cachedArenaCenter ?? new Vector3(100, 0, 100); // todo: less hack fix
                 var combinedDrawables = new List<BaseDrawable>();
+                var generatedWaymarks = new List<BaseDrawable>();
 
                 var currentDrawables = PageManager.GetCurrentPageDrawables();
                 if (currentDrawables != null)
@@ -960,36 +961,98 @@ namespace AetherBlackbox.Windows
                             _ => "A.png"
                         };
 
-                        combinedDrawables.Add(new DrawableImage(
+                        var waymarkImg = new DrawableImage(
                             DrawMode.Image,
                             $"PluginImages/toolbar/{iconName}",
                             new Vector2(screenX, screenY) / ImGuiHelpers.GlobalScale,
                             new Vector2(24f, 24f),
                             new Vector4(1f, 1f, 1f, 1f)
-                        ));
+                        );
+                        combinedDrawables.Add(waymarkImg);
+                        generatedWaymarks.Add(waymarkImg);
                     }
                 }
 
-                string? fallbackImage = ActiveDeathReplay.TerritoryTypeId switch
+                string? fallbackImage = null;
+                if (ActiveDeathReplay.TerritoryTypeId is 992 or 1321) fallbackImage = "m9";
+                else if (ActiveDeathReplay.TerritoryTypeId == 1323) fallbackImage = "m10";
+                else if (ActiveDeathReplay.TerritoryTypeId == 1325) fallbackImage = "m11p1";
+                else if (ActiveDeathReplay.TerritoryTypeId == 1327) fallbackImage = "m12p1";
+                else if (ActiveDeathReplay.TerritoryTypeId == 1317)
                 {
-                    992 or 1321 => "m9.webp",
-                    1323 => "m10.webp",
-                    1325 => "m11p1.webp",
-                    1327 => "m12p1.webp",
-                    _ => null
-                };
-                string arenaBackground = fallbackImage != null ? $"PluginImages/arenas/{fallbackImage}" : $"PluginImages/arenas/{ActiveDeathReplay.TerritoryTypeId}.webp";
+                    var boss = ActiveDeathReplay.ReplayData.Metadata.Values.FirstOrDefault(m => m.Type == EntityType.Boss);
+                    fallbackImage = boss?.Name switch
+                    {
+                        "Darya the Sea-Maid" => "tmtboss1_arena",
+                        "Lone Swordmaster" => "tmtboss2_arena",
+                        "Pari of Plenty" => "tmtboss3_arena",
+                        _ => "tmtboss1_arena"
+                    };
+                }
+
+                string arenaBackground = fallbackImage != null ? $"PluginImages/arenas/{fallbackImage}.webp" : $"PluginImages/arenas/{ActiveDeathReplay.TerritoryTypeId}.webp";
+
+                if (fallbackImage != null)
+                {
+                    string adExportPath = fallbackImage.StartsWith("tmt")
+                        ? $"PluginImages.toolbar.{fallbackImage}.jpg"
+                        : $"PluginImages.toolbar.{fallbackImage}.png";
+
+                    DrawMode arenaMode = fallbackImage switch
+                    {
+                        "m9" => DrawMode.ArenaM9,
+                        "m10" => DrawMode.ArenaM10,
+                        "m11p1" => DrawMode.ArenaM11P1,
+                        "m12p1" => DrawMode.ArenaM12P1,
+                        _ => DrawMode.Image
+                    };
+
+                    var addedWaymarks = combinedDrawables.Where(d => d.ObjectDrawMode.ToString().StartsWith("Waymark")).Concat(generatedWaymarks).ToList();
+
+                    Vector2 correctCenter = Vector2.Zero;
+                    if (addedWaymarks.Count > 0)
+                    {
+                        float sumX = 0, sumY = 0;
+                        foreach (var w in addedWaymarks)
+                        {
+                            var box = w.GetBoundingBox();
+                            sumX += box.X + (box.Width / 2f);
+                            sumY += box.Y + (box.Height / 2f);
+                        }
+                        correctCenter = new Vector2(sumX / addedWaymarks.Count, sumY / addedWaymarks.Count);
+                    }
+                    else if (combinedDrawables.Count > 0)
+                    {
+                        var box = combinedDrawables.Last().GetBoundingBox();
+                        correctCenter = new Vector2(box.X + (box.Width / 2f), box.Y + (box.Height / 2f));
+                    }
+
+                    float normalizedScale = 8f * canvasZoom;
+                    correctCenter.X += configuration.MapOffsetX * normalizedScale;
+                    correctCenter.Y += configuration.MapOffsetZ * normalizedScale;
+
+                    float arenaSize = 512f * canvasZoom * configuration.MapScaleMultiplier;
+
+                    combinedDrawables.Insert(0, new DrawableImage(
+                        arenaMode,
+                        adExportPath,
+                        correctCenter,
+                        new Vector2(arenaSize, arenaSize),
+                        new Vector4(1f, 1f, 1f, 1f),
+                        0f
+                    ));
+                }
 
                 System.Drawing.RectangleF bounds = System.Drawing.RectangleF.Empty;
                 bool firstBound = true;
 
-                var renderActions = new System.Collections.Generic.List<System.Action<SixLabors.ImageSharp.Processing.IImageProcessingContext, System.Numerics.Vector2, float>>();
+                var renderActions = new List<System.Action<SixLabors.ImageSharp.Processing.IImageProcessingContext, System.Numerics.Vector2, float>>();
 
                 foreach (var d in combinedDrawables)
                 {
                     try
                     {
-                        if (d is AetherBlackbox.DrawingLogic.DrawableText textDrawable)
+                        if (d is DrawableText textDrawable)
                         {
                             textDrawable.PerformLayout();
                         }
@@ -1012,20 +1075,20 @@ namespace AetherBlackbox.Windows
 
                 System.Threading.Tasks.Task.Run(() =>
                 {
-                    byte[] thumbnailBytes = System.Array.Empty<byte>();
+                    byte[] thumbnailBytes = Array.Empty<byte>();
                     try
                     {
-                        using var thumb = new SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgba32>(120, 120);
+                        using var thumb = new Image<SixLabors.ImageSharp.PixelFormats.Rgba32>(120, 120);
                         thumb.Mutate(ctx =>
                         {
-                            ctx.Clear(SixLabors.ImageSharp.Color.DarkGray);
+                            ctx.Clear(Color.DarkGray);
 
                             try
                             {
                                 byte[]? arenaBytes = TextureManager.GetImageData(arenaBackground);
                                 if (arenaBytes != null)
                                 {
-                                    using var arenaImg = SixLabors.ImageSharp.Image.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(arenaBytes);
+                                    using var arenaImg = Image.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(arenaBytes);
                                     arenaImg.Mutate(x => x.Resize(120, 120));
                                     ctx.DrawImage(arenaImg, new SixLabors.ImageSharp.Point(0, 0), 1f);
                                 }
@@ -1037,7 +1100,7 @@ namespace AetherBlackbox.Windows
 
                             float padding = 10f;
                             float exportScale = 1f;
-                            var offset = new System.Numerics.Vector2(60, 60);
+                            var offset = new Vector2(60, 60);
 
                             if (!firstBound && bounds.Width > 0 && bounds.Height > 0)
                             {
@@ -1045,7 +1108,7 @@ namespace AetherBlackbox.Windows
                                 float scaleY = (120f - padding * 2) / bounds.Height;
                                 exportScale = Math.Min(scaleX, scaleY);
 
-                                offset = new System.Numerics.Vector2(
+                                offset = new Vector2(
                                     -bounds.X * exportScale + padding,
                                     -bounds.Y * exportScale + padding
                                 );
@@ -1057,7 +1120,7 @@ namespace AetherBlackbox.Windows
                                 {
                                     action(ctx, offset, exportScale);
                                 }
-                                catch (System.Exception ex)
+                                catch (Exception ex)
                                 {
                                     Service.PluginLog.Error(ex, "Drawable failed to render to thumbnail.");
                                 }
@@ -1068,7 +1131,7 @@ namespace AetherBlackbox.Windows
                         thumb.SaveAsWebp(ms);
                         thumbnailBytes = ms.ToArray();
                     }
-                    catch (System.Exception ex)
+                    catch (Exception ex)
                     {
                         Service.PluginLog.Error(ex, "Failed to render/encode thumbnail in background thread.");
                     }
@@ -1077,7 +1140,7 @@ namespace AetherBlackbox.Windows
                     {
                         ExportManager.StageSlide(arenaBackground, combinedDrawables, thumbnailBytes);
                     }
-                    catch (System.Exception ex)
+                    catch (Exception ex)
                     {
                         Service.PluginLog.Error(ex, "Failed to stage slide in background thread.");
                     }
