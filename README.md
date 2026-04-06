@@ -9,7 +9,7 @@ Visually inspect your positioning leading up to death.
 * Search status effects
 * Zoom, pan, and analyze encounters in a 2D replay view
 * Draw strategies and annotate directly on the replay canvas
-* AR-style annotations time locked for in-game pixel perfect slide/guide making
+* Time-synchronized, world-anchored telestration (annotations that follow players/bosses across the replay timeline)
 * Export encounter replays and drawings to share with others
 
 <br>
