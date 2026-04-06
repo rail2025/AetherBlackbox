@@ -1,12 +1,15 @@
-﻿using AetherBlackbox.DrawingLogic;
+﻿using AetherBlackbox.Core;
+using AetherBlackbox.DrawingLogic;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
+using Dalamud.Utility;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using static Dalamud.Interface.Utility.Raii.ImRaii;
 
 namespace AetherBlackbox.Windows
 {
@@ -23,8 +26,6 @@ namespace AetherBlackbox.Windows
 
         private readonly List<ToolbarGroup> toolGroups;
         private readonly Dictionary<DrawMode, DrawMode> activeSubModeMap;
-        private readonly Dictionary<DrawMode, string> toolDisplayNames;
-        private readonly Dictionary<DrawMode, string> iconPaths;
         private static readonly float[] ThicknessPresets = { 1.5f, 4f, 7f, 10f };
         private static readonly Vector4[] ColorPalette = {
             new(1.0f,1.0f,1.0f,1.0f), new(0.0f,0.0f,0.0f,1.0f),
@@ -42,6 +43,10 @@ namespace AetherBlackbox.Windows
             {
                 new() { Primary = DrawMode.Pen, SubModes = new List<DrawMode> { DrawMode.Pen, DrawMode.StraightLine, DrawMode.Dash }, Tooltip = "Pen Tools" },
                 new() { Primary = DrawMode.Rectangle, SubModes = new List<DrawMode> { DrawMode.Rectangle, DrawMode.Circle, DrawMode.Donut, DrawMode.Arrow, DrawMode.Cone, DrawMode.Triangle, DrawMode.Pie }, Tooltip = "Shape Tools" },
+                new() { Primary = DrawMode.SquareImage, SubModes = new List<DrawMode> { DrawMode.SquareImage, DrawMode.CircleMarkImage, DrawMode.TriangleImage, DrawMode.PlusImage }, Tooltip = "Placeable Shapes" },
+                new() { Primary = DrawMode.RoleTankImage, SubModes = new List<DrawMode> { DrawMode.RoleTankImage, DrawMode.RoleHealerImage, DrawMode.RoleMeleeImage, DrawMode.RoleRangedImage, DrawMode.RoleCasterImage }, Tooltip = "Role Icons" },
+                new() { Primary = DrawMode.Party1Image, SubModes = new List<DrawMode> { DrawMode.Party1Image, DrawMode.Party2Image, DrawMode.Party3Image, DrawMode.Party4Image, DrawMode.Party5Image, DrawMode.Party6Image, DrawMode.Party7Image, DrawMode.Party8Image,DrawMode.Bind1Image, DrawMode.Bind2Image, DrawMode.Bind3Image, DrawMode.Ignore1Image, DrawMode.Ignore2Image }, Tooltip = "Party Number Icons" },
+                new() { Primary = DrawMode.Dot3Image, SubModes = new List<DrawMode> { DrawMode.Dot1Image, DrawMode.Dot2Image, DrawMode.Dot3Image, DrawMode.Dot4Image, DrawMode.Dot5Image, DrawMode.Dot6Image, DrawMode.Dot7Image, DrawMode.Dot8Image }, Tooltip = "Colored Dots" },
                 new() { Primary = DrawMode.StackImage, SubModes = new List<DrawMode> { DrawMode.StackImage, DrawMode.SpreadImage, DrawMode.LineStackImage, DrawMode.FlareImage, DrawMode.DonutAoEImage, DrawMode.CircleAoEImage, DrawMode.BossImage, DrawMode.GazeImage, DrawMode.TowerImage, DrawMode.ExasImage, DrawMode.Starburst}, Tooltip = "Mechanic Icons" },
                 new() { Primary = DrawMode.TextTool, SubModes = new List<DrawMode>(), Tooltip = "Text Tool" },
                 new() { Primary = DrawMode.Image, SubModes = new List<DrawMode>(), Tooltip = "Image" }
@@ -52,34 +57,6 @@ namespace AetherBlackbox.Windows
             {
                 activeSubModeMap[group.Primary] = group.Primary;
             }
-
-            toolDisplayNames = new Dictionary<DrawMode, string>
-            {
-                { DrawMode.Pen, "Pen" }, { DrawMode.StraightLine, "Line" }, { DrawMode.Dash, "Dash" },
-                { DrawMode.Rectangle, "Rect" }, { DrawMode.Circle, "Circle" }, { DrawMode.Donut, "Donut" },
-                { DrawMode.Arrow, "Arrow" }, { DrawMode.Cone, "Cone" }, { DrawMode.Triangle, "Triangle" },
-                { DrawMode.Pie, "Pie" }, { DrawMode.Starburst, "Star" },
-                { DrawMode.TextTool, "TEXT" }, { DrawMode.Image, "IMG" }
-            };
-
-            iconPaths = new Dictionary<DrawMode, string>
-            {
-                { DrawMode.Pen, "" }, { DrawMode.StraightLine, "" }, { DrawMode.Dash, "" },
-                { DrawMode.Rectangle, "" }, { DrawMode.Circle, "" }, { DrawMode.Donut, "" },
-                { DrawMode.Arrow, "" }, { DrawMode.Cone, "" }, { DrawMode.Triangle, "" },
-                { DrawMode.Pie, "" }, { DrawMode.Starburst, "PluginImages.svg.starburst.png" },
-                { DrawMode.StackImage, "PluginImages.svg.stack.svg" },
-                { DrawMode.SpreadImage, "PluginImages.svg.spread.svg" },
-                { DrawMode.LineStackImage, "PluginImages.svg.line_stack.svg" },
-                { DrawMode.FlareImage, "PluginImages.svg.flare.svg" },
-                { DrawMode.DonutAoEImage, "PluginImages.svg.donut.svg" },
-                { DrawMode.CircleAoEImage, "PluginImages.svg.prox_aoe.svg" },
-                { DrawMode.BossImage, "PluginImages.svg.boss.svg" },
-                { DrawMode.GazeImage, "PluginImages.svg.gaze.png" },
-                { DrawMode.TowerImage, "PluginImages.svg.tower.png" },
-                { DrawMode.ExasImage, "PluginImages.svg.exas.svg" },
-                { DrawMode.TextTool, "" }, { DrawMode.Image, "PluginImages.toolbar.Square.png" }
-            };
         }
         public void Dispose() { }
 
@@ -104,7 +81,7 @@ namespace AetherBlackbox.Windows
                 }
 
                 DrawMode activeModeInGroup = activeSubModeMap.GetValueOrDefault(group.Primary, group.Primary);
-                string activePath = iconPaths.GetValueOrDefault(activeModeInGroup, "");
+                string activePath = ToolRegistry.Tools.TryGetValue(activeModeInGroup, out var m) ? m.IconPath : "";
                 var tex = activePath != "" ? TextureManager.GetTexture(activePath) : null;
                 var drawList = ImGui.GetWindowDrawList();
 
@@ -139,14 +116,14 @@ namespace AetherBlackbox.Windows
                         }
                         else if (group.Primary == DrawMode.TextTool || group.Primary == DrawMode.Image)
                         {
-                            var activeToolName = toolDisplayNames.GetValueOrDefault(activeModeInGroup, group.Primary == DrawMode.TextTool ? "TEXT" : "IMG");
+                            var activeToolName = ToolRegistry.Tools.TryGetValue(activeModeInGroup, out var m1) && !string.IsNullOrEmpty(m1.DisplayName) ? m1.DisplayName : (group.Primary == DrawMode.TextTool ? "TEXT" : "IMG");
                             var textSize = ImGui.CalcTextSize(activeToolName);
                             drawList.AddText(new Vector2(center.X - textSize.X / 2, center.Y - textSize.Y / 2), color, activeToolName);
                         }
 
                         if (group.Primary != DrawMode.TextTool && group.Primary != DrawMode.Image)
                         {
-                            var activeToolName = toolDisplayNames.GetValueOrDefault(activeModeInGroup, activeModeInGroup.ToString());
+                            var activeToolName = ToolRegistry.Tools.TryGetValue(activeModeInGroup, out var m2) && !string.IsNullOrEmpty(m2.DisplayName) ? m2.DisplayName : activeModeInGroup.ToString();
                             var textSize = ImGui.CalcTextSize(activeToolName);
                             drawList.AddText(new Vector2(center.X - textSize.X / 2, max.Y - textSize.Y - (iconButtonSize.Y * 0.1f)), color, activeToolName);
                         }
@@ -167,13 +144,13 @@ namespace AetherBlackbox.Windows
 
                 if (group.SubModes.Any() && ImGui.BeginPopupContextItem($"popup_{group.Primary}", ImGuiPopupFlags.MouseButtonLeft))
                 {
-                    int cols = Math.Min(3, group.SubModes.Count);
+                    int cols = Math.Min(4, group.SubModes.Count);
                     if (ImGui.BeginTable($"##table_{group.Primary}", cols, ImGuiTableFlags.SizingFixedFit))
                     {
                         foreach (var subMode in group.SubModes)
                         {
                             ImGui.TableNextColumn();
-                            string subPath = iconPaths.GetValueOrDefault(subMode, "");
+                            string subPath = ToolRegistry.Tools.TryGetValue(subMode, out var mSub) ? mSub.IconPath : "";
                             var subTex = subPath != "" ? TextureManager.GetTexture(subPath) : null;
 
                             if (subTex != null)
@@ -189,7 +166,7 @@ namespace AetherBlackbox.Windows
                             }
                             else
                             {
-                                var subDisplayName = toolDisplayNames.GetValueOrDefault(subMode, subMode.ToString());
+                                var subDisplayName = ToolRegistry.Tools.TryGetValue(subMode, out var mSubName) && !string.IsNullOrEmpty(mSubName.DisplayName) ? mSubName.DisplayName : subMode.ToString();
                                 if (ImGui.Selectable(subDisplayName, activeMode == subMode))
                                 {
                                     activeMode = subMode;
@@ -214,6 +191,38 @@ namespace AetherBlackbox.Windows
 
             if (ImGui.Button("Undo", new Vector2(iconButtonSize.X * 2 + style.ItemSpacing.X, 0))) plugin.MainWindow.PerformUndo();
             if (ImGui.Button("Props", new Vector2(iconButtonSize.X * 2 + style.ItemSpacing.X, 0))) plugin.PropertiesWindow.IsOpen = !plugin.PropertiesWindow.IsOpen;
+
+            ImGui.Separator();
+
+            bool gridVisible = plugin.Configuration.IsGridVisible;
+            if (ImGui.Checkbox("Grid", ref gridVisible))
+            {
+                plugin.Configuration.IsGridVisible = gridVisible;
+                plugin.Configuration.Save();
+            }
+
+            ImGui.SameLine();
+            ImGui.Text("size");
+            ImGui.SameLine();
+
+            int gridSizeInt = (int)plugin.Configuration.GridSize;
+            float availableWidth = iconButtonSize.X * 2 + style.ItemSpacing.X;
+            float labelWidth = ImGui.CalcTextSize("size").X;
+            float checkboxWidth = ImGui.GetItemRectSize().X;
+            ImGui.SetNextItemWidth(availableWidth - checkboxWidth - labelWidth - style.ItemSpacing.X * 2);
+
+            if (ImGui.InputInt("##GridSpacingInput", ref gridSizeInt, 0))
+            {
+                plugin.Configuration.GridSize = Math.Clamp(gridSizeInt, 10, 200);
+                plugin.Configuration.Save();
+            }
+
+            bool snapToGrid = plugin.Configuration.SnapToGrid;
+            if (ImGui.Checkbox("Snap to Grid", ref snapToGrid))
+            {
+                plugin.Configuration.SnapToGrid = snapToGrid;
+                plugin.Configuration.Save();
+            }
 
             ImGui.Separator();
 
@@ -242,6 +251,37 @@ namespace AetherBlackbox.Windows
                     plugin.MainWindow.CurrentBrushColor = ColorPalette[i];
                 if (ColorPalette[i] == plugin.MainWindow.CurrentBrushColor)
                     paletteDrawList.AddRect(ImGui.GetItemRectMin(), ImGui.GetItemRectMax(), ImGui.GetColorU32(new Vector4(1, 1, 0, 1)), 0, ImDrawFlags.None, 2f);
+            }
+
+            ImGui.Separator();
+
+            float btnWidthFull = iconButtonSize.X * 2 + style.ItemSpacing.X;
+            float availableHeight = ImGui.GetContentRegionAvail().Y;
+            float bugReportButtonHeight = ImGui.CalcTextSize("Bug report/\nFeature request").Y + ImGui.GetStyle().FramePadding.Y * 2.0f;
+            float kofiButtonHeight = ImGui.GetFrameHeight();
+            float footerButtonsTotalHeight = bugReportButtonHeight + kofiButtonHeight + ImGui.GetStyle().ItemSpacing.Y;
+
+            if (availableHeight > footerButtonsTotalHeight)
+            {
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + availableHeight - footerButtonsTotalHeight);
+            }
+
+            using (ImRaii.PushColor(ImGuiCol.Button, new Vector4(0.1f, 0.4f, 0.1f, 1.0f)))
+            using (ImRaii.PushColor(ImGuiCol.ButtonHovered, new Vector4(0.1f, 0.5f, 0.1f, 1.0f)))
+            using (ImRaii.PushColor(ImGuiCol.ButtonActive, new Vector4(0.2f, 0.6f, 0.2f, 1.0f)))
+            {
+                if (ImGui.Button("Bug report/\nFeature request", new Vector2(btnWidthFull, bugReportButtonHeight)))
+                    Util.OpenLink("https://github.com/rail2025/AetherBlackbox/issues");
+            }
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Opens the GitHub Issues page in your browser.");
+
+            using (ImRaii.PushColor(ImGuiCol.Button, 0xFF000000 | 0xFF312B))
+            using (ImRaii.PushColor(ImGuiCol.ButtonActive, 0xDD000000 | 0xFF312B))
+            using (ImRaii.PushColor(ImGuiCol.ButtonHovered, 0xAA000000 | 0xFF312B))
+            {
+                if (ImGui.Button("Support on Ko-Fi", new Vector2(btnWidthFull, 0)))
+                    Util.OpenLink("https://ko-fi.com/rail2025");
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip("Buy me a coffee if this plugin helped your prog!");
             }
         }
     }

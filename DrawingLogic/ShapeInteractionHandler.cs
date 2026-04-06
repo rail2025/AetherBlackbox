@@ -11,10 +11,6 @@ using Dalamud.Interface.Utility;
 
 namespace AetherBlackbox.DrawingLogic
 {
-    /// <summary>
-    /// Manages user interactions with shapes on the canvas, such as selection, movement, and manipulation.
-    /// This version uses a simplified networking model, sending a single update on action completion.
-    /// </summary>
     public class ShapeInteractionHandler
     {
         private readonly Plugin plugin;
@@ -22,22 +18,12 @@ namespace AetherBlackbox.DrawingLogic
         private readonly PageManager pageManager;
         private readonly Configuration configuration;
 
-        /// <summary>
-        /// Defines the type of drag operation currently being performed by the user.
-        /// </summary>
         public enum ActiveDragType { None, GeneralSelection, MarqueeSelection, ImageResize, ImageRotate, ConeApex, ConeBase, ConeRotate, RectResize, RectRotate, ArrowStartPoint, ArrowEndPoint, ArrowRotate, ArrowThickness, TextResize, TriangleResize, PieCenter, PieRadius, PieStart, PieEnd, DonutRadius, DonutHole,
             StarburstRadius, StarburstRotate, StarburstWidth
         }
 
-        /// <summary>
-        /// The current drag operation state.
-        /// </summary>
         public ActiveDragType currentDragType = ActiveDragType.None;
 
-        /// <summary>
-        /// Gets a list of the unique IDs of the objects currently being dragged by this client.
-        /// This is used to prevent the client from processing its own reflected network messages.
-        /// </summary>
         public List<Guid> DraggedObjectIds { get; } = new List<Guid>();
 
         private readonly Action<Guid> onObjectUpdateSent;
@@ -64,12 +50,6 @@ namespace AetherBlackbox.DrawingLogic
         public readonly uint handleColorDefault, handleColorHover, handleColorRotation, handleColorRotationHover, handleColorResize, handleColorResizeHover, handleColorSpecial, handleColorSpecialHover;
         #endregion
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ShapeInteractionHandler"/> class.
-        /// </summary>
-        /// <param name="plugin">The main plugin instance.</param>
-        /// <param name="undoManagerInstance">The application's UndoManager.</param>
-        /// <param name="pageManagerInstance">The application's PageManager.</param>
         public ShapeInteractionHandler(Plugin plugin, UndoManager undoManagerInstance, PageManager pageManagerInstance, Action<Guid> onObjectUpdateSent, Action<List<BaseDrawable>> onObjectsCommittedCallback)
         {
             this.plugin = plugin;
@@ -88,9 +68,6 @@ namespace AetherBlackbox.DrawingLogic
             this.handleColorSpecialHover = ImGui.GetColorU32(new Vector4(1.0f, 0.7f, 0.4f, 1.0f));
         }
 
-        /// <summary>
-        /// Processes all user interactions related to selecting, moving, and manipulating shapes.
-        /// </summary>
         public void ProcessInteractions(
             BaseDrawable? singleSelectedItem, List<BaseDrawable> selectedDrawables, List<BaseDrawable> allDrawablesOnPage,
             Func<DrawMode, int> getLayerPriorityFunc, ref BaseDrawable? hoveredDrawable,
@@ -120,7 +97,7 @@ namespace AetherBlackbox.DrawingLogic
             if (isLMBReleased)
             {
                 // SNAP TO GRID LOGIC (on mouse release)
-                if (configuration.IsSnapToGrid && currentDragType == ActiveDragType.GeneralSelection && selectedDrawables.Any())
+                if (configuration.SnapToGrid && currentDragType == ActiveDragType.GeneralSelection && selectedDrawables.Any())
                 {
                     foreach (var drawable in selectedDrawables)
                     {
@@ -174,19 +151,12 @@ namespace AetherBlackbox.DrawingLogic
             }
         }
 
-        /// <summary>
-        /// Resets the drag state to None and clears temporary drag data.
-        /// </summary>
         public void ResetDragState()
         {
             currentDragType = ActiveDragType.None;
             draggedHandleIndex = -1;
             DraggedObjectIds.Clear();
         }
-
-        /// <summary>
-        /// Draws a single circular handle and checks if the mouse is over it.
-        /// </summary>
         public bool DrawAndCheckHandle(ImDrawListPtr drawList, Vector2 logicalPos, Vector2 canvasOrigin, Vector2 mousePos, ref bool mouseOverAny, uint color, uint hoverColor)
         {
             var foregroundDrawList = ImGui.GetForegroundDrawList();
@@ -200,9 +170,6 @@ namespace AetherBlackbox.DrawingLogic
             return isHovering;
         }
 
-        /// <summary>
-        /// Draws a single circular handle, checks for hover, and sets the mouse cursor style.
-        /// </summary>
         public bool DrawAndCheckHandle(ImDrawListPtr drawList, Vector2 logicalPos, Vector2 canvasOrigin, Vector2 mousePos, ref bool mouseOverAny, ImGuiMouseCursor cursor, uint color, uint hoverColor)
         {
             if (DrawAndCheckHandle(drawList, logicalPos, canvasOrigin, mousePos, ref mouseOverAny, color, hoverColor))
@@ -221,7 +188,6 @@ namespace AetherBlackbox.DrawingLogic
             foreach (var drawable in drawablesToCommit)
                 onObjectUpdateSent?.Invoke(drawable.UniqueId);
 
-            // Invoke the callback that MainWindow provided, which handles network sending
             _onObjectsCommittedCallback?.Invoke(drawablesToCommit);
         }
 
@@ -288,8 +254,7 @@ namespace AetherBlackbox.DrawingLogic
         private void UpdateHoveredObject(List<BaseDrawable> allDrawables, Func<DrawMode, int> layerPriority, ref BaseDrawable? hovered, Vector2 mousePos)
         {
             hovered = null;
-            // Since the Layers Panel modifies this list, iterating it directly allows manual overrides to work.
-            // We iterate Backwards so the last item in the list (visually on top) is checked first.
+            // Layers modifies this list, iterating it directly allows manual overrides to work, last item in the list (visually on top) is checked first.
             for (int i = allDrawables.Count - 1; i >= 0; i--)
             {
                 var drawable = allDrawables[i];
@@ -297,14 +262,13 @@ namespace AetherBlackbox.DrawingLogic
                 {
                     hovered = drawable;
                     drawable.IsHovered = true;
-                    break; // Stop at the first (top-most) item hit
+                    break;
                 }
             }
         }
 
         private void InitiateDrag(BaseDrawable? singleSelectedItem, List<BaseDrawable> selectedList, BaseDrawable? hovered, bool onHandle, Vector2 mousePos)
         {
-            // Block handle interaction if the item is locked
             if (onHandle && singleSelectedItem != null && !singleSelectedItem.IsLocked)
             {
                 StartHandleDrag(singleSelectedItem, mousePos);

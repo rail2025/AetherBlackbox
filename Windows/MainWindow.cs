@@ -436,7 +436,7 @@ namespace AetherBlackbox.Windows
 
                 if (ActiveDeathReplay.TerritoryTypeId == 992 || ActiveDeathReplay.TerritoryTypeId == 1321 ||
                     ActiveDeathReplay.TerritoryTypeId == 1323 || ActiveDeathReplay.TerritoryTypeId == 1325 ||
-                    ActiveDeathReplay.TerritoryTypeId == 1327)
+                    ActiveDeathReplay.TerritoryTypeId == 1327 || ActiveDeathReplay.TerritoryTypeId == 1238)
                 {
                     DrawMapCalibrationPanel();
                 }
@@ -574,6 +574,14 @@ namespace AetherBlackbox.Windows
                     var viewContext = new ReplayRenderer.ViewContext(canvasOriginScreen, currentCanvasDrawSize, centerPos, canvasZoom, canvasPanOffset);
                     var mousePosScreen = ImGui.GetMousePos();
                     var mousePosLogical = mousePosScreen - canvasOriginScreen;
+
+                    if (configuration.SnapToGrid && configuration.IsGridVisible && configuration.GridSize > 0)
+                    {
+                        float scaledGridSize = configuration.GridSize * ImGuiHelpers.GlobalScale;
+                        mousePosLogical.X = (float)Math.Round(mousePosLogical.X / scaledGridSize) * scaledGridSize;
+                        mousePosLogical.Y = (float)Math.Round(mousePosLogical.Y / scaledGridSize) * scaledGridSize;
+                        mousePosScreen = canvasOriginScreen + mousePosLogical;
+                    }
 
                     if (active || isLMBReleased)
                     {
@@ -978,6 +986,7 @@ namespace AetherBlackbox.Windows
                 else if (ActiveDeathReplay.TerritoryTypeId == 1323) fallbackImage = "m10";
                 else if (ActiveDeathReplay.TerritoryTypeId == 1325) fallbackImage = "m11p1";
                 else if (ActiveDeathReplay.TerritoryTypeId == 1327) fallbackImage = "m12p1";
+                else if (ActiveDeathReplay.TerritoryTypeId == 1238) fallbackImage = "fru";
                 else if (ActiveDeathReplay.TerritoryTypeId == 1317)
                 {
                     var boss = ActiveDeathReplay.ReplayData.Metadata.Values.FirstOrDefault(m => m.Type == EntityType.Boss);
@@ -1004,6 +1013,7 @@ namespace AetherBlackbox.Windows
                         "m10" => DrawMode.ArenaM10,
                         "m11p1" => DrawMode.ArenaM11P1,
                         "m12p1" => DrawMode.ArenaM12P1,
+                        "fru" => DrawMode.ArenaFRU,
                         _ => DrawMode.Image
                     };
 

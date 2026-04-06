@@ -268,44 +268,17 @@ namespace AetherBlackbox.Core
 
         private bool IsImagePlacementMode(DrawMode mode)
         {
-            return mode switch
-            {
-                DrawMode.BossImage or DrawMode.CircleAoEImage or DrawMode.DonutAoEImage or DrawMode.FlareImage or
-                DrawMode.LineStackImage or DrawMode.SpreadImage or DrawMode.StackImage or DrawMode.GazeImage or DrawMode.TowerImage or DrawMode.ExasImage or
-                DrawMode.Image => true,
-                _ => false,
-            };
+            return ToolRegistry.Tools.TryGetValue(mode, out var meta) && meta.IsPlaceableImage;
         }
 
         private void HandleImagePlacementInput(DrawMode currentMode, Vector2 mousePosLogical, bool isLMBClickedOnCanvas, List<BaseDrawable> currentDrawablesOnPage, float currentReplayTime)
         {
-            if (isLMBClickedOnCanvas)
+            if (isLMBClickedOnCanvas && ToolRegistry.Tools.TryGetValue(currentMode, out var meta) && !string.IsNullOrEmpty(meta.CanvasImagePath))
             {
-                string imagePath = "";
-                Vector2 imageUnscaledSize = new Vector2(30f, 30f);
-                Vector4 imageTint = Vector4.One;
-                switch (currentMode)
-                {
-                    case DrawMode.BossImage: imagePath = "PluginImages.svg.boss.svg"; imageUnscaledSize = new Vector2(60f, 60f); break;
-                    case DrawMode.CircleAoEImage: imagePath = "PluginImages.svg.prox_aoe.svg"; imageUnscaledSize = new Vector2(80f, 80f); break;
-                    case DrawMode.DonutAoEImage: imagePath = "PluginImages.svg.donut.svg"; imageUnscaledSize = new Vector2(100f, 100f); break;
-                    case DrawMode.FlareImage: imagePath = "PluginImages.svg.flare.svg"; imageUnscaledSize = new Vector2(60f, 60f); break;
-                    case DrawMode.LineStackImage: imagePath = "PluginImages.svg.line_stack.svg"; imageUnscaledSize = new Vector2(30f, 60f); break;
-                    case DrawMode.SpreadImage: imagePath = "PluginImages.svg.spread.svg"; imageUnscaledSize = new Vector2(60f, 60f); break;
-                    case DrawMode.StackImage: imagePath = "PluginImages.svg.stack.svg"; imageUnscaledSize = new Vector2(60f, 60f); break;
-                    case DrawMode.GazeImage: imagePath = "PluginImages.svg.gaze.png"; imageUnscaledSize = new Vector2(80f, 80f); break;
-                    case DrawMode.TowerImage: imagePath = "PluginImages.svg.tower.png"; imageUnscaledSize = new Vector2(80f, 80f); break;
-                    case DrawMode.ExasImage: imagePath = "PluginImages.svg.exas.svg"; imageUnscaledSize = new Vector2(80f, 80f); break;
-                    case DrawMode.Image: imagePath = "PluginImages.toolbar.Square.png"; imageUnscaledSize = new Vector2(25f, 25f); break;
-                }
-
-                if (!string.IsNullOrEmpty(imagePath))
-                {
-                    var newImage = new DrawableImage(currentMode, imagePath, mousePosLogical, imageUnscaledSize, imageTint) { ReplayTime = currentReplayTime };
-                    newImage.IsPreview = false;
-                    undoManager.RecordAction(currentDrawablesOnPage, $"Place Image");
-                    currentDrawablesOnPage.Add(newImage);
-                }
+                var newImage = new DrawableImage(currentMode, meta.CanvasImagePath, mousePosLogical, meta.DefaultSize, Vector4.One) { ReplayTime = currentReplayTime };
+                newImage.IsPreview = false;
+                undoManager.RecordAction(currentDrawablesOnPage, $"Place Image");
+                currentDrawablesOnPage.Add(newImage);
             }
         }
 

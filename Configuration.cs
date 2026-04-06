@@ -41,7 +41,7 @@ public class Configuration : IPluginConfiguration
 
     public bool IsGridVisible { get; set; } = true;
     public float GridSize { get; set; } = 40f;
-    public bool IsSnapToGrid { get; set; } = true;
+    public bool SnapToGrid { get; set; } = false;
     public int KeepReplaysForDays { get; set; } = 14;
     public bool IsToolbarVisible { get; set; } = true;
 

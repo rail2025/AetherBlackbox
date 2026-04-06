@@ -74,7 +74,7 @@ public class Plugin : IDalamudPlugin
         Service.Condition.ConditionChange += OnConditionChange;
         RecapConfigWindow = new RecapConfigWindow(this);
         
-        // CanvasConfigWindow is for the Canvas config
+        // CanvasConfigWindow is for the drawing config
         CanvasConfigWindow = new CanvasConfigWindow(this);
         ToolbarWindow = new ToolbarWindow(this);
         PropertiesWindow = new PropertiesWindow(this);

@@ -78,10 +78,10 @@ namespace AetherBlackbox.Windows
                 this.configuration.Save();
             }
 
-            bool snapToGrid = this.configuration.IsSnapToGrid;
+            bool snapToGrid = this.configuration.SnapToGrid;
             if (ImGui.Checkbox("Snap to Grid (Default On)", ref snapToGrid))
             {
-                this.configuration.IsSnapToGrid = snapToGrid;
+                this.configuration.SnapToGrid = snapToGrid;
                 this.configuration.Save();
             }
         

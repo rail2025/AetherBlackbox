@@ -251,6 +251,7 @@ namespace AetherBlackbox.Serialization
                 case DrawMode.ArenaM11P2:
                 case DrawMode.ArenaM12P1:
                 case DrawMode.ArenaM12P2:
+                case DrawMode.ArenaFRU:
                     var image = (DrawableImage)drawable;
                     writer.Write(image.ImageResourcePath ?? string.Empty);
                     writer.Write(image.PositionRelative.X); writer.Write(image.PositionRelative.Y);
@@ -519,6 +520,7 @@ namespace AetherBlackbox.Serialization
                 case DrawMode.ArenaM11P2:
                 case DrawMode.ArenaM12P1:
                 case DrawMode.ArenaM12P2:
+                case DrawMode.ArenaFRU:
                     string imgPath = reader.ReadString();
                     if (reader.BaseStream.Position + sizeof(float) * 5 > reader.BaseStream.Length) return null;
                     Vector2 imgPos = new Vector2(reader.ReadSingle(), reader.ReadSingle());

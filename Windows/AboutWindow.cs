@@ -37,7 +37,7 @@ public class AboutWindow : Window, IDisposable
 
         ImGui.BulletText("AetherDraw by rail");
         ImGui.Indent();
-        ImGui.TextDisabled("(Canvas engine, drawing tools, and rendering)");
+        ImGui.TextDisabled("(Canvas engine, drawing tools, network, and rendering)");
         ImGui.Unindent();
 
         ImGui.Spacing();
@@ -64,7 +64,7 @@ public class AboutWindow : Window, IDisposable
 
         ImGui.Spacing();
 
-        string buttonText = "Donate & Support development of the Replay & Planning features.";
+        string buttonText = "Donate & Support development of replay & planning features.";
 
         var buttonColor = new Vector4(0.9f, 0.2f, 0.2f, 1.0f);
 

@@ -438,6 +438,7 @@ namespace AetherBlackbox.DrawingLogic
                     1323 => "m10.webp",
                     1325 => "m11p1.webp",
                     1327 => "m12p1.webp",
+                    1238 => "fru.webp",
                     _ => null
                 };
 

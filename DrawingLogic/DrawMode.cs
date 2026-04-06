@@ -111,6 +111,7 @@ namespace AetherBlackbox.DrawingLogic
         ArenaM11P1,
         ArenaM11P2,
         ArenaM12P1,
-        ArenaM12P2
+        ArenaM12P2,
+        ArenaFRU
     }
 }
