@@ -171,10 +171,24 @@ namespace AetherBlackbox.Core
                         writer.Write(1.0f);
 
                         writer.Write(points.Count);
+
+                        bool hasView = viewContext != null;
+                        Vector2 canvasCenter = hasView ? (viewContext.CanvasOrigin + (viewContext.CanvasSize / 2f) + viewContext.PanOffset) : Vector2.Zero;
+                        float scale = hasView ? (ReplayRenderer.DefaultPixelsPerYard * ImGuiHelpers.GlobalScale * viewContext.Zoom) : 1f;
+
                         foreach (var p in points)
                         {
-                            writer.Write(p.X);
-                            writer.Write(p.Y);
+                            if (hasView)
+                            {
+                                var screenPos = p + canvasOriginScreen;
+                                writer.Write((screenPos.X - canvasCenter.X) / scale);
+                                writer.Write((screenPos.Y - canvasCenter.Y) / scale);
+                            }
+                            else
+                            {
+                                writer.Write(p.X);
+                                writer.Write(p.Y);
+                            }
                         }
 
                         plugin.NetworkManager?.SendStateUpdateAsync(new Networking.NetworkPayload

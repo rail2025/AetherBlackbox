@@ -25,7 +25,7 @@ namespace AetherBlackbox.DrawingLogic
         // Standard Constructor (Local User Drawing)
         public DrawableLaser(Vector2 startPoint, Vector4 color, float thickness)
         {
-            //ObjectDrawMode = DrawMode.Laser;
+            ObjectDrawMode = DrawMode.Laser;
             // Laser color is intentionally fixed to match the web version.
             // The input 'color' is ignored for local drawing.
             Color = _coreColor;

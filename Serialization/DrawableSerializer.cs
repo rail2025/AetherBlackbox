@@ -13,13 +13,6 @@ namespace AetherBlackbox.Serialization
         private const int MAX_DRAWABLES_PER_PAGE = 10000;
         private const int MAX_POINTS_PER_OBJECT = 50000;
 
-        // --- Public API ---
-
-        /// <summary>
-        /// Serializes a list of drawable objects from a page into a byte array.
-        /// </summary>
-        /// <param name="drawables">The list of BaseDrawable objects to serialize.</param>
-        /// <returns>A byte array representing the serialized drawables.</returns>
         public static byte[] SerializePageToBytes(List<BaseDrawable> drawables)
         {
             if (drawables == null) throw new ArgumentNullException(nameof(drawables));
@@ -27,13 +20,8 @@ namespace AetherBlackbox.Serialization
             using (var memoryStream = new MemoryStream())
             using (var writer = new BinaryWriter(memoryStream))
             {
-                // Write a version number for the serialization format
                 writer.Write(SERIALIZATION_VERSION);
-
-                // Write the number of drawables in the list
                 writer.Write(drawables.Count);
-
-                // Serialize each drawable object
                 foreach (var drawable in drawables)
                 {
                     SerializeSingleDrawable(writer, drawable);
@@ -42,11 +30,6 @@ namespace AetherBlackbox.Serialization
             }
         }
 
-        /// <summary>
-        /// Deserializes a byte array back into a list of drawable objects for a page.
-        /// </summary>
-        /// <param name="data">The byte array containing serialized drawable data.</param>
-        /// <returns>A list of deserialized BaseDrawable objects.</returns>
         public static List<BaseDrawable> DeserializePageFromBytes(byte[] data)
         {
             if (data == null || data.Length == 0) return new List<BaseDrawable>();
@@ -64,17 +47,13 @@ namespace AetherBlackbox.Serialization
                         Service.PluginLog?.Error($"[DrawableSerializer] Deserialization version mismatch. Expected {SERIALIZATION_VERSION}, got {version}.");
                         return deserializedDrawables;
                     }
-
                     if (reader.BaseStream.Position + sizeof(int) > reader.BaseStream.Length) return deserializedDrawables;
                     int drawableCount = reader.ReadInt32();
-
-                    // SANITY CHECK: Add a reasonable limit to how many objects can be on a single page.
                     if (drawableCount < 0 || drawableCount > MAX_DRAWABLES_PER_PAGE)
                     {
                         Service.PluginLog?.Error($"[DrawableSerializer] Invalid drawable count in data: {drawableCount}. Halting deserialization for this page.");
                         return deserializedDrawables; // Return empty list instead of crashing
                     }
-
                     for (int i = 0; i < drawableCount; i++)
                     {
                         BaseDrawable? drawable = DeserializeSingleDrawable(reader, version);
@@ -98,13 +77,14 @@ namespace AetherBlackbox.Serialization
 
         private static void SerializeSingleDrawable(BinaryWriter writer, BaseDrawable drawable)
         {
+            Service.PluginLog?.Debug($"[DrawableSerializer] Serializing mode: {drawable.ObjectDrawMode}"); 
             writer.Write((byte)drawable.ObjectDrawMode);
 
             writer.Write(drawable.Color.X); writer.Write(drawable.Color.Y);
             writer.Write(drawable.Color.Z); writer.Write(drawable.Color.W);
-            writer.Write(drawable.Thickness); // This is unscaled
+            writer.Write(drawable.Thickness);
             writer.Write(drawable.IsFilled);
-            writer.Write(drawable.UniqueId.ToByteArray()); // Serialize the UniqueId for network identification
+            writer.Write(drawable.UniqueId.ToByteArray()); // for network identification
             writer.Write(drawable.Name ?? drawable.ObjectDrawMode.ToString());
             writer.Write(drawable.IsLocked);
 
@@ -287,6 +267,7 @@ namespace AetherBlackbox.Serialization
                 case DrawMode.Laser:
                     var laser = (DrawableLaser)drawable;
                     var pts = laser.GetPoints();
+                    Service.PluginLog?.Debug($"[DrawableSerializer] Laser points: {pts.Count}");
                     writer.Write(pts.Count); 
                     foreach (var point in pts)
                     {
@@ -305,7 +286,7 @@ namespace AetherBlackbox.Serialization
             if (reader.BaseStream.Position >= reader.BaseStream.Length) return null;
             DrawMode mode = (DrawMode)reader.ReadByte();
 
-            // Perform safety checks before reading each block of data
+            // check before reading each block of data
             if (reader.BaseStream.Position + sizeof(float) * 4 + sizeof(float) + sizeof(bool) + 16 > reader.BaseStream.Length) return null;
             Vector4 color = new Vector4(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
             float thickness = reader.ReadSingle();
@@ -343,7 +324,6 @@ namespace AetherBlackbox.Serialization
                 case DrawMode.Pen:
                     if (reader.BaseStream.Position + sizeof(int) > reader.BaseStream.Length) return null;
                     int pathPointCount = reader.ReadInt32();
-                    // SANITY CHECK: Protect against malicious data with an impossibly large number of points.
                     if (pathPointCount < 0 || pathPointCount > MAX_POINTS_PER_OBJECT)
                     {
                         Service.PluginLog?.Error($"[DrawableSerializer] Invalid path point count: {pathPointCount}. Skipping this drawable.");
@@ -412,7 +392,6 @@ namespace AetherBlackbox.Serialization
                 case DrawMode.Dash:
                     if (reader.BaseStream.Position + sizeof(int) > reader.BaseStream.Length) return null;
                     int dashPointCount = reader.ReadInt32();
-                    // SANITY CHECK: Protect against malicious data with an impossibly large number of points.
                     if (dashPointCount < 0 || dashPointCount > MAX_POINTS_PER_OBJECT)
                     {
                         Service.PluginLog?.Error($"[DrawableSerializer] Invalid dash point count: {dashPointCount}. Skipping this drawable.");
@@ -436,7 +415,7 @@ namespace AetherBlackbox.Serialization
                     var v3 = new Vector2(reader.ReadSingle(), reader.ReadSingle());
                     drawable = new DrawableTriangle(v1, v2, v3, color);
                     break;
-                case DrawMode.Pie: // [Added] Deserialization for Pie
+                case DrawMode.Pie:
                     if (reader.BaseStream.Position + sizeof(float) * 4 > reader.BaseStream.Length) return null;
                     Vector2 pieCenter = new Vector2(reader.ReadSingle(), reader.ReadSingle());
                     float pieRadius = reader.ReadSingle();
