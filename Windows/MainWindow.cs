@@ -589,7 +589,7 @@ namespace AetherBlackbox.Windows
                             mousePosLogical, mousePosScreen, canvasOriginScreen, drawList,
                             isLMBDown, isLMBClicked, isLMBReleased, isLMBDoubleClicked,
                             () => currentDrawMode, () => currentBrushColor, () => currentBrushThickness, () => currentShapeFilled,
-                            viewContext, targetOffset);
+                            viewContext, targetOffset, closestFrame);
                     }
 
                     if (currentDrawMode == DrawMode.Laser && plugin.NetworkManager.IsConnected && active)
@@ -703,12 +703,17 @@ namespace AetherBlackbox.Windows
             // User Drawings
             ImGui.PushClipRect(canvasOriginScreen, canvasOriginScreen + canvasSizeForImGuiDrawing, true);
             var drawablesSnapshot = pageManager.GetCurrentPageDrawables()?.ToList();
+            var renderViewContext = new ReplayRenderer.ViewContext(canvasOriginScreen, currentCanvasDrawSize, centerPos, canvasZoom, canvasPanOffset);
+
             if (drawablesSnapshot != null && drawablesSnapshot.Any())
             {
                 var sortedDrawables = drawablesSnapshot.OrderBy(d => GetLayerPriority(d.ObjectDrawMode));
-                foreach (var drawable in sortedDrawables) drawable.Draw(drawList, canvasOriginScreen);
+                foreach (var drawable in sortedDrawables)
+                {
+                    drawable.DrawProjected(drawList, renderViewContext, closestFrame, targetOffset);
+                }
             }
-            canvasController.GetCurrentDrawingObjectForPreview()?.Draw(drawList, canvasOriginScreen);
+            canvasController.GetCurrentDrawingObjectForPreview()?.DrawProjected(drawList, renderViewContext, closestFrame, targetOffset);
 
             if (currentLaser != null)
             {
@@ -892,15 +897,21 @@ namespace AetherBlackbox.Windows
                 var combinedDrawables = new List<BaseDrawable>();
                 var generatedWaymarks = new List<BaseDrawable>();
 
-                var currentDrawables = PageManager.GetCurrentPageDrawables();
-                if (currentDrawables != null)
-                {
-                    combinedDrawables.AddRange(currentDrawables.Select(d => d.Clone()));
-                }
-
                 RoleTranslator.CacheRoleMapping(recording);
                 var targetOffset = GetDeathTimeOffset() + replayTimeOffset;
                 var currentFrame = GetClosestFrame(recording, targetOffset);
+
+                var currentDrawables = PageManager.GetCurrentPageDrawables();
+                if (currentDrawables != null)
+                {
+                    foreach (var d in currentDrawables)
+                    {
+                        if (targetOffset >= d.StartTime && targetOffset <= d.EndTime)
+                        {
+                            combinedDrawables.Add(d.Clone());
+                        }
+                    }
+                }
 
                 if (currentFrame != null)
                 {

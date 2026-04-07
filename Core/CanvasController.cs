@@ -80,6 +80,31 @@ namespace AetherBlackbox.Core
         private DateTime lastLaserUpdate = DateTime.MinValue;
 
         public BaseDrawable? GetCurrentDrawingObjectForPreview() => activeLaser;
+
+        private void ApplyTrackingAndTiming(BaseDrawable shape, float currentReplayTime, Vector2 effectivePos, Vector2 mousePosScreen, ReplayRenderer.ViewContext? viewContext, AetherBlackbox.Core.ReplayFrame? currentFrame)
+        {
+            shape.StartTime = currentReplayTime;
+            shape.EndTime = currentReplayTime + 3.0f;
+            shape.InitialLogicalPos = effectivePos;
+
+            if (viewContext != null && currentFrame != null)
+            {
+                Vector3 clickWorldPos = ReplayRenderer.ScreenToWorld(mousePosScreen, viewContext);
+                shape.InitialWorldPos = clickWorldPos;
+
+                for (int i = 0; i < currentFrame.Ids.Count; i++)
+                {
+                    Vector3 entityPos = new Vector3(currentFrame.X[i], 0f, currentFrame.Z[i]);
+                    if (Vector3.Distance(clickWorldPos, entityPos) < 2.0f)
+                    {
+                        shape.IsEntityTracked = true;
+                        shape.TargetEntityId = currentFrame.Ids[i];
+                        shape.OffsetFromEntity = clickWorldPos - entityPos;
+                        break;
+                    }
+                }
+            }
+        }
         public void Undo()
         {
             if (undoManager.CanUndo())
@@ -92,7 +117,8 @@ namespace AetherBlackbox.Core
             Vector2 mousePosLogical, Vector2 mousePosScreen, Vector2 canvasOriginScreen, ImDrawListPtr drawList,
             bool isLMBDown, bool isLMBClicked, bool isLMBReleased, bool isLMBDoubleClicked,
             Func<DrawMode> getDrawModeFunc, Func<Vector4> getBrushColorFunc, Func<float> getBrushThicknessFunc,
-            Func<bool> getShapeFilledFunc, ReplayRenderer.ViewContext? viewContext = null, float currentReplayTime = 0f)
+            Func<bool> getShapeFilledFunc, ReplayRenderer.ViewContext? viewContext = null, float currentReplayTime = 0f,
+            AetherBlackbox.Core.ReplayFrame? currentFrame = null)
         {
             var currentMode = getDrawModeFunc();
             Vector2 effectivePos = mousePosLogical;
@@ -211,7 +237,9 @@ namespace AetherBlackbox.Core
             {
                 if (isLMBClicked)
                 {
+                    undoManager.RecordAction(currentDrawables, "Add Text");
                     var newText = new DrawableText(effectivePos, "New Text", getBrushColorFunc(), 16f, 200f) { ReplayTime = currentReplayTime };
+                    ApplyTrackingAndTiming(newText, currentReplayTime, effectivePos, mousePosScreen, viewContext, currentFrame);
                     currentDrawables.Add(newText);
 
                     foreach (var sel in selectedDrawablesRef) sel.IsSelected = false;
@@ -228,7 +256,7 @@ namespace AetherBlackbox.Core
 
             if (IsImagePlacementMode(currentMode))
             {
-                HandleImagePlacementInput(currentMode, effectivePos, isLMBClicked, currentDrawables, currentReplayTime);
+                HandleImagePlacementInput(currentMode, effectivePos, mousePosScreen, isLMBClicked, currentDrawables, currentReplayTime, viewContext, currentFrame);
                 return;
             }
 
@@ -240,7 +268,9 @@ namespace AetherBlackbox.Core
                 var newShape = CreateNewDrawingObject(currentMode, effectivePos, color, thickness, isFilled, currentReplayTime);
                 if (newShape != null)
                 {
+                    undoManager.RecordAction(currentDrawables, "Draw Shape");
                     newShape.IsPreview = true;
+                    ApplyTrackingAndTiming(newShape, currentReplayTime, effectivePos, mousePosScreen, viewContext, currentFrame);
                     currentDrawables.Add(newShape);
                 }
             }
@@ -271,12 +301,13 @@ namespace AetherBlackbox.Core
             return ToolRegistry.Tools.TryGetValue(mode, out var meta) && meta.IsPlaceableImage;
         }
 
-        private void HandleImagePlacementInput(DrawMode currentMode, Vector2 mousePosLogical, bool isLMBClickedOnCanvas, List<BaseDrawable> currentDrawablesOnPage, float currentReplayTime)
+        private void HandleImagePlacementInput(DrawMode currentMode, Vector2 mousePosLogical, Vector2 mousePosScreen, bool isLMBClickedOnCanvas, List<BaseDrawable> currentDrawablesOnPage, float currentReplayTime, ReplayRenderer.ViewContext? viewContext, AetherBlackbox.Core.ReplayFrame? currentFrame)
         {
             if (isLMBClickedOnCanvas && ToolRegistry.Tools.TryGetValue(currentMode, out var meta) && !string.IsNullOrEmpty(meta.CanvasImagePath))
             {
                 var newImage = new DrawableImage(currentMode, meta.CanvasImagePath, mousePosLogical, meta.DefaultSize, Vector4.One) { ReplayTime = currentReplayTime };
                 newImage.IsPreview = false;
+                ApplyTrackingAndTiming(newImage, currentReplayTime, mousePosLogical, mousePosScreen, viewContext, currentFrame);
                 undoManager.RecordAction(currentDrawablesOnPage, $"Place Image");
                 currentDrawablesOnPage.Add(newImage);
             }
