@@ -453,11 +453,18 @@ namespace AetherBlackbox.Windows
                     ImGui.SetCursorPos(canvasStartPos + new Vector2(10 * ImGuiHelpers.GlobalScale, 10 * ImGuiHelpers.GlobalScale));
 
                     bool isToolbarVisible = configuration.IsToolbarVisible;
-                    float childHeight = isToolbarVisible ? (currentCanvasDrawSize.Y - 20 * ImGuiHelpers.GlobalScale) : (35 * ImGuiHelpers.GlobalScale);
+                    bool isSelectionVisible = selectedEntityId != 0 && ActiveDeathReplay != null;
+
+                    float bottomPadding = isSelectionVisible ? 150f * ImGuiHelpers.GlobalScale : 20f * ImGuiHelpers.GlobalScale;
+                    float childHeight = isToolbarVisible ? (currentCanvasDrawSize.Y - bottomPadding) : (35 * ImGuiHelpers.GlobalScale);
+
+                    float childWidth = 115f * ImGuiHelpers.GlobalScale;
+                    if (isToolbarVisible)
+                        childWidth += ImGui.GetStyle().ScrollbarSize;
 
                     ImGui.PushStyleColor(ImGuiCol.ChildBg, isToolbarVisible ? new Vector4(0.12f, 0.12f, 0.14f, 0.95f) : new Vector4(0, 0, 0, 0));
 
-                    if (ImGui.BeginChild("ToolbarContainer", new Vector2(115 * ImGuiHelpers.GlobalScale, childHeight), isToolbarVisible, ImGuiWindowFlags.NoScrollbar))
+                    if (ImGui.BeginChild("ToolbarContainer", new Vector2(childWidth, childHeight), isToolbarVisible, ImGuiWindowFlags.None))
                     {
                         if (ImGui.Button(isToolbarVisible ? "<< Close" : "Draw >>", new Vector2(-1, 0)))
                         {

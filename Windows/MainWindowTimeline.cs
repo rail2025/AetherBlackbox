@@ -73,32 +73,35 @@ namespace AetherBlackbox.Windows
                 drawList.AddLine(new Vector2(x, cursor.Y), new Vector2(x, cursor.Y + height), 0xFF0000FF, 1f);
             }
 
-            foreach (var d in selectedPull.Deaths)
+            if (selectedPull?.Deaths != null)
             {
-                float dRelTime = (float)(d.TimeOfDeath - ActiveDeathReplay.TimeOfDeath).TotalSeconds;
-                if (dRelTime < minTime || dRelTime > maxTime) continue;
-
-                float dRatio = (dRelTime - minTime) / totalRange;
-                float dX = cursor.X + (dRatio * width);
-
-                if (ActiveDeathReplay.ReplayData.Metadata.TryGetValue(d.PlayerId, out var dMeta))
+                foreach (var d in selectedPull.Deaths)
                 {
-                    uint dJobIconId = 62100 + dMeta.ClassJobId;
-                    var dJobIcon = AetherBlackbox.DrawingLogic.TextureManager.GetTexture($"luminaicon:{dJobIconId}");
+                    float dRelTime = (float)(d.TimeOfDeath - ActiveDeathReplay.TimeOfDeath).TotalSeconds;
+                    if (dRelTime < minTime || dRelTime > maxTime) continue;
 
-                    if (dJobIcon != null)
+                    float dRatio = (dRelTime - minTime) / totalRange;
+                    float dX = cursor.X + (dRatio * width);
+
+                    if (ActiveDeathReplay.ReplayData?.Metadata != null && ActiveDeathReplay.ReplayData.Metadata.TryGetValue(d.PlayerId, out var dMeta))
                     {
-                        Vector2 iconSize = new Vector2(16, 16) * ImGuiHelpers.GlobalScale;
-                        drawList.AddImage(dJobIcon.Handle,
-                            new Vector2(dX - iconSize.X / 2, cursor.Y + height + 5),
-                            new Vector2(dX + iconSize.X / 2, cursor.Y + height + 5 + iconSize.Y),
-                            Vector2.Zero, Vector2.One, 0xFFFFFFFF);
+                        uint dJobIconId = 62100 + dMeta.ClassJobId;
+                        var dJobIcon = TextureManager.GetTexture($"luminaicon:{dJobIconId}");
+
+                        if (dJobIcon != null)
+                        {
+                            Vector2 iconSize = new Vector2(16, 16) * ImGuiHelpers.GlobalScale;
+                            drawList.AddImage(dJobIcon.Handle,
+                                new Vector2(dX - iconSize.X / 2, cursor.Y + height + 5),
+                                new Vector2(dX + iconSize.X / 2, cursor.Y + height + 5 + iconSize.Y),
+                                Vector2.Zero, Vector2.One, 0xFFFFFFFF);
+                        }
+                    }
+                        drawList.AddLine(new Vector2(dX, cursor.Y + height), new Vector2(dX, cursor.Y + height + 5), 0xFF0000FF, 2f);
                     }
                 }
-                drawList.AddLine(new Vector2(dX, cursor.Y + height), new Vector2(dX, cursor.Y + height + 5), 0xFF0000FF, 2f);
-            }
 
-            float absoluteCurrentTime = deathTimeOffset + replayTimeOffset;
+                float absoluteCurrentTime = deathTimeOffset + replayTimeOffset;
 
             foreach (var kvp in userMarkers)
             {

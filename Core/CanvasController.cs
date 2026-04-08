@@ -123,6 +123,7 @@ namespace AetherBlackbox.Core
             var currentMode = getDrawModeFunc();
             Vector2 effectivePos = mousePosLogical;
             var currentDrawables = pageManager.GetCurrentPageDrawables();
+            if (currentDrawables == null) return;
 
             if (isLMBDoubleClicked && currentMode == DrawMode.Select)
             {

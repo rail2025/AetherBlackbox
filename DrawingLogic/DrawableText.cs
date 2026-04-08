@@ -64,6 +64,7 @@ namespace AetherBlackbox.DrawingLogic
         {
             this.ObjectDrawMode = DrawMode.TextTool;
             this.positionRelative_ = positionRelative;
+            this.RawText = rawText;
             this.Color = color;
             this.Thickness = 1f; this.IsFilled = true; this.IsPreview = false;
             fontSize_ = Math.Max(1f, fontSize);

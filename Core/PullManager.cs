@@ -356,11 +356,32 @@ namespace AetherBlackbox.Core
                 var body = serializer.Deserialize<SavedReplayBody>(jr);
                 if (body == null) return null;
 
+                DateTime calculatedStartTime = File.GetCreationTime(path);
+                DateTime? calculatedEndTime = null;
+                string extractedZone = "Imported";
+
+                var fileName = Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(path));
+                if (fileName.Length > 20)
+                {
+                    string datePart = fileName.Substring(0, 19);
+                    if (DateTime.TryParseExact(datePart, "yyyy-MM-dd_HH-mm-ss", null, System.Globalization.DateTimeStyles.None, out var parsedDate))
+                    {
+                        calculatedStartTime = parsedDate;
+                        extractedZone = fileName.Substring(20).Replace("_", " ");
+                    }
+                }
+
+                if (body.Frames != null && body.Frames.Count > 0)
+                {
+                    calculatedEndTime = calculatedStartTime.AddSeconds(body.Frames.Last().TimeOffset);
+                }
+
                 var session = new PullSession
                 {
-                    StartTime = File.GetCreationTime(path),
+                    StartTime = calculatedStartTime,
+                    EndTime = calculatedEndTime,
                     PullNumber = (uint)(History.Count + 1),
-                    ZoneName = "Imported",
+                    ZoneName = extractedZone,
                     ReplayData = new ReplayRecording
                     {
                         Metadata = body.Metadata,
