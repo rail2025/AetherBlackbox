@@ -12,11 +12,6 @@ namespace AetherBlackbox.DrawingLogic
         // \u0080-\u009F (C1 control characters)
         private static readonly Regex ControlCharRegex = new Regex(@"[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]", RegexOptions.Compiled);
 
-        /// <summary>
-        /// Sanitizes text input to prevent unintended ImGui formatting issues or remove unwanted characters.
-        /// </summary>
-        /// <param name="inputText">The text to sanitize.</param>
-        /// <returns>The sanitized text. Returns an empty string if input is null or empty.</returns>
         public static string Sanitize(string inputText)
         {
             if (string.IsNullOrEmpty(inputText))
@@ -36,7 +31,7 @@ namespace AetherBlackbox.DrawingLogic
             }
             else
             {
-                // AetherBlackbox.Plugin.Log?.Debug($"[InputSanitizer] Sanitize: Text unchanged: \"{originalTextForLog}\"");
+                // Service.PluginLog?.Debug($"[InputSanitizer] Sanitize: Text unchanged: \"{originalTextForLog}\"");
             }
             return sanitizedText;
         }

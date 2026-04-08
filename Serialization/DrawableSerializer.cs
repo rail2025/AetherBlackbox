@@ -77,7 +77,8 @@ namespace AetherBlackbox.Serialization
 
         private static void SerializeSingleDrawable(BinaryWriter writer, BaseDrawable drawable)
         {
-            Service.PluginLog?.Debug($"[DrawableSerializer] Serializing mode: {drawable.ObjectDrawMode}"); 
+            var bounds = drawable.GetBoundingBox();
+            //Service.PluginLog?.Debug($"[Export] {drawable.ObjectDrawMode} {drawable.UniqueId} | Logical Bounds: X:{bounds.X}, Y:{bounds.Y} | InitialLogicalPos: {drawable.InitialLogicalPos}");
             writer.Write((byte)drawable.ObjectDrawMode);
 
             writer.Write(drawable.Color.X); writer.Write(drawable.Color.Y);
@@ -268,7 +269,7 @@ namespace AetherBlackbox.Serialization
                 case DrawMode.Laser:
                     var laser = (DrawableLaser)drawable;
                     var pts = laser.GetPoints();
-                    Service.PluginLog?.Debug($"[DrawableSerializer] Laser points: {pts.Count}");
+                    //Service.PluginLog?.Debug($"[DrawableSerializer] Laser points: {pts.Count}");
                     writer.Write(pts.Count); 
                     foreach (var point in pts)
                     {
@@ -565,6 +566,9 @@ namespace AetherBlackbox.Serialization
                 drawable.IsFilled = isFilled;
                 drawable.IsPreview = false;
                 drawable.IsLocked = isLocked;
+
+                //var bounds = drawable.GetBoundingBox();
+                //Service.PluginLog?.Debug($"[Import] {drawable.ObjectDrawMode} {drawable.UniqueId} | Logical Bounds: X:{bounds.X}, Y:{bounds.Y} | InitialLogicalPos: {drawable.InitialLogicalPos}");
             }
             return drawable;
         }

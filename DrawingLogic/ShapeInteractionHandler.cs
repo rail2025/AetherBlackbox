@@ -1,4 +1,3 @@
-// AetherBlackbox/DrawingLogic/ShapeInteractionHandler.cs
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -96,13 +95,11 @@ namespace AetherBlackbox.DrawingLogic
 
             if (isLMBReleased)
             {
-                // SNAP TO GRID LOGIC (on mouse release)
                 if (configuration.SnapToGrid && currentDragType == ActiveDragType.GeneralSelection && selectedDrawables.Any())
                 {
                     foreach (var drawable in selectedDrawables)
                     {
                         Vector2 anchorPoint;
-                        // Determine the primary anchor point of the shape
                         if (drawable is DrawableImage img) anchorPoint = img.PositionRelative;
                         else if (drawable is DrawableCircle circle) anchorPoint = circle.CenterRelative;
                         else if (drawable is DrawableRectangle rect) anchorPoint = rect.GetGeometry().center;

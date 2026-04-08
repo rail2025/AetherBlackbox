@@ -573,7 +573,7 @@ namespace AetherBlackbox.Windows
                 {
                     var viewContext = new ReplayRenderer.ViewContext(canvasOriginScreen, currentCanvasDrawSize, centerPos, canvasZoom, canvasPanOffset);
                     var mousePosScreen = ImGui.GetMousePos();
-                    var mousePosLogical = mousePosScreen - canvasOriginScreen;
+                    var mousePosLogical = (mousePosScreen - canvasOriginScreen - canvasPanOffset)/ ImGuiHelpers.GlobalScale;
 
                     if (configuration.SnapToGrid && configuration.IsGridVisible && configuration.GridSize > 0)
                     {
@@ -916,7 +916,7 @@ namespace AetherBlackbox.Windows
                 if (currentFrame != null)
                 {
                     float effectiveScale = 8f * ImGuiHelpers.GlobalScale * canvasZoom;
-                    var effectiveCanvasCenter = (currentCanvasDrawSize / 2) + canvasPanOffset;
+                    var baseCanvasCenter = (currentCanvasDrawSize / 2);//+ canvasPanOffset;
 
                     for (int i = 0; i < currentFrame.Ids.Count; i++)
                     {
@@ -926,8 +926,8 @@ namespace AetherBlackbox.Windows
                         if (RoleTranslator.CachedRoleMap.TryGetValue(entityId, out var roleMode))
                         {
                             var relPos = new Vector3(currentFrame.X[i], 0, currentFrame.Z[i]) - centerPos;
-                            float screenX = effectiveCanvasCenter.X + (relPos.X * effectiveScale);
-                            float screenY = effectiveCanvasCenter.Y + (relPos.Z * effectiveScale);
+                            float screenX = baseCanvasCenter.X + (relPos.X * effectiveScale);
+                            float screenY = baseCanvasCenter.Y + (relPos.Z * effectiveScale);
 
                             string rolePath = roleMode switch
                             {
@@ -957,15 +957,15 @@ namespace AetherBlackbox.Windows
                 if (recording.Waymarks != null)
                 {
                     float effectiveScale = 8f * ImGuiHelpers.GlobalScale * canvasZoom;
-                    var effectiveCanvasCenter = (currentCanvasDrawSize / 2) + canvasPanOffset;
+                    var baseCanvasCenter = (currentCanvasDrawSize / 2);//+ canvasPanOffset;
 
                     foreach (var wm in recording.Waymarks)
                     {
                         if (!wm.Active) continue;
 
                         var relPos = new Vector3(wm.X, 0, wm.Z) - centerPos;
-                        float screenX = effectiveCanvasCenter.X + (relPos.X * effectiveScale);
-                        float screenY = effectiveCanvasCenter.Y + (relPos.Z * effectiveScale);
+                        float screenX = baseCanvasCenter.X + (relPos.X * effectiveScale);
+                        float screenY = baseCanvasCenter.Y + (relPos.Z * effectiveScale);
 
                         string iconName = wm.ID switch
                         {

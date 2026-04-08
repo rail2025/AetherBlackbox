@@ -47,6 +47,7 @@ namespace AetherBlackbox.DrawingLogic
                 {
                     Vector3 entityPos = new Vector3(currentFrame.X[index], 0f, currentFrame.Z[index]);
                     Vector3 currentWorldPos = entityPos + this.OffsetFromEntity;
+                    //Service.PluginLog?.Debug($"[ReplayTracker] ID:{this.UniqueId} | EntityPos:{entityPos} | Offset:{this.OffsetFromEntity} | TargetWorld:{currentWorldPos}");
                     Vector2 targetScreen = ReplayRenderer.WorldToScreen(currentWorldPos, viewContext);
                     Vector2 initialScreenOffset = this.InitialLogicalPos * Dalamud.Interface.Utility.ImGuiHelpers.GlobalScale;
                     origin = targetScreen - initialScreenOffset;
