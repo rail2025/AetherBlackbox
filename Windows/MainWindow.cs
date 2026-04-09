@@ -634,7 +634,7 @@ namespace AetherBlackbox.Windows
                 if (width > longestNameWidth) longestNameWidth = width;
             }
 
-            float iconSize = 10f * scale;
+            float iconSize = 17.5f * scale;
             float iconSpacing = 2f * scale;
             float iconsWidth = (5f * iconSize) + (4f * iconSpacing);
             float badgeWidth = 18f * scale;
@@ -726,7 +726,7 @@ namespace AetherBlackbox.Windows
                                 if (icon == null) continue;
 
                                 ImGui.SameLine(0, 2f * scale);
-                                ImGui.Image(icon.Handle, new Vector2(10f, 10f) * scale);
+                                ImGui.Image(icon.Handle, new Vector2(iconSize, iconSize));
                                 if (ImGui.IsItemHovered()) ImGui.SetTooltip($"{sheetStatus.Value.Name}\n{debuff.Remaining:F1}s");
                                 shownDebuffs++;
                             }
