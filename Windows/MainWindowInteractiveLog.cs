@@ -27,10 +27,11 @@ namespace AetherBlackbox.Windows
                 return;
             }
 
-            if (ImGui.BeginTable("InteractiveLogTable", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY | ImGuiTableFlags.BordersInner | ImGuiTableFlags.Resizable))
+            if (ImGui.BeginTable("InteractiveLogTable", 4, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY | ImGuiTableFlags.BordersInner | ImGuiTableFlags.Resizable | ImGuiTableFlags.SizingFixedFit))
             {
-                ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed, 50f * ImGuiHelpers.GlobalScale);
-                ImGui.TableSetupColumn("Source", ImGuiTableColumnFlags.WidthFixed, 90f * ImGuiHelpers.GlobalScale);
+                ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("HP", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("Source", ImGuiTableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("Event", ImGuiTableColumnFlags.WidthStretch);
                 ImGui.TableHeadersRow();
 
@@ -59,6 +60,15 @@ namespace AetherBlackbox.Windows
                         isPlaybackActive = false;
                         BroadcastTimeSync();
                     }
+
+                    ImGui.TableNextColumn();
+                    float hpPct = evt.Snapshot.MaxHp > 0 ? (float)evt.Snapshot.CurrentHp / evt.Snapshot.MaxHp : 0f;
+                    Vector4 hpColor = hpPct <= 0.16f
+                        ? new Vector4(0.78f, 0.22f, 0.22f, 1.0f)
+                        : hpPct < 0.50f
+                            ? new Vector4(0.72f, 0.66f, 0.25f, 1.0f)
+                            : ColorHealing;
+                    ImGui.TextColored(hpColor, $"{evt.Snapshot.CurrentHp:N0}");
 
                     ImGui.TableNextColumn();
                     string source = evt switch
