@@ -81,6 +81,14 @@ public class RecapConfigWindow : Window
         }
         if (ImGui.IsItemHovered()) ImGui.SetTooltip("Replaces player names with their Job Abbreviation (e.g., 'WAR', 'WHM') in replays.");
 
+        var bShowPartyMemberList = conf.ShowPartyMemberList;
+        if (ImGui.Checkbox("Show Party Member List", ref bShowPartyMemberList))
+        {
+            conf.ShowPartyMemberList = bShowPartyMemberList;
+            conf.Save();
+        }
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Shows or hides the draggable party member overlay in the main replay view.");
+
         var chatTypes = Enum.GetValues<XivChatType>();
         var chatType = Array.IndexOf(chatTypes, conf.ChatType);
         ImGui.AlignTextToFramePadding();

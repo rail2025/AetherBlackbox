@@ -100,6 +100,8 @@ namespace AetherBlackbox.Windows
         private HashSet<string> connectedUsers = new();
         private string? syncTarget = null;
         private float lastPingTime = 0f;
+        private Vector2 partyPanelPosition = new(-1f, -1f);
+        private bool isDraggingPartyPanel = false;
 
         private readonly uint[] Palette = new uint[] { 0xFFFFB358, 0xFF727BFF, 0xFFB4F5AF, 0xFF2299D2, 0xFFFF8CBC, 0xFF57A6FF };
         private uint GetUserColor(string id)
@@ -503,6 +505,7 @@ namespace AetherBlackbox.Windows
                     }
                     ImGui.EndChild();
                     ImGui.PopStyleColor();
+
                     if (selectedEntityId != 0 && ActiveDeathReplay != null)
                     {
                         ImGui.SetCursorPos(canvasStartPos + new Vector2(0, currentCanvasDrawSize.Y - (140f * ImGuiHelpers.GlobalScale)));
@@ -514,9 +517,305 @@ namespace AetherBlackbox.Windows
                         ImGui.EndChild();
                         ImGui.PopStyleColor();
                     }
+
+                    if (configuration.ShowPartyMemberList)
+                    {
+                        DrawPartyMembersPanel(canvasStartPos);
+                    }
                 }
                 ImGui.EndChild();
             }
+        }
+
+        private void DrawPartyMembersPanel(Vector2 canvasStartPos)
+        {
+            float scale = ImGuiHelpers.GlobalScale;
+            float padding = 10f * scale;
+
+            var replayMemberCount = ActiveDeathReplay?.ReplayData?.Metadata?.Values
+                .Count(meta => meta.ClassJobId != 0 && !string.IsNullOrWhiteSpace(meta.Name)) ?? 0;
+            int liveMemberCount = Service.PartyList?.Count(member => member != null) ?? 0;
+            int memberCount = Math.Max(replayMemberCount, liveMemberCount);
+            int targetRows = Math.Max(memberCount, 8);
+            var members = new List<(uint Id, string Name, uint MaxHp, uint CurrentHp, uint ClassJobId, List<(uint Id, float Remaining)> Debuffs)>();
+            float targetOffset = 0f;
+            var statusSheet = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Status>();
+
+            // Build overlay rows from replay metadata at the current scrubbed time.
+            if (ActiveDeathReplay?.ReplayData != null)
+            {
+                var recording = ActiveDeathReplay.ReplayData;
+                ReplayFrame? closestFrame = null;
+
+                if (recording.Frames.Count > 0)
+                {
+                    float deathTimeOffset = selectedPull != null
+                        ? (float)(ActiveDeathReplay.TimeOfDeath - selectedPull.StartTime).TotalSeconds
+                        : recording.Frames.Last().TimeOffset;
+                    targetOffset = deathTimeOffset + replayTimeOffset;
+                    closestFrame = GetClosestFrame(recording, targetOffset);
+                }
+
+                members = members
+                    .Concat(recording.Metadata
+                        .Where(kvp => kvp.Value.ClassJobId != 0 && !string.IsNullOrWhiteSpace(kvp.Value.Name))
+                        .OrderBy(kvp => kvp.Value.Name)
+                        .Select(kvp =>
+                        {
+                            uint currentHp = 0;
+
+                            if (closestFrame?.Hp != null)
+                            {
+                                int frameIndex = closestFrame.Ids.IndexOf(kvp.Key);
+                                if (frameIndex >= 0 && frameIndex < closestFrame.Hp.Count)
+                                {
+                                    currentHp = closestFrame.Hp[frameIndex];
+                                }
+                            }
+
+                            var debuffs = GetActiveStatuses(recording, kvp.Key, targetOffset)
+                                .Where(status =>
+                                {
+                                    var sheetStatus = statusSheet.GetRowOrDefault(status.Id);
+                                    return sheetStatus.HasValue && sheetStatus.Value.StatusCategory == (uint)StatusCategory.Detrimental;
+                                })
+                                .OrderBy(status => status.RemainingDuration)
+                                .Select(status => (status.Id, status.RemainingDuration))
+                                .ToList();
+
+                            return (kvp.Key, kvp.Value.Name, kvp.Value.MaxHp, currentHp, kvp.Value.ClassJobId, debuffs);
+                        }))
+                    .OrderBy(m => GetPartyRolePriority(m.ClassJobId))
+                    .ThenBy(m => m.Name)
+                    .ToList();
+
+            }
+
+            if (members.Count == 0)
+            {
+                var partyList = Service.PartyList;
+                if (partyList != null && partyList.Length > 0)
+                {
+                    for (int i = 0; i < partyList.Length; i++)
+                    {
+                        var member = partyList[i];
+                        if (member == null) continue;
+
+                        string memberName = member.Name.TextValue;
+                        if (string.IsNullOrWhiteSpace(memberName)) continue;
+
+                        members.Add((member.EntityId, memberName, 0, 0, 0, new List<(uint Id, float Remaining)>()));
+                    }
+                }
+            }
+
+            members = members
+                .OrderBy(m => GetPartyRolePriority(m.ClassJobId))
+                .ThenBy(m => m.Name)
+                .ToList();
+
+            // Keep the panel tight: longest displayed name + room for a few debuff icons.
+            float longestNameWidth = 0f;
+            for (int i = 0; i < members.Count; i++)
+            {
+                var member = members[i];
+                string displayName = member.Name;
+
+                if (configuration.AnonymizeNames && ActiveDeathReplay?.ReplayData?.Metadata != null && member.MaxHp > 0)
+                {
+                    if (ActiveDeathReplay.ReplayData.Metadata.TryGetValue(member.Id, out var meta) && meta.ClassJobId != 0)
+                    {
+                        var jobRow = Service.DataManager.GetExcelSheet<ClassJob>().GetRowOrDefault(meta.ClassJobId);
+                        displayName = jobRow.HasValue ? jobRow.Value.Abbreviation.ToString() : "Job";
+                    }
+                }
+
+                float width = ImGui.CalcTextSize(displayName).X;
+                if (width > longestNameWidth) longestNameWidth = width;
+            }
+
+            float iconSize = 10f * scale;
+            float iconSpacing = 2f * scale;
+            float iconsWidth = (5f * iconSize) + (4f * iconSpacing);
+            float badgeWidth = 18f * scale;
+            float horizontalPadding = 24f * scale;
+
+            float panelWidth = Math.Clamp(longestNameWidth + iconsWidth + badgeWidth + horizontalPadding, 220f * scale, 360f * scale);
+            float panelY = (isExportPreviewOpen ? 420f : 40f) * scale;
+            float availableHeight = currentCanvasDrawSize.Y - panelY - padding;
+            if (availableHeight < 80f * scale) availableHeight = 80f * scale;
+
+            float betweenRows = 0f;
+            float bottomSafety = 6f * scale;
+            float nameHeight = ImGui.GetTextLineHeight();
+            float rowHeight = Math.Max((nameHeight * 2f) + (1f * scale), 20f * scale);
+            float barHeight = Math.Max(6f * scale, nameHeight - (1f * scale));
+            float panelHeight = Math.Min(availableHeight, (rowHeight * targetRows) + ((targetRows - 1) * betweenRows) + bottomSafety);
+
+            float defaultPanelX = currentCanvasDrawSize.X - panelWidth - padding;
+            float defaultPanelY = panelY;
+            float maxX = Math.Max(padding, currentCanvasDrawSize.X - panelWidth - padding);
+            float maxY = Math.Max(padding, currentCanvasDrawSize.Y - panelHeight - padding);
+
+            if (partyPanelPosition.X < 0f || partyPanelPosition.Y < 0f)
+            {
+                if (configuration.PartyMemberListOffsetX >= 0f && configuration.PartyMemberListOffsetY >= 0f)
+                {
+                    partyPanelPosition = new Vector2(configuration.PartyMemberListOffsetX, configuration.PartyMemberListOffsetY);
+                }
+                else
+                {
+                    partyPanelPosition = new Vector2(defaultPanelX, defaultPanelY);
+                }
+            }
+
+            partyPanelPosition.X = Math.Clamp(partyPanelPosition.X, padding, maxX);
+            partyPanelPosition.Y = Math.Clamp(partyPanelPosition.Y, padding, maxY);
+
+            float panelX = partyPanelPosition.X;
+            panelY = partyPanelPosition.Y;
+
+            ImGui.SetCursorPos(canvasStartPos + new Vector2(panelX, panelY));
+            Vector2 panelScreenPos = ImGui.GetCursorScreenPos();
+            Vector2 panelScreenEnd = panelScreenPos + new Vector2(panelWidth, panelHeight);
+            ImGui.PushStyleColor(ImGuiCol.ChildBg, Vector4.Zero);
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero);
+
+            if (ImGui.BeginChild("PartyMembersContainer", new Vector2(panelWidth, panelHeight), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoBackground))
+            {
+
+                if (members.Count == 0)
+                {
+                    ImGui.TextDisabled("No party detected.");
+                }
+                else
+                {
+                    ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(2f * scale, 0f));
+                    for (int i = 0; i < members.Count; i++)
+                    {
+                        var member = members[i];
+                        string displayName = member.Name;
+
+                        ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.12f, 0.12f, 0.14f, 0.95f));
+                        ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 4f * scale);
+                        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(3f * scale, 0f));
+
+                        if (ImGui.BeginChild($"PartyMemberRow_{i}", new Vector2(-1, rowHeight), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
+                        {
+
+                            if (configuration.AnonymizeNames && ActiveDeathReplay?.ReplayData?.Metadata != null && member.MaxHp > 0)
+                            {
+                                if (ActiveDeathReplay.ReplayData.Metadata.TryGetValue(member.Id, out var meta) && meta.ClassJobId != 0)
+                                {
+                                    var jobRow = Service.DataManager.GetExcelSheet<ClassJob>().GetRowOrDefault(meta.ClassJobId);
+                                    displayName = jobRow.HasValue ? jobRow.Value.Abbreviation.ToString() : "Job";
+                                }
+                            }
+
+                            ImGui.AlignTextToFramePadding();
+                            ImGui.TextUnformatted(displayName);
+
+                            int shownDebuffs = 0;
+                            for (int d = 0; d < member.Debuffs.Count && shownDebuffs < 3; d++)
+                            {
+                                var debuff = member.Debuffs[d];
+                                var sheetStatus = statusSheet.GetRowOrDefault(debuff.Id);
+                                if (!sheetStatus.HasValue || sheetStatus.Value.Icon == 0) continue;
+
+                                var icon = Service.TextureProvider.GetFromGameIcon(sheetStatus.Value.Icon).GetWrapOrDefault();
+                                if (icon == null) continue;
+
+                                ImGui.SameLine(0, 2f * scale);
+                                ImGui.Image(icon.Handle, new Vector2(10f, 10f) * scale);
+                                if (ImGui.IsItemHovered()) ImGui.SetTooltip($"{sheetStatus.Value.Name}\n{debuff.Remaining:F1}s");
+                                shownDebuffs++;
+                            }
+
+                            int hiddenDebuffs = member.Debuffs.Count - shownDebuffs;
+                            if (hiddenDebuffs > 0)
+                            {
+                                ImGui.SameLine(0, 2f * scale);
+                                ImGui.TextDisabled($"+{hiddenDebuffs}");
+                            }
+
+                            if (member.MaxHp > 0)
+                            {
+                                float hpPct = Math.Clamp((float)member.CurrentHp / member.MaxHp, 0f, 1f);
+                                // HP coloring: green >=50%, muted yellow <50%, red <=16%.
+                                Vector4 hpColor = hpPct <= 0.16f
+                                    ? new Vector4(0.78f, 0.22f, 0.22f, 1.0f)
+                                    : hpPct < 0.50f
+                                        ? new Vector4(0.72f, 0.66f, 0.25f, 1.0f)
+                                        : new Vector4(0.18f, 0.72f, 0.30f, 1.0f);
+                                ImGui.PushStyleColor(ImGuiCol.FrameBg, new Vector4(0.16f, 0.16f, 0.18f, 1.0f));
+                                ImGui.PushStyleColor(ImGuiCol.PlotHistogram, hpColor);
+                                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.94f, 0.97f, 0.94f, 1.0f));
+                                float verticalPadding = 0f;
+                                ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(2f * scale, verticalPadding));
+                                ImGui.ProgressBar(hpPct, new Vector2(-1, barHeight), $"{member.CurrentHp}/{member.MaxHp}");
+                                ImGui.PopStyleVar();
+                                ImGui.PopStyleColor(3);
+                            }
+                            else
+                            {
+                                ImGui.Dummy(new Vector2(0, barHeight));
+                            }
+                        }
+
+                        ImGui.EndChild();
+                        ImGui.PopStyleVar(2);
+                        ImGui.PopStyleColor();
+
+                        if (i < members.Count - 1)
+                        {
+                            ImGui.Dummy(new Vector2(0, betweenRows));
+                        }
+                    }
+                    ImGui.PopStyleVar();
+                }
+            }
+
+            ImGui.EndChild();
+
+            // Right-drag avoids conflicting with left-drag on the main window.
+            bool hoveredPanel = ImGui.IsMouseHoveringRect(panelScreenPos, panelScreenEnd, true);
+            if (hoveredPanel && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+            {
+                isDraggingPartyPanel = true;
+            }
+
+            if (isDraggingPartyPanel)
+            {
+                if (ImGui.IsMouseDown(ImGuiMouseButton.Right))
+                {
+                    partyPanelPosition += ImGui.GetIO().MouseDelta;
+                    partyPanelPosition.X = Math.Clamp(partyPanelPosition.X, padding, maxX);
+                    partyPanelPosition.Y = Math.Clamp(partyPanelPosition.Y, padding, maxY);
+                }
+                else
+                {
+                    isDraggingPartyPanel = false;
+                    configuration.PartyMemberListOffsetX = partyPanelPosition.X;
+                    configuration.PartyMemberListOffsetY = partyPanelPosition.Y;
+                    configuration.Save();
+                }
+            }
+
+            ImGui.PopStyleVar();
+            ImGui.PopStyleColor();
+        }
+
+        private int GetPartyRolePriority(uint classJobId)
+        {
+            return classJobId switch
+            {
+                19 or 21 or 32 or 37 => 1, // Tanks
+                24 or 28 or 33 or 40 => 2, // Healers
+                20 or 22 or 30 or 34 or 39 or 41 => 3, // Melee DPS
+                23 or 31 or 38 => 4, // Physical ranged DPS
+                25 or 27 or 35 or 42 => 5, // Magical ranged DPS
+                _ => 99
+            };
         }
 
         private void DrawCanvas()

@@ -44,6 +44,9 @@ public class Configuration : IPluginConfiguration
     public bool SnapToGrid { get; set; } = false;
     public int KeepReplaysForDays { get; set; } = 14;
     public bool IsToolbarVisible { get; set; } = true;
+    public bool ShowPartyMemberList { get; set; } = true;
+    public float PartyMemberListOffsetX { get; set; } = -1f;
+    public float PartyMemberListOffsetY { get; set; } = -1f;
 
     public bool AnonymizeNames { get; set; } = false;
     public float MapOffsetX { get; set; } = 0.0f;
