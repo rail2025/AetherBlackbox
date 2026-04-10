@@ -32,6 +32,9 @@ namespace AetherBlackbox.DrawingLogic
 
         public static bool PointInTriangle(Vector2 pt, Vector2 v1, Vector2 v2, Vector2 v3)
         {
+            float area = v1.X * (v2.Y - v3.Y) + v2.X * (v3.Y - v1.Y) + v3.X * (v1.Y - v2.Y);
+            if (Math.Abs(area) < 0.001f) return false;
+
             float d1 = (pt.X - v2.X) * (v1.Y - v2.Y) - (v1.X - v2.X) * (pt.Y - v2.Y);
             float d2 = (pt.X - v3.X) * (v2.Y - v3.Y) - (v2.X - v3.X) * (pt.Y - v3.Y);
             float d3 = (pt.X - v1.X) * (v3.Y - v1.Y) - (v3.X - v1.X) * (pt.Y - v1.Y);
@@ -101,7 +104,6 @@ namespace AetherBlackbox.DrawingLogic
 
         public static bool IsPointInRotatedRect(Vector2 pt, Vector2 center, float halfLength, float halfWidth, float rotationRad, bool isFilled, float thickness, float threshold)
         {
-            // Transform point to local coordinates
             Vector2 localP = Vector2.Transform(pt - center, Matrix3x2.CreateRotation(-rotationRad));
 
             if (isFilled)

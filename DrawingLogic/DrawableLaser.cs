@@ -22,7 +22,6 @@ namespace AetherBlackbox.DrawingLogic
         private readonly Vector4 _coreColor = new Vector4(0.718f, 0.973f, 0.718f, 1.0f);
         private readonly Vector4 _glowColor = new Vector4(0.0f, 1.0f, 0.0f, 1.0f);
 
-        // Standard Constructor (Local User Drawing)
         public DrawableLaser(Vector2 startPoint, Vector4 color, float thickness)
         {
             ObjectDrawMode = DrawMode.Laser;
@@ -101,7 +100,7 @@ namespace AetherBlackbox.DrawingLogic
         public override RectangleF GetBoundingBox() => RectangleF.Empty;
         public override bool IsHit(Vector2 p, float t) => false;
 
-        // Return null to prevent UndoManager from saving this object
+        // prevent UndoManager from saving this object
         public override BaseDrawable? Clone() => null;
         public override void Translate(Vector2 delta) { }
         public override void DrawToImage(IImageProcessingContext context, Vector2 origin, float scale) { }

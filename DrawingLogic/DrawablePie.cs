@@ -1,5 +1,5 @@
 using System;
-using System.Drawing; // Required for RectangleF
+using System.Drawing;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
@@ -12,7 +12,6 @@ namespace AetherBlackbox.DrawingLogic
 {
     public class DrawablePie : BaseDrawable
     {
-        // Renamed to match Serializer expectations
         public Vector2 CenterRelative { get; set; }
         public float Radius { get; set; } = 50f;
         public float RotationAngle { get; set; } = 0f; // Radians
@@ -31,14 +30,8 @@ namespace AetherBlackbox.DrawingLogic
         public override void UpdatePreview(Vector2 currentPointRelative)
         {
             Vector2 diff = currentPointRelative - CenterRelative;
-
-            // 1. Update Radius based on distance from center
             this.Radius = Math.Max(1f, diff.Length());
-
-            // 2. Update Rotation so the wedge centers on the cursor
             float angleToCursor = MathF.Atan2(diff.Y, diff.X);
-
-            // Offset the rotation so the cursor is in the middle of the sweep
             this.RotationAngle = angleToCursor - (this.SweepAngle / 2f);
         }
 
@@ -64,9 +57,7 @@ namespace AetherBlackbox.DrawingLogic
         }
 
         public override void DrawToImage(IImageProcessingContext context, Vector2 canvasOriginInOutputImage, float currentGlobalScale)
-        {
-            // ImageSharp logic to be implemented
-        }
+        { }
 
         // Explicitly use System.Drawing.RectangleF to fix ambiguity
         public override System.Drawing.RectangleF GetBoundingBox()
@@ -76,6 +67,8 @@ namespace AetherBlackbox.DrawingLogic
 
         public override bool IsHit(Vector2 queryPoint, float threshold = 5.0f)
         {
+            // Reject degenerate pie slices
+            if (this.Radius < 0.1f) return false;
             return HitDetection.IsPointInCircularSector(queryPoint, CenterRelative, Radius, RotationAngle, SweepAngle);
         }
 

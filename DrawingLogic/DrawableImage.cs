@@ -57,7 +57,7 @@ namespace AetherBlackbox.DrawingLogic
 
             if (this.ImageResourcePath.StartsWith("luminaicon:"))
             {
-                // Lumina icons are volatile and managed by Dalamud. DO NOT CACHE.
+                // Lumina icons managed by Dalamud. DO NOT CACHE.
                 textureToDraw = TextureManager.GetTexture(this.ImageResourcePath);
             }
             else

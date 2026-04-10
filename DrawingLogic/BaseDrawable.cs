@@ -9,7 +9,7 @@ namespace AetherBlackbox.DrawingLogic
     public abstract class BaseDrawable
     {
         public Guid UniqueId { get; set; }
-        public DrawMode ObjectDrawMode { get; set; } // Changed from protected set
+        public DrawMode ObjectDrawMode { get; set; }
         public Vector4 Color { get; set; }
         public float Thickness { get; set; }
         public bool IsFilled { get; set; }

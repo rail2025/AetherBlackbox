@@ -1,6 +1,5 @@
-// AetherBlackbox/DrawingLogic/DrawableStarburst.cs
 using System;
-using System.Drawing; // Required for RectangleF
+using System.Drawing;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
@@ -37,7 +36,7 @@ namespace AetherBlackbox.DrawingLogic
             this.Radius = Vector2.Distance(this.Center, newPointRelative);
         }
 
-        // Explicitly use System.Drawing.RectangleF to avoid ambiguity with ImageSharp
+        // avoid ambiguity with ImageSharp
         public override System.Drawing.RectangleF GetBoundingBox()
         {
             // Use enclosing circle for faster bounding box calculation
@@ -136,7 +135,6 @@ namespace AetherBlackbox.DrawingLogic
 
         public override bool IsHit(Vector2 queryPointCanvasRelative, float unscaledHitThreshold = 5f)
         {
-            // Check if point hits any of the 4 individual bars
             for (int i = 0; i < 4; i++)
             {
                 float angle = RotationAngle + (i * MathF.PI / 4f);
@@ -150,7 +148,6 @@ namespace AetherBlackbox.DrawingLogic
 
         private bool IsPointInRotatedRect(Vector2 queryPoint, float angle, float threshold)
         {
-            // Transform the query point into the bar's local, unrotated coordinate system
             Vector2 localQueryPoint = Vector2.Transform(queryPoint - Center, Matrix3x2.CreateRotation(-angle));
 
             float halfLen = Radius;

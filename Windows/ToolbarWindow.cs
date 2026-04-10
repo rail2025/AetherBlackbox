@@ -1,6 +1,8 @@
 ﻿using AetherBlackbox.Core;
 using AetherBlackbox.DrawingLogic;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
+using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
@@ -256,30 +258,31 @@ namespace AetherBlackbox.Windows
             ImGui.Separator();
 
             float btnWidthFull = iconButtonSize.X * 2 + style.ItemSpacing.X;
+            float halfWidth = (btnWidthFull - style.ItemSpacing.X) / 2.0f;
             float availableHeight = ImGui.GetContentRegionAvail().Y;
-            float bugReportButtonHeight = ImGui.CalcTextSize("Bug report/\nFeature request").Y + ImGui.GetStyle().FramePadding.Y * 2.0f;
-            float kofiButtonHeight = ImGui.GetFrameHeight();
-            float footerButtonsTotalHeight = bugReportButtonHeight + kofiButtonHeight + ImGui.GetStyle().ItemSpacing.Y;
+            float buttonHeight = ImGui.GetFrameHeight();
 
-            if (availableHeight > footerButtonsTotalHeight)
+            if (availableHeight > buttonHeight)
             {
-                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + availableHeight - footerButtonsTotalHeight);
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + availableHeight - buttonHeight);
             }
 
             using (ImRaii.PushColor(ImGuiCol.Button, new Vector4(0.1f, 0.4f, 0.1f, 1.0f)))
             using (ImRaii.PushColor(ImGuiCol.ButtonHovered, new Vector4(0.1f, 0.5f, 0.1f, 1.0f)))
             using (ImRaii.PushColor(ImGuiCol.ButtonActive, new Vector4(0.2f, 0.6f, 0.2f, 1.0f)))
             {
-                if (ImGui.Button("Bug report/\nFeature request", new Vector2(btnWidthFull, bugReportButtonHeight)))
+                if (ImGui.Button("Bugs", new Vector2(halfWidth, buttonHeight)))
                     Util.OpenLink("https://github.com/rail2025/AetherBlackbox/issues");
             }
             if (ImGui.IsItemHovered()) ImGui.SetTooltip("Opens the GitHub Issues page in your browser.");
+
+            ImGui.SameLine();
 
             using (ImRaii.PushColor(ImGuiCol.Button, 0xFF000000 | 0xFF312B))
             using (ImRaii.PushColor(ImGuiCol.ButtonActive, 0xDD000000 | 0xFF312B))
             using (ImRaii.PushColor(ImGuiCol.ButtonHovered, 0xAA000000 | 0xFF312B))
             {
-                if (ImGui.Button("Support on Ko-Fi", new Vector2(btnWidthFull, 0)))
+                if (ImGuiComponents.IconButton("##KoFiButton", FontAwesomeIcon.Coffee))
                     Util.OpenLink("https://ko-fi.com/rail2025");
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip("Buy me a coffee if this plugin helped your prog!");
             }

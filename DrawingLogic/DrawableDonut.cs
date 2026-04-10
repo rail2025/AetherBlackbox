@@ -1,6 +1,5 @@
-// AetherBlackbox/DrawingLogic/DrawableDonut.cs
 using System;
-using System.Drawing; // Required for RectangleF
+using System.Drawing;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
@@ -18,7 +17,7 @@ namespace AetherBlackbox.DrawingLogic
         public float Radius { get; set; }
         public float InnerRadius { get; set; }
 
-        // Use optional parameters to support both 4-arg (Tool creation) and 6-arg (Deserializer) calls
+        // support both 4-arg (Tool creation) and 6-arg (Deserializer) calls
         public DrawableDonut(Vector2 centerRelative, Vector4 color, float unscaledThickness, bool isFilled, float radius = 50f, float innerRadius = 25f)
         {
             this.ObjectDrawMode = DrawMode.Donut;
@@ -58,11 +57,10 @@ namespace AetherBlackbox.DrawingLogic
 
             if (this.IsFilled)
             {
-                // To fill a ring in ImGui, we use a thick circle stroke centered between the inner and outer radii
+                // a thick circle stroke centered between the inner and outer radii
                 float ringThickness = scaledRadius - scaledInnerRadius;
                 float midRadius = scaledInnerRadius + (ringThickness / 2f);
 
-                // If ring thickness is valid, draw it
                 if (ringThickness > 0)
                 {
                     drawList.AddCircle(screenCenter, midRadius, displayColor, numSegments, ringThickness);
@@ -70,7 +68,6 @@ namespace AetherBlackbox.DrawingLogic
             }
             else
             {
-                // Draw outline: Outer circle and Inner circle
                 drawList.AddCircle(screenCenter, scaledRadius, displayColor, numSegments, displayScaledThickness);
                 drawList.AddCircle(screenCenter, scaledInnerRadius, displayColor, numSegments, displayScaledThickness);
             }
@@ -94,13 +91,12 @@ namespace AetherBlackbox.DrawingLogic
                 (this.CenterRelative.Y * currentGlobalScale) + canvasOriginInOutputImage.Y
             );
 
-            // Create geometry
             var outerEllipse = new EllipsePolygon(centerPoint, finalScaledRadius);
             var innerEllipse = new EllipsePolygon(centerPoint, finalScaledInnerRadius);
 
             if (IsFilled)
             {
-                // Use Clip to cut the inner hole from the outer circle
+                // Use Clip to cut the inner hole
                 var donutPath = outerEllipse.Clip(innerEllipse);
                 context.Fill(imageSharpColor, donutPath);
             }
@@ -139,7 +135,6 @@ namespace AetherBlackbox.DrawingLogic
 
         public override BaseDrawable Clone()
         {
-            // Uses the constructor to copy basic props, then sets specific ones
             var newDonut = new DrawableDonut(this.CenterRelative, this.Color, this.Thickness, this.IsFilled, this.Radius, this.InnerRadius);
             CopyBasePropertiesTo(newDonut);
             return newDonut;

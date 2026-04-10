@@ -14,9 +14,7 @@ namespace AetherBlackbox.DrawingLogic
 {
     public class DrawableCircle : BaseDrawable
     {
-        // Logical, unscaled center of the circle.
         public Vector2 CenterRelative { get; set; }
-        // Logical, unscaled radius of the circle.
         public float Radius { get; set; }
 
         public DrawableCircle(Vector2 centerRelative, Vector4 color, float unscaledThickness, bool isFilled)
@@ -30,13 +28,11 @@ namespace AetherBlackbox.DrawingLogic
             this.IsPreview = true;
         }
 
-        // Updates the radius of the circle during preview drawing.
         public override void UpdatePreview(Vector2 pointRelative)
         {
             this.Radius = Vector2.Distance(this.CenterRelative, pointRelative);
         }
 
-        // Draws the circle on the ImGui canvas.
         public override void Draw(ImDrawListPtr drawList, Vector2 canvasOriginScreen)
         {
             if (this.Radius < 0.5f && this.IsPreview) return;
@@ -65,7 +61,6 @@ namespace AetherBlackbox.DrawingLogic
             }
         }
 
-        // Draws the circle to an ImageSharp context for image export.
         public override void DrawToImage(IImageProcessingContext context, Vector2 canvasOriginInOutputImage, float currentGlobalScale)
         {
             if (this.Radius * currentGlobalScale < 0.5f) return;
@@ -94,21 +89,17 @@ namespace AetherBlackbox.DrawingLogic
             }
         }
 
-        /// <summary>
-        /// Calculates the axis-aligned bounding box for this circle.
-        /// </summary>
-        /// <returns>A RectangleF representing the bounding box.</returns>
         public override System.Drawing.RectangleF GetBoundingBox()
         {
             float diameter = this.Radius * 2;
-            // We explicitly use System.Drawing.RectangleF to resolve ambiguity with the ImageSharp library's RectangleF.
+            // resolve ambiguity with the ImageSharp RectangleF.
             return new System.Drawing.RectangleF(this.CenterRelative.X - this.Radius, this.CenterRelative.Y - this.Radius, diameter, diameter);
         }
 
-        // Performs hit detection for the circle in logical (unscaled) coordinates.
         public override bool IsHit(Vector2 queryPointRelative, float unscaledHitThreshold = 5.0f)
         {
-            float distanceToCenter = Vector2.Distance(queryPointRelative, this.CenterRelative);
+            // Reject degenerate circles
+            if (this.Radius < 0.1f) return false; float distanceToCenter = Vector2.Distance(queryPointRelative, this.CenterRelative);
 
             if (this.IsFilled)
             {
@@ -120,7 +111,6 @@ namespace AetherBlackbox.DrawingLogic
             }
         }
 
-        // Creates a clone of this drawable circle.
         public override BaseDrawable Clone()
         {
             var newCircle = new DrawableCircle(this.CenterRelative, this.Color, this.Thickness, this.IsFilled)
@@ -131,7 +121,6 @@ namespace AetherBlackbox.DrawingLogic
             return newCircle;
         }
 
-        // Translates the circle by a given delta in logical coordinates.
         public override void Translate(Vector2 delta)
         {
             this.CenterRelative += delta;

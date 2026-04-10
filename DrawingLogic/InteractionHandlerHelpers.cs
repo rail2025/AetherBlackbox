@@ -1,4 +1,3 @@
-// AetherBlackbox/DrawingLogic/InteractionHandlerHelpers.cs
 using System;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
@@ -36,9 +35,6 @@ namespace AetherBlackbox.DrawingLogic
                 handler.draggedHandleIndex = 4; // Use index 4 for the rotation handle.
         }
 
-        /// <summary>
-        /// Draws the resize and rotation handles for a DrawableRectangle.
-        /// </summary>
         public static void ProcessRectangleHandles(DrawableRectangle dRect, Vector2 mousePos, Vector2 canvasOrigin, ImDrawListPtr drawList, ShapeInteractionHandler handler, ref bool mouseOverAny)
         {
             Vector2[] logicalRotatedCorners = dRect.GetRotatedCorners();
@@ -53,9 +49,6 @@ namespace AetherBlackbox.DrawingLogic
                 handler.draggedHandleIndex = 4;
         }
 
-        /// <summary>
-        /// Draws the resize handles for a DrawableTriangle.
-        /// </summary>
         public static void ProcessTriangleHandles(DrawableTriangle dTri, Vector2 mousePos, Vector2 canvasOrigin, ImDrawListPtr drawList, ShapeInteractionHandler handler, ref bool mouseOverAny)
         {
             for (int i = 0; i < 3; i++)
@@ -67,9 +60,6 @@ namespace AetherBlackbox.DrawingLogic
             }
         }
 
-        /// <summary>
-        /// Draws the resize handles for a DrawableText object.
-        /// </summary>
         public static void ProcessTextHandles(DrawableText dText, Vector2 mousePos, Vector2 canvasOrigin, ImDrawListPtr drawList, ShapeInteractionHandler handler, ref bool mouseOverAny)
         {
             Vector2 boxTopLeft = dText.PositionRelative;
@@ -86,9 +76,6 @@ namespace AetherBlackbox.DrawingLogic
                     handler.draggedHandleIndex = i;
         }
 
-        /// <summary>
-        /// Draws the handles for a DrawableArrow (start, end, rotation, thickness).
-        /// </summary>
         public static void ProcessArrowHandles(DrawableArrow dArrow, Vector2 mousePos, Vector2 canvasOrigin, ImDrawListPtr drawList, ShapeInteractionHandler handler, ref bool mouseOverAny)
         {
             Vector2 logicalStart = dArrow.StartPointRelative;
@@ -107,9 +94,6 @@ namespace AetherBlackbox.DrawingLogic
             if (handler.DrawAndCheckHandle(drawList, shaftMidLogicalRotated + perpOffsetThick, canvasOrigin, mousePos, ref mouseOverAny, ImGuiMouseCursor.ResizeNs, handler.handleColorSpecial, handler.handleColorSpecialHover)) handler.draggedHandleIndex = 3;
         }
 
-        /// <summary>
-        /// Draws the handles for a DrawableCone (apex, base, rotation).
-        /// </summary>
         public static void ProcessConeHandles(DrawableCone dCone, Vector2 mousePos, Vector2 canvasOrigin, ImDrawListPtr drawList, ShapeInteractionHandler handler, ref bool mouseOverAny)
         {
             Vector2 logicalApex = dCone.ApexRelative;
@@ -125,22 +109,22 @@ namespace AetherBlackbox.DrawingLogic
         }
         public static void ProcessPieHandles(DrawablePie dPie, Vector2 mousePos, Vector2 canvasOrigin, ImDrawListPtr drawList, ShapeInteractionHandler handler, ref bool mouseOverAny)
         {
-            // 0: Center Handle
+            // Center Handle
             if (handler.DrawAndCheckHandle(drawList, dPie.CenterRelative, canvasOrigin, mousePos, ref mouseOverAny, ImGuiMouseCursor.ResizeAll, handler.handleColorResize, handler.handleColorResizeHover))
                 handler.draggedHandleIndex = 0;
 
-            // 1: Radius Handle (placed at mid-angle of the sweep)
+            // Radius Handle (placed at mid-angle of the sweep)
             float midAngle = dPie.RotationAngle + (dPie.SweepAngle / 2f);
             Vector2 radiusHandlePos = dPie.CenterRelative + new Vector2(MathF.Cos(midAngle), MathF.Sin(midAngle)) * dPie.Radius;
             if (handler.DrawAndCheckHandle(drawList, radiusHandlePos, canvasOrigin, mousePos, ref mouseOverAny, ImGuiMouseCursor.ResizeEw, handler.handleColorResize, handler.handleColorResizeHover))
                 handler.draggedHandleIndex = 1;
 
-            // 2: Start Angle Handle (Rotation) - Placed at the start of the arc
+            // Handle (Rotation) - Placed at the start of the arc
             Vector2 startHandlePos = dPie.CenterRelative + new Vector2(MathF.Cos(dPie.RotationAngle), MathF.Sin(dPie.RotationAngle)) * dPie.Radius;
             if (handler.DrawAndCheckHandle(drawList, startHandlePos, canvasOrigin, mousePos, ref mouseOverAny, handler.handleColorRotation, handler.handleColorRotationHover))
                 handler.draggedHandleIndex = 2;
 
-            // 3: End Angle Handle (Sweep) - Placed at the end of the arc
+            // Handle (Sweep) - Placed at the end of the arc
             float endAngle = dPie.RotationAngle + dPie.SweepAngle;
             Vector2 endHandlePos = dPie.CenterRelative + new Vector2(MathF.Cos(endAngle), MathF.Sin(endAngle)) * dPie.Radius;
             if (handler.DrawAndCheckHandle(drawList, endHandlePos, canvasOrigin, mousePos, ref mouseOverAny, handler.handleColorSpecial, handler.handleColorSpecialHover))
@@ -149,9 +133,6 @@ namespace AetherBlackbox.DrawingLogic
         #endregion
 
         #region Drag Update Logic
-        /// <summary>
-        /// Updates the rotation of a drawable item based on mouse movement.
-        /// </summary>
         public static void UpdateRotationDrag(BaseDrawable item, Vector2 mousePos, ShapeInteractionHandler handler)
         {
             // Calculate the change in angle from the start of the drag to the current mouse position.
@@ -168,21 +149,14 @@ namespace AetherBlackbox.DrawingLogic
             }
         }
 
-        /// <summary>
-        /// Updates the size of a DrawableImage during a resize drag.
-        /// </summary>
         public static void UpdateImageDrag(DrawableImage dImg, Vector2 mousePos, ShapeInteractionHandler handler)
         {
-            // Transform the mouse position into the image's local, unrotated coordinate space.
             Vector2 mouseInLocalUnrotated = HitDetection.ImRotate(mousePos - dImg.PositionRelative, MathF.Cos(-dImg.RotationAngle), MathF.Sin(-dImg.RotationAngle));
             Vector2 newHalfSize = new Vector2(Math.Abs(mouseInLocalUnrotated.X), Math.Abs(mouseInLocalUnrotated.Y));
             float minDimLogical = DrawableImage.UnscaledResizeHandleRadius * 2f;
             dImg.DrawSize = new Vector2(Math.Max(newHalfSize.X * 2f, minDimLogical), Math.Max(newHalfSize.Y * 2f, minDimLogical));
         }
 
-        /// <summary>
-        /// Updates the size and position of a DrawableRectangle during a resize drag.
-        /// </summary>
         public static void UpdateRectangleDrag(DrawableRectangle dRect, Vector2 mousePos, ShapeInteractionHandler handler)
         {
             // The corner opposite the one being dragged acts as a fixed pivot.
@@ -197,15 +171,12 @@ namespace AetherBlackbox.DrawingLogic
             newHalfSizeLocal.X = Math.Max(newHalfSizeLocal.X, 1f); newHalfSizeLocal.Y = Math.Max(newHalfSizeLocal.Y, 1f);
             Vector2 newCenter = pivotCornerLogical + HitDetection.ImRotate(newCenterInLocalFrame, MathF.Cos(handler.dragStartRotationAngle), MathF.Sin(handler.dragStartRotationAngle));
 
-            // Update the rectangle with the new geometry.
+            // Update the rectangle
             dRect.StartPointRelative = newCenter - newHalfSizeLocal;
             dRect.EndPointRelative = newCenter + newHalfSizeLocal;
             dRect.RotationAngle = handler.dragStartRotationAngle;
         }
 
-        /// <summary>
-        /// Updates the position of a vertex of a DrawableTriangle during a resize drag.
-        /// </summary>
         public static void UpdateTriangleResizeDrag(DrawableTriangle dTri, Vector2 mousePos, ShapeInteractionHandler handler)
         {
             if (handler.draggedHandleIndex >= 0 && handler.draggedHandleIndex < 3)
@@ -214,9 +185,6 @@ namespace AetherBlackbox.DrawingLogic
             }
         }
 
-        /// <summary>
-        /// Updates the size and font size of a DrawableText object during a resize drag.
-        /// </summary>
         public static void UpdateTextResizeDrag(DrawableText dText, Vector2 mousePos, ShapeInteractionHandler handler)
         {
             int anchorIndex = (handler.draggedHandleIndex + 2) % 4;
@@ -241,17 +209,11 @@ namespace AetherBlackbox.DrawingLogic
             }
         }
 
-        /// <summary>
-        /// Updates the start point of a DrawableArrow during a drag.
-        /// </summary>
         public static void UpdateArrowStartDrag(DrawableArrow dArrow, Vector2 mousePos, ShapeInteractionHandler handler)
         {
             dArrow.SetStartPoint(handler.dragStartPoint1Logical + (mousePos - handler.dragStartMousePosLogical));
         }
 
-        /// <summary>
-        /// Updates the end point of a DrawableArrow during a drag.
-        /// </summary>
         public static void UpdateArrowEndDrag(DrawableArrow dArrow, Vector2 mousePos)
         {
             Vector2 mouseRelativeToStart = mousePos - dArrow.StartPointRelative;
@@ -259,9 +221,6 @@ namespace AetherBlackbox.DrawingLogic
             dArrow.SetEndPoint(dArrow.StartPointRelative + unrotatedMouseRelativeToStart);
         }
 
-        /// <summary>
-        /// Updates the thickness of a DrawableArrow during a drag.
-        /// </summary>
         public static void UpdateArrowThicknessDrag(DrawableArrow dArrow, Vector2 mousePos, ShapeInteractionHandler handler)
         {
             Vector2 initialShaftVec = handler.dragStartPoint2Logical - handler.dragStartPoint1Logical;
@@ -273,17 +232,11 @@ namespace AetherBlackbox.DrawingLogic
             dArrow.Thickness = Math.Max(1f, handler.dragStartValueLogical + thicknessDeltaProjection);
         }
 
-        /// <summary>
-        /// Updates the apex point of a DrawableCone during a drag.
-        /// </summary>
         public static void UpdateConeApexDrag(DrawableCone dCone, Vector2 mousePos, ShapeInteractionHandler handler)
         {
             dCone.SetApex(handler.dragStartPoint1Logical + (mousePos - handler.dragStartMousePosLogical));
         }
 
-        /// <summary>
-        /// Updates the base center point of a DrawableCone during a drag.
-        /// </summary>
         public static void UpdateConeBaseDrag(DrawableCone dCone, Vector2 mousePos)
         {
             Vector2 mouseRelativeToApex = mousePos - dCone.ApexRelative;
@@ -317,7 +270,7 @@ namespace AetherBlackbox.DrawingLogic
             Vector2 diff = mousePos - dPie.CenterRelative;
             float angleCurrent = MathF.Atan2(diff.Y, diff.X);
 
-            // We need the difference between the mouse angle and the Pie's start rotation
+            // difference between the mouse angle and the Pie's start rotation
             // to determine the new sweep.
             float relativeAngle = angleCurrent - dPie.RotationAngle;
 

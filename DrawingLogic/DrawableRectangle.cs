@@ -1,6 +1,5 @@
-// AetherBlackbox/DrawingLogic/DrawableRectangle.cs
 using System;
-using System.Drawing; // Required for RectangleF
+using System.Drawing;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
@@ -15,13 +14,9 @@ namespace AetherBlackbox.DrawingLogic
 {
     public class DrawableRectangle : BaseDrawable
     {
-        // Top-left point used to define the rectangle before rotation.
         public Vector2 StartPointRelative { get; set; }
-        // Bottom-right point used to define the rectangle before rotation.
         public Vector2 EndPointRelative { get; set; }
-        // Rotation angle in radians around the rectangle's center.
         public float RotationAngle { get; set; } = 0f;
-
         // Offset for the rotation handle when drawn in ImGui.
         public static readonly float UnscaledRotationHandleExtraOffset = 25f;
 
@@ -36,13 +31,11 @@ namespace AetherBlackbox.DrawingLogic
             this.IsPreview = true;
         }
 
-        // Updates the rectangle's second defining point during preview drawing.
         public override void UpdatePreview(Vector2 newPointRelative)
         {
             this.EndPointRelative = newPointRelative;
         }
 
-        // Calculates the center and half-size of the unrotated rectangle from its defining points.
         public (Vector2 center, Vector2 halfSize) GetGeometry()
         {
             Vector2 min = new Vector2(MathF.Min(StartPointRelative.X, EndPointRelative.X), MathF.Min(StartPointRelative.Y, EndPointRelative.Y));
@@ -52,7 +45,6 @@ namespace AetherBlackbox.DrawingLogic
             return (center, halfSize);
         }
 
-        // Draws the rectangle on the ImGui canvas.
         public override void Draw(ImDrawListPtr drawList, Vector2 canvasOriginScreen)
         {
             var displayColorVec = IsSelected ? new Vector4(1, 1, 0, 1) : (IsHovered ? new Vector4(0, 1, 1, 1) : Color);
@@ -63,7 +55,7 @@ namespace AetherBlackbox.DrawingLogic
             float displayScaledThickness = Math.Max(1f * ImGuiHelpers.GlobalScale, baseScaledThickness + highlightThicknessAddition);
 
             var (center, halfSize) = GetGeometry();
-            // Do not draw if it's a preview and effectively has no area.
+            // Do not draw if it's a preview and  has no area.
             if (halfSize.X < 0.1f && halfSize.Y < 0.1f && IsPreview) return;
 
             // Define corners relative to a local (0,0) center for easier rotation.
@@ -94,7 +86,6 @@ namespace AetherBlackbox.DrawingLogic
             }
         }
 
-        // Draws the rectangle to an ImageSharp context for image export.
         public override void DrawToImage(IImageProcessingContext context, Vector2 canvasOriginInOutputImage, float currentGlobalScale)
         {
             var imageSharpColor = SixLabors.ImageSharp.Color.FromRgba(
@@ -135,16 +126,10 @@ namespace AetherBlackbox.DrawingLogic
             }
         }
 
-        /// <summary>
-        /// Calculates the axis-aligned bounding box that encloses the (potentially rotated) rectangle.
-        /// </summary>
-        /// <returns>A RectangleF representing the bounding box.</returns>
         public override System.Drawing.RectangleF GetBoundingBox()
         {
-            // Get the final absolute positions of the four corners.
             Vector2[] corners = GetRotatedCorners();
 
-            // Find the minimum and maximum X and Y coordinates among all corners.
             float minX = corners[0].X;
             float minY = corners[0].Y;
             float maxX = corners[0].X;
@@ -162,10 +147,11 @@ namespace AetherBlackbox.DrawingLogic
             return new System.Drawing.RectangleF(minX, minY, maxX - minX, maxY - minY);
         }
 
-        // Performs hit detection for the rectangle in logical (unscaled) coordinates.
         public override bool IsHit(Vector2 queryPointCanvasRelative, float unscaledHitThreshold = 5.0f)
         {
             var (center, halfSize) = GetGeometry();
+            // Reject degenerate rectangles
+            if (halfSize.X < 0.1f && halfSize.Y < 0.1f) return false;
             // Transform the query point into the rectangle's local, unrotated coordinate system.
             Vector2 localQueryPoint = Vector2.Transform(queryPointCanvasRelative - center, Matrix3x2.CreateRotation(-RotationAngle));
 
@@ -187,7 +173,6 @@ namespace AetherBlackbox.DrawingLogic
             }
         }
 
-        // Creates a clone of this drawable rectangle.
         public override BaseDrawable Clone()
         {
             var newRect = new DrawableRectangle(this.StartPointRelative, this.Color, this.Thickness, this.IsFilled)
@@ -199,7 +184,6 @@ namespace AetherBlackbox.DrawingLogic
             return newRect;
         }
 
-        // Translates the rectangle by a given delta in logical coordinates.
         public override void Translate(Vector2 delta)
         {
             this.StartPointRelative += delta;

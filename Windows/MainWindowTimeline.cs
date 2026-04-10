@@ -1,6 +1,7 @@
 ﻿using AetherBlackbox.DrawingLogic;
 using AetherBlackbox.Events;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using System;
 using System.Numerics;
@@ -114,14 +115,34 @@ namespace AetherBlackbox.Windows
 
             uint pingColor = ImGui.GetColorU32(new Vector4(0.97f, 0.32f, 0.29f, 1.0f));
             uint syncedTextColor = ImGui.GetColorU32(new Vector4(0.69f, 0.96f, 0.71f, 1.0f));
-            foreach (var kvp in activePings)
+            Vector2 endOfTimelineCursorPos = ImGui.GetCursorScreenPos();
+
+            System.Collections.Generic.List<float> drawnPingTimes = new System.Collections.Generic.List<float>();
+            string primaryId = syncTarget ?? plugin.NetworkManager.LocalClientId;
+
+            var orderedIds = new System.Collections.Generic.List<string>();
+            if (activePings.ContainsKey(primaryId)) orderedIds.Add(primaryId);
+            foreach (var key in activePings.Keys) { if (key != primaryId) orderedIds.Add(key); }
+
+            foreach (var id in orderedIds)
             {
-                var id = kvp.Key;
-                var ping = kvp.Value;
+                if (id != plugin.NetworkManager.LocalClientId && !connectedUsers.Contains(id)) continue;
+                if (syncTarget != null && id == plugin.NetworkManager.LocalClientId) continue;
+
+                var ping = activePings[id];
 
                 float pingAbsTime = ping.Time;
                 if (id == plugin.NetworkManager.LocalClientId) pingAbsTime = absoluteCurrentTime;
                 else if (userMarkers.TryGetValue(id, out float uTime)) pingAbsTime = uTime;
+
+                bool isOverlapping = false;
+                foreach (var drawnTime in drawnPingTimes)
+                {
+                    if (Math.Abs(drawnTime - pingAbsTime) < 1.5f) { isOverlapping = true; break; }
+                }
+                if (isOverlapping) continue;
+
+                drawnPingTimes.Add(pingAbsTime);
 
                 float relPingTime = pingAbsTime - deathTimeOffset;
                 float ratio = Math.Clamp((relPingTime - minTime) / totalRange, 0f, 1f);
@@ -129,27 +150,47 @@ namespace AetherBlackbox.Windows
 
                 int syncedCount = 0;
                 if (Math.Abs(absoluteCurrentTime - pingAbsTime) < 1.5f) syncedCount++;
-                foreach (var uTime2 in userMarkers.Values)
-                    if (Math.Abs(uTime2 - pingAbsTime) < 1.5f) syncedCount++;
+                foreach (var marker in userMarkers)
+                {
+                    if (connectedUsers.Contains(marker.Key) && Math.Abs(marker.Value - pingAbsTime) < 1.5f)
+                        syncedCount++;
+                }
 
                 int totalCount = connectedUsers.Count + 1;
 
                 drawList.AddTriangleFilled(new Vector2(x, cursor.Y - 2), new Vector2(x - 5, cursor.Y - 10), new Vector2(x + 5, cursor.Y - 10), pingColor);
 
-                string text = $"👁️ {syncedCount}/{totalCount}" + (syncTarget == id ? " [Synced]" : "");
-                var textSize = ImGui.CalcTextSize(text);
-                var textPos = new Vector2(x - (textSize.X / 2), cursor.Y - 10 - textSize.Y);
+                string iconText = Dalamud.Interface.FontAwesomeIcon.Eye.ToIconString();
+                string normalText = $" {syncedCount}/{totalCount}" + (syncTarget == id ? " [Synced]" : "");
 
-                ImGui.SetCursorScreenPos(new Vector2(x - 10, cursor.Y - 10 - textSize.Y));
-                if (ImGui.InvisibleButton($"##ping_{id}", new Vector2(Math.Max(20, textSize.X), textSize.Y + 10)))
+                ImGui.PushFont(Dalamud.Interface.UiBuilder.IconFont);
+                float iconWidth = ImGui.CalcTextSize(iconText).X;
+                ImGui.PopFont();
+
+                float textHeight = ImGui.CalcTextSize(normalText).Y;
+                float totalWidth = iconWidth + ImGui.CalcTextSize(normalText).X;
+
+                ImGui.SetCursorScreenPos(new Vector2(x - 10, cursor.Y - 10 - textHeight));
+                if (ImGui.InvisibleButton($"##ping_{id}", new Vector2(Math.Max(20, totalWidth), textHeight + 10)))
                 {
                     syncTarget = id;
                     replayTimeOffset = pingAbsTime - deathTimeOffset;
                     BroadcastTimeSync();
                 }
 
-                drawList.AddText(textPos, syncTarget == id ? syncedTextColor : 0xFFD9D1C9, text);
+                ImGui.SetCursorScreenPos(new Vector2(x - (totalWidth / 2), cursor.Y - 10 - textHeight));
+                ImGui.PushStyleColor(ImGuiCol.Text, syncTarget == id ? syncedTextColor : 0xFFD9D1C9);
+
+                ImGui.PushFont(Dalamud.Interface.UiBuilder.IconFont);
+                ImGui.Text(iconText);
+                ImGui.PopFont();
+
+                ImGui.SameLine(0, 0);
+                ImGui.Text(normalText);
+                ImGui.PopStyleColor();
             }
+
+            ImGui.SetCursorScreenPos(endOfTimelineCursorPos);
 
             float currentRatio = Math.Clamp((replayTimeOffset - minTime) / totalRange, 0f, 1f);
             float playheadX = cursor.X + (currentRatio * width);

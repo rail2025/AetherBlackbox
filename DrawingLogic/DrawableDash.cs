@@ -1,13 +1,10 @@
-// AetherBlackbox/DrawingLogic/DrawableDash.cs
 using System;
 using System.Numerics;
 using System.Collections.Generic;
 using System.Linq;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
-using System.Drawing; // Required for RectangleF
-
-// ImageSharp using statements
+using System.Drawing;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -18,11 +15,8 @@ namespace AetherBlackbox.DrawingLogic
 {
     public class DrawableDash : BaseDrawable
     {
-        // List of logical, unscaled points defining the path of the dashed line.
         public List<Vector2> PointsRelative { get; set; } = new List<Vector2>();
-        // Logical, unscaled length of each dash segment.
         public float DashLength { get; set; }
-        // Logical, unscaled length of each gap between dashes.
         public float GapLength { get; set; }
 
         public DrawableDash(Vector2 startPointRelative, Vector4 color, float unscaledThickness)
@@ -44,19 +38,16 @@ namespace AetherBlackbox.DrawingLogic
         // Adds a point to the dashed line path during preview or finalization.
         public void AddPoint(Vector2 pointRelative)
         {
-            // Add if list is empty or if new point is sufficiently far from the last.
             if (!PointsRelative.Any() || Vector2.DistanceSquared(PointsRelative.Last(), pointRelative) > 4.0f) // 4.0f is a logical squared distance
             {
                 PointsRelative.Add(pointRelative);
             }
-            // If it's a preview and points exist, update the last point.
             else if (PointsRelative.Any() && this.IsPreview)
             {
                 PointsRelative[PointsRelative.Count - 1] = pointRelative;
             }
         }
 
-        // Draws the dashed line on the ImGui canvas.
         public override void Draw(ImDrawListPtr drawList, Vector2 canvasOriginScreen)
         {
             if (!PointsRelative.Any()) return;
@@ -141,7 +132,6 @@ namespace AetherBlackbox.DrawingLogic
             }
         }
 
-        // Draws the dashed line to an ImageSharp context for image export.
         public override void DrawToImage(IImageProcessingContext context, Vector2 canvasOriginInOutputImage, float currentGlobalScale)
         {
             if (PointsRelative.Count < 2) return;
@@ -152,11 +142,9 @@ namespace AetherBlackbox.DrawingLogic
             );
             float scaledThickness = Math.Max(1f, this.Thickness * currentGlobalScale);
 
-            // Scale dash and gap lengths for ImageSharp rendering
             float currentScaledDashLength = this.DashLength * currentGlobalScale;
             float currentScaledGapLength = this.GapLength * currentGlobalScale;
 
-            // Ensure minimum positive lengths for scaled dashes/gaps
             if (currentScaledDashLength <= 0.1f) currentScaledDashLength = 0.1f; // Use a small positive value
             if (currentScaledGapLength <= 0.1f) currentScaledGapLength = 0.1f;
 
@@ -165,7 +153,6 @@ namespace AetherBlackbox.DrawingLogic
 
             for (int i = 0; i < PointsRelative.Count - 1; i++)
             {
-                // Transform logical points to image coordinates
                 var p1 = new SixLabors.ImageSharp.PointF(
                     (PointsRelative[i].X * currentGlobalScale) + canvasOriginInOutputImage.X,
                     (PointsRelative[i].Y * currentGlobalScale) + canvasOriginInOutputImage.Y
@@ -206,7 +193,6 @@ namespace AetherBlackbox.DrawingLogic
                         currentDistanceIntoPatternElement += lengthToDrawForThisDashPart;
                         distanceCoveredOnSegment += lengthToDrawForThisDashPart;
 
-                        // Use a small epsilon for float comparison
                         if (currentDistanceIntoPatternElement >= currentScaledDashLength - 0.01f)
                         {
                             isCurrentlyDrawingDash = false;
@@ -231,10 +217,6 @@ namespace AetherBlackbox.DrawingLogic
             }
         }
 
-        /// <summary>
-        /// Calculates the axis-aligned bounding box for this dashed path.
-        /// </summary>
-        /// <returns>A RectangleF representing the bounding box.</returns>
         public override System.Drawing.RectangleF GetBoundingBox()
         {
             if (this.PointsRelative.Count == 0) return System.Drawing.RectangleF.Empty;
@@ -247,7 +229,6 @@ namespace AetherBlackbox.DrawingLogic
             return new System.Drawing.RectangleF(minX, minY, maxX - minX, maxY - minY);
         }
 
-        // Performs hit detection for the dashed line in logical (unscaled) coordinates.
         public override bool IsHit(Vector2 queryPointRelative, float unscaledHitThreshold = 5.0f)
         {
             if (PointsRelative.Count < 2) return false;
@@ -264,7 +245,6 @@ namespace AetherBlackbox.DrawingLogic
             return false;
         }
 
-        // Creates a clone of this drawable dashed line.
         public override BaseDrawable Clone()
         {
             var newDash = new DrawableDash(PointsRelative.FirstOrDefault(), this.Color, this.Thickness)
@@ -277,7 +257,6 @@ namespace AetherBlackbox.DrawingLogic
             return newDash;
         }
 
-        // Translates the dashed line by a given delta in logical coordinates.
         public override void Translate(Vector2 delta)
         {
             for (int i = 0; i < PointsRelative.Count; i++)

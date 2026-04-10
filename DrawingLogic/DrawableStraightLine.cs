@@ -1,9 +1,8 @@
-// AetherBlackbox/DrawingLogic/DrawableStraightLine.cs
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using System;
-using System.Drawing; // Required for RectangleF
+using System.Drawing;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
@@ -40,8 +39,8 @@ namespace AetherBlackbox.DrawingLogic
             float displayScaledThickness = baseScaledThickness + highlightThicknessAddition;
             displayScaledThickness = MathF.Max(1f * ImGuiHelpers.GlobalScale, displayScaledThickness);
 
-            Vector2 screenStart = this.StartPointRelative * ImGuiHelpers.GlobalScale + canvasOriginScreen; // Apply scale
-            Vector2 screenEnd = this.EndPointRelative * ImGuiHelpers.GlobalScale + canvasOriginScreen;   // Apply scale
+            Vector2 screenStart = this.StartPointRelative * ImGuiHelpers.GlobalScale + canvasOriginScreen;
+            Vector2 screenEnd = this.EndPointRelative * ImGuiHelpers.GlobalScale + canvasOriginScreen;
 
             drawList.AddLine(screenStart, screenEnd, displayColor, displayScaledThickness);
         }
@@ -63,10 +62,6 @@ namespace AetherBlackbox.DrawingLogic
             context.DrawLine(imageSharpColor, scaledThickness, p1, p2);
         }
 
-        /// <summary>
-        /// Calculates the axis-aligned bounding box for this line.
-        /// </summary>
-        /// <returns>A RectangleF representing the bounding box.</returns>
         public override System.Drawing.RectangleF GetBoundingBox()
         {
             float minX = MathF.Min(this.StartPointRelative.X, this.EndPointRelative.X);
@@ -79,6 +74,8 @@ namespace AetherBlackbox.DrawingLogic
 
         public override bool IsHit(Vector2 queryPointRelative, float unscaledHitThreshold = 5.0f)
         {
+            // Reject degenerate lines
+            if (Vector2.DistanceSquared(this.StartPointRelative, this.EndPointRelative) < 0.01f) return false;
             // Hit detection uses logical coordinates
             float effectiveHitRange = unscaledHitThreshold + (this.Thickness / 2f);
             return HitDetection.DistancePointToLineSegment(queryPointRelative, this.StartPointRelative, this.EndPointRelative) <= effectiveHitRange;

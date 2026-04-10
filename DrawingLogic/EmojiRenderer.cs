@@ -1,4 +1,3 @@
-// AetherBlackbox/DrawingLogic/EmojiRenderer.cs
 using SkiaSharp;
 using System;
 using System.IO;

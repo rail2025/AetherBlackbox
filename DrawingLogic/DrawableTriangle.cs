@@ -1,4 +1,3 @@
-// AetherBlackbox/DrawingLogic/DrawableTriangle.cs
 using System;
 using System.Drawing;
 using System.Numerics;
@@ -29,7 +28,6 @@ namespace AetherBlackbox.DrawingLogic
             this.IsPreview = false;
         }
 
-        // Overloaded constructor for manual drawing
         public DrawableTriangle(Vector2 startPoint, Vector4 color, float thickness, bool isFilled)
         {
             this.ObjectDrawMode = DrawMode.Triangle;
@@ -44,7 +42,6 @@ namespace AetherBlackbox.DrawingLogic
 
         public override void UpdatePreview(Vector2 newPointRelative)
         {
-            // Simple preview: first point is fixed, second follows X, third follows Y
             this.Vertices[1] = new Vector2(newPointRelative.X, Vertices[0].Y);
             this.Vertices[2] = newPointRelative;
         }

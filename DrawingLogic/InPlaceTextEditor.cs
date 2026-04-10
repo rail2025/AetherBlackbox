@@ -1,4 +1,3 @@
-// AetherBlackbox/DrawingLogic/InPlaceTextEditor.cs
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -14,9 +13,6 @@ using Dalamud.Bindings.ImGui;
 
 namespace AetherBlackbox.DrawingLogic
 {
-    /// <summary>
-    /// Manages the UI and logic for editing a DrawableText object directly on the canvas.
-    /// </summary>
     public class InPlaceTextEditor
     {
         private readonly Plugin plugin;
@@ -34,12 +30,6 @@ namespace AetherBlackbox.DrawingLogic
         private const int MaxBufferSize = 2048;
         private bool p_open = true;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="InPlaceTextEditor"/> class.
-        /// </summary>
-        /// <param name="pluginInstance">The main plugin instance, used for network access.</param>
-        /// <param name="undoManagerInstance">The undo manager for recording text changes.</param>
-        /// <param name="pageManagerInstance">The page manager for context.</param>
         public InPlaceTextEditor(Plugin pluginInstance, UndoManager undoManagerInstance, PageManager pageManagerInstance)
         {
             this.plugin = pluginInstance ?? throw new ArgumentNullException(nameof(pluginInstance));
@@ -47,12 +37,6 @@ namespace AetherBlackbox.DrawingLogic
             this.pageManager = pageManagerInstance ?? throw new ArgumentNullException(nameof(pageManagerInstance));
         }
 
-        /// <summary>
-        /// Begins an edit session for a specific text object.
-        /// </summary>
-        /// <param name="textObject">The text object to edit.</param>
-        /// <param name="canvasOriginScreen">The screen coordinate of the canvas origin.</param>
-        /// <param name="currentGlobalScale">The current ImGui global scale factor.</param>
         public void BeginEdit(DrawableText textObject, Vector2 canvasOriginScreen, float currentGlobalScale)
         {
             if (textObject == null) return;
@@ -70,20 +54,12 @@ namespace AetherBlackbox.DrawingLogic
             RecalculateEditorBounds(canvasOriginScreen, currentGlobalScale);
         }
 
-        /// <summary>
-        /// Recalculates the on-screen position for the editor window based on the text object's location.
-        /// </summary>
-        /// <param name="canvasOriginScreen">The screen coordinate of the canvas origin.</param>
-        /// <param name="currentGlobalScale">The current ImGui global scale factor.</param>
         public void RecalculateEditorBounds(Vector2 canvasOriginScreen, float currentGlobalScale)
         {
             if (targetTextObject_ == null) return;
             editorWindowPosition_ = (targetTextObject_.PositionRelative * currentGlobalScale) + canvasOriginScreen;
         }
 
-        /// <summary>
-        /// Draws the editor UI window.
-        /// </summary>
         public void DrawEditorUI()
         {
             if (!IsEditing || targetTextObject_ == null) return;
@@ -140,9 +116,6 @@ namespace AetherBlackbox.DrawingLogic
             ImGui.PopStyleVar();
         }
 
-        /// <summary>
-        /// Commits the changes made in the editor to the text object and sends a network update.
-        /// </summary>
         public void CommitAndEndEdit()
         {
             if (!IsEditing || targetTextObject_ == null) return;
@@ -174,9 +147,6 @@ namespace AetherBlackbox.DrawingLogic
             CleanUpEditSession();
         }
 
-        /// <summary>
-        /// Cancels the edit session and reverts any changes.
-        /// </summary>
         public void CancelAndEndEdit()
         {
             if (!IsEditing || targetTextObject_ == null) return;
@@ -186,20 +156,12 @@ namespace AetherBlackbox.DrawingLogic
             CleanUpEditSession();
         }
 
-        /// <summary>
-        /// Resets the editor state.
-        /// </summary>
         private void CleanUpEditSession()
         {
             IsEditing = false;
             targetTextObject_ = null;
         }
 
-        /// <summary>
-        /// Checks if the editor is currently targeting a specific drawable object.
-        /// </summary>
-        /// <param name="drawable">The drawable to check.</param>
-        /// <returns>True if the drawable is being edited, false otherwise.</returns>
         public bool IsCurrentlyEditing(BaseDrawable? drawable)
         {
             return IsEditing && targetTextObject_ != null && ReferenceEquals(targetTextObject_, drawable);

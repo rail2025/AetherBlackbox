@@ -1,11 +1,10 @@
-// AetherBlackbox/DrawingLogic/DrawablePath.cs
 using System.Numerics;
 using System.Collections.Generic;
 using System.Linq;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using System;
-using System.Drawing; // Required for RectangleF
+using System.Drawing;
 
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
@@ -75,23 +74,16 @@ namespace AetherBlackbox.DrawingLogic
             );
             float scaledThickness = Math.Max(1f, this.Thickness * currentGlobalScale);
 
-            // Convert our list of points into the format the graphics library needs.
             var imageSharpPoints = this.PointsRelative.Select(p => new SixLabors.ImageSharp.PointF(
                 (p.X * currentGlobalScale) + canvasOriginInOutputImage.X,
                 (p.Y * currentGlobalScale) + canvasOriginInOutputImage.Y
                 )).ToArray();
 
-            // Build a single "Path" object from the list of points.
             var path = new PathBuilder().AddLines(imageSharpPoints).Build();
 
-            // Draw the generated path onto the image.
             context.Draw(imageSharpColor, scaledThickness, path);
         }
 
-        /// <summary>
-        /// Calculates the axis-aligned bounding box for this path.
-        /// </summary>
-        /// <returns>A RectangleF representing the bounding box.</returns>
         public override System.Drawing.RectangleF GetBoundingBox()
         {
             if (this.PointsRelative.Count == 0) return System.Drawing.RectangleF.Empty;

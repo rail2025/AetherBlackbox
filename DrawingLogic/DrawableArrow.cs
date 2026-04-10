@@ -1,6 +1,5 @@
-// AetherBlackbox/DrawingLogic/DrawableArrow.cs
 using System;
-using System.Drawing; // Required for RectangleF
+using System.Drawing;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
@@ -14,26 +13,10 @@ namespace AetherBlackbox.DrawingLogic
 {
     public class DrawableArrow : BaseDrawable
     {
-        /// <summary>
-        /// The logical, unscaled start point of the arrow shaft. Also the pivot for rotation.
-        /// </summary>
         public Vector2 StartPointRelative { get; set; }
-        /// <summary>
-        /// The logical, unscaled end point of the arrow shaft.
-        /// </summary>
         public Vector2 EndPointRelative { get; set; }
-        /// <summary>
-        /// The rotation angle in radians around the StartPointRelative.
-        /// </summary>
         public float RotationAngle { get; set; } = 0f;
-
-        /// <summary>
-        /// The offset determining the arrowhead's length based on the shaft's thickness.
-        /// </summary>
         public float ArrowheadLengthOffset { get; set; }
-        /// <summary>
-        /// The scale factor determining the arrowhead's width based on the shaft's thickness.
-        /// </summary>
         public float ArrowheadWidthScale { get; set; }
 
         public static readonly float DefaultArrowheadLengthFactorFromThickness = 5.0f;
@@ -68,7 +51,7 @@ namespace AetherBlackbox.DrawingLogic
             const float minAbsoluteDim = 5.0f;
 
             this.ArrowheadLengthOffset = MathF.Max(minAbsoluteDim, this.Thickness * defaultLengthFactor);
-            this.ArrowheadWidthScale = defaultWidthFactor; // Assuming this doesn't need to change dynamically, just length
+            this.ArrowheadWidthScale = defaultWidthFactor;
         }
         public override void Draw(ImDrawListPtr drawList, Vector2 canvasOriginScreen)
         {
@@ -88,8 +71,6 @@ namespace AetherBlackbox.DrawingLogic
                 drawList.AddCircleFilled((shaftStartLogical * ImGuiHelpers.GlobalScale) + canvasOriginScreen, scaledShaftThickness / 2f + (2f * ImGuiHelpers.GlobalScale), displayColor);
                 return;
             }
-
-            // Get all vertices of the arrow polygon.
             var vertices = GetTransformedVertices();
 
             // Scale and translate the vertices to screen coordinates.
@@ -98,9 +79,8 @@ namespace AetherBlackbox.DrawingLogic
                 vertices[i] = (vertices[i] * ImGuiHelpers.GlobalScale) + canvasOriginScreen;
             }
 
-            // Draw the arrow components.
-            drawList.AddLine(vertices[0], vertices[1], displayColor, scaledShaftThickness); // Shaft
-            drawList.AddTriangleFilled(vertices[2], vertices[3], vertices[4], displayColor); // Arrowhead
+            drawList.AddLine(vertices[0], vertices[1], displayColor, scaledShaftThickness);
+            drawList.AddTriangleFilled(vertices[2], vertices[3], vertices[4], displayColor);
         }
 
         public override void DrawToImage(IImageProcessingContext context, Vector2 canvasOriginInOutputImage, float currentGlobalScale)
@@ -114,7 +94,6 @@ namespace AetherBlackbox.DrawingLogic
             if ((this.EndPointRelative - this.StartPointRelative).LengthSquared() < 0.01f && this.IsPreview)
                 return;
 
-            // Get the final vertex positions for drawing.
             var vertices = GetTransformedVertices();
 
             // Convert to ImageSharp points and apply canvas origin offset.
@@ -126,22 +105,19 @@ namespace AetherBlackbox.DrawingLogic
                 imageSharpPoints[i] = new SixLabors.ImageSharp.PointF(transformedVec.X, transformedVec.Y);
             }
 
-            // Draw shaft line.
             context.DrawLine(imageSharpColor, scaledShaftThickness, imageSharpPoints[0], imageSharpPoints[1]);
 
-            // Draw arrowhead triangle.
             var arrowheadPath = new PathBuilder().AddLines(new[] { imageSharpPoints[2], imageSharpPoints[3], imageSharpPoints[4] }).CloseFigure().Build();
             context.Fill(imageSharpColor, arrowheadPath);
         }
 
         public override System.Drawing.RectangleF GetBoundingBox()
         {
-            // Get the final absolute positions of all defining vertices.
             var vertices = GetTransformedVertices();
 
             float minX = vertices[0].X, minY = vertices[0].Y, maxX = vertices[0].X, maxY = vertices[0].Y;
 
-            // The shaft start (vertices[0]) is already included. We check the other 4 points.
+            // The shaft start (vertices[0]) is already included.
             for (int i = 1; i < vertices.Length; i++)
             {
                 minX = MathF.Min(minX, vertices[i].X);
@@ -155,6 +131,8 @@ namespace AetherBlackbox.DrawingLogic
 
         public override bool IsHit(Vector2 queryPointCanvasRelative, float unscaledHitThreshold = 5.0f)
         {
+            // Reject degenerate arrows
+            if ((this.EndPointRelative - this.StartPointRelative).LengthSquared() < 0.01f) return false;
             // Transform query point into the arrow's local unrotated space.
             Vector2 localQueryPoint = Vector2.Transform(queryPointCanvasRelative - this.StartPointRelative, Matrix3x2.CreateRotation(-this.RotationAngle));
 

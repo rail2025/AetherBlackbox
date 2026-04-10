@@ -1,4 +1,3 @@
-// AetherBlackbox/DrawingLogic/DrawableText.cs
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -12,7 +11,7 @@ using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.Fonts;
 using System.Linq;
-using System.Drawing; // Required for RectangleF
+using System.Drawing;
 
 namespace AetherBlackbox.DrawingLogic
 {
