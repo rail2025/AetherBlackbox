@@ -137,6 +137,56 @@ public class RecapConfigWindow : Window
             conf.Save();
         }
 
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+        ImGui.TextUnformatted("Interactive Log Settings");
+        ImGui.Spacing();
+
+        var logCfg = conf.InteractiveLog;
+
+        var showTimeCol = logCfg.ShowTimeColumn;
+        if (ImGui.Checkbox("Show Time Column", ref showTimeCol))
+        {
+            logCfg.ShowTimeColumn = showTimeCol;
+            conf.Save();
+        }
+
+        var showHpCol = logCfg.ShowHpColumn;
+        if (ImGui.Checkbox("Show HP Column", ref showHpCol))
+        {
+            logCfg.ShowHpColumn = showHpCol;
+            conf.Save();
+        }
+
+        var showSourceCol = logCfg.ShowSourceColumn;
+        if (ImGui.Checkbox("Show Source Column", ref showSourceCol))
+        {
+            logCfg.ShowSourceColumn = showSourceCol;
+            conf.Save();
+        }
+
+        var showEventCol = logCfg.ShowEventColumn;
+        if (ImGui.Checkbox("Show Event Column", ref showEventCol))
+        {
+            logCfg.ShowEventColumn = showEventCol;
+            conf.Save();
+        }
+
+        var onlyDamaging = logCfg.OnlyDamagingEvents;
+        if (ImGui.Checkbox("Only Damaging Events", ref onlyDamaging))
+        {
+            logCfg.OnlyDamagingEvents = onlyDamaging;
+            conf.Save();
+        }
+
+        var useAbsoluteTime = logCfg.UseAbsolutePullTime;
+        if (ImGui.Checkbox("Use Absolute Pull Time", ref useAbsoluteTime))
+        {
+            logCfg.UseAbsolutePullTime = useAbsoluteTime;
+            conf.Save();
+        }
+
     }
 
     private static void ChatMessageTypeTooltip()
