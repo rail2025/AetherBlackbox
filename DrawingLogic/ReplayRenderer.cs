@@ -55,7 +55,27 @@ namespace AetherBlackbox.DrawingLogic
             var canvasCenter = (view.CanvasOrigin + (view.CanvasSize / 2)) + view.PanOffset;
             float scale = DefaultPixelsPerYard * ImGuiHelpers.GlobalScale * view.Zoom;
 
-            DrawMapBackground(drawList, territoryTypeId, view, recording.Waymarks, config);
+            bool isM12P2 = false;
+
+            if (territoryTypeId == 1327)
+            {
+                var boss = recording.Metadata.Values.FirstOrDefault(m => m.Type == EntityType.Boss && m.MaxHp > 0);
+
+                if (boss != null)
+                {
+                    isM12P2 = boss.MaxHp > 105000000;
+                }
+
+                if (!isM12P2 && recording.Header != null)
+                {
+                    bool HasAflame(Dictionary<uint, string> manifest) => manifest != null && manifest.Values.Any(v => v != null && v.Contains("Aflame", StringComparison.OrdinalIgnoreCase));
+
+                    isM12P2 = HasAflame(recording.Header.AbilityManifest) || HasAflame(recording.Header.StatusManifest);
+                }
+            }
+
+
+            DrawMapBackground(drawList, territoryTypeId, view, recording.Waymarks, isM12P2, config);
             DrawWaymarks(drawList, recording.Waymarks, view);
 
             for (int i = 0; i < frame.Ids.Count; i++)
@@ -286,15 +306,18 @@ namespace AetherBlackbox.DrawingLogic
         private readonly Dictionary<int, byte> _waymarkIconRetries = new();
         private readonly Dictionary<uint, byte> _mapRetries = new();
 
-        private void DrawMapBackground(ImDrawListPtr drawList, uint territoryTypeId, ViewContext view, List<WaymarkSnapshot> waymarks, Configuration config)
+        private void DrawMapBackground(ImDrawListPtr drawList, uint territoryTypeId, ViewContext view, List<WaymarkSnapshot> waymarks, bool isM12P2, Configuration config)
         {
-            if (!_mapCache.TryGetValue(territoryTypeId, out var texture) || texture == null || texture.Handle == IntPtr.Zero)
+
+            uint cacheKey = isM12P2 ? 132702u : territoryTypeId;
+
+            if (!_mapCache.TryGetValue(cacheKey, out var texture) || texture == null || texture.Handle == IntPtr.Zero)
             {
-                var resolved = ResolveMapTexture(territoryTypeId);
+                var resolved = ResolveMapTexture(territoryTypeId, isM12P2);
 
                 if (resolved != null)
                 {
-                    _mapCache[territoryTypeId] = resolved;
+                    _mapCache[cacheKey] = resolved;
                     texture = resolved;
                 }
             }
@@ -347,7 +370,7 @@ namespace AetherBlackbox.DrawingLogic
             }
         }
 
-        private IDalamudTextureWrap? ResolveMapTexture(uint territoryTypeId)
+        private IDalamudTextureWrap? ResolveMapTexture(uint territoryTypeId, bool isM12P2)
         {
             var territoryNullable = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.TerritoryType>().GetRowOrDefault(territoryTypeId);
             if (!territoryNullable.HasValue) return null;
@@ -437,7 +460,7 @@ namespace AetherBlackbox.DrawingLogic
                     992 or 1321 => "m9.webp",
                     1323 => "m10.webp",
                     1325 => "m11p1.webp",
-                    1327 => "m12p1.webp",
+                    1327 => isM12P2 ? "m12p2.webp" : "m12p1.webp",
                     1238 => "fru.webp",
                     _ => null
                 };
