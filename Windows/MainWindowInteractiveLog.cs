@@ -12,6 +12,8 @@ namespace AetherBlackbox.Windows
     {
         private void DrawInteractiveLog()
         {
+            var logConfig = configuration.InteractiveLog;
+
             ImGui.TextDisabled("INTERACTIVE LOG");
             ImGui.SameLine();
             ImGui.TextDisabled("(Click time to seek)");
@@ -19,6 +21,61 @@ namespace AetherBlackbox.Windows
             ImGui.SameLine();
             ImGui.SetNextItemWidth(150f * ImGuiHelpers.GlobalScale);
             ImGui.InputTextWithHint("##LogSearch", "Search...", ref logSearchTerm, 100);
+
+            ImGui.SameLine();
+            if (ImGui.SmallButton("Columns/Filters"))
+            {
+                ImGui.OpenPopup("InteractiveLogOptionsPopup");
+            }
+
+            if (ImGui.BeginPopup("InteractiveLogOptionsPopup"))
+            {
+                var showTime = logConfig.ShowTimeColumn;
+                if (ImGui.Checkbox("Show Time", ref showTime))
+                {
+                    logConfig.ShowTimeColumn = showTime;
+                    configuration.Save();
+                }
+
+                var showHp = logConfig.ShowHpColumn;
+                if (ImGui.Checkbox("Show HP", ref showHp))
+                {
+                    logConfig.ShowHpColumn = showHp;
+                    configuration.Save();
+                }
+
+                var showSource = logConfig.ShowSourceColumn;
+                if (ImGui.Checkbox("Show Source", ref showSource))
+                {
+                    logConfig.ShowSourceColumn = showSource;
+                    configuration.Save();
+                }
+
+                var showEvent = logConfig.ShowEventColumn;
+                if (ImGui.Checkbox("Show Event", ref showEvent))
+                {
+                    logConfig.ShowEventColumn = showEvent;
+                    configuration.Save();
+                }
+
+                ImGui.Separator();
+
+                var onlyDamaging = logConfig.OnlyDamagingEvents;
+                if (ImGui.Checkbox("Only Damaging Events", ref onlyDamaging))
+                {
+                    logConfig.OnlyDamagingEvents = onlyDamaging;
+                    configuration.Save();
+                }
+
+                var useAbsoluteTime = logConfig.UseAbsolutePullTime;
+                if (ImGui.Checkbox("Use Absolute Pull Time", ref useAbsoluteTime))
+                {
+                    logConfig.UseAbsolutePullTime = useAbsoluteTime;
+                    configuration.Save();
+                }
+
+                ImGui.EndPopup();
+            }
             ImGui.Separator();
 
             if (ActiveDeathReplay == null)
@@ -27,52 +84,77 @@ namespace AetherBlackbox.Windows
                 return;
             }
 
-            if (ImGui.BeginTable("InteractiveLogTable", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY | ImGuiTableFlags.BordersInner | ImGuiTableFlags.Resizable))
+            bool showTimeCol = logConfig.ShowTimeColumn;
+            bool showHpCol = logConfig.ShowHpColumn;
+            bool showSourceCol = logConfig.ShowSourceColumn;
+            bool showEventCol = logConfig.ShowEventColumn;
+
+            if (!showTimeCol && !showHpCol && !showSourceCol && !showEventCol)
+                showEventCol = true;
+
+            int columnCount = 0;
+            if (showTimeCol) columnCount++;
+            if (showHpCol) columnCount++;
+            if (showSourceCol) columnCount++;
+            if (showEventCol) columnCount++;
+
+            if (ImGui.BeginTable("InteractiveLogTable", columnCount, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY | ImGuiTableFlags.BordersInner | ImGuiTableFlags.Resizable | ImGuiTableFlags.SizingFixedFit))
             {
-                ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed, 50f * ImGuiHelpers.GlobalScale);
-                ImGui.TableSetupColumn("Source", ImGuiTableColumnFlags.WidthFixed, 90f * ImGuiHelpers.GlobalScale);
-                ImGui.TableSetupColumn("Event", ImGuiTableColumnFlags.WidthStretch);
+                if (showTimeCol) ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed, 50f * ImGuiHelpers.GlobalScale);
+                if (showHpCol) ImGui.TableSetupColumn("HP", ImGuiTableColumnFlags.WidthFixed);
+                if (showSourceCol) ImGui.TableSetupColumn("Source", ImGuiTableColumnFlags.WidthFixed, 90f * ImGuiHelpers.GlobalScale);
+                if (showEventCol) ImGui.TableSetupColumn("Event", ImGuiTableColumnFlags.WidthStretch);
                 ImGui.TableHeadersRow();
 
                 foreach (var evt in ActiveDeathReplay.Events.AsEnumerable().Reverse())
                 {
-                    if (!string.IsNullOrWhiteSpace(logSearchTerm))
-                    {
-                        bool match = false;
-                        string sSrc = evt switch { CombatEvent.DamageTaken dt => dt.Source, CombatEvent.Healed h => h.Source, CombatEvent.StatusEffect s => s.Source, _ => "" } ?? "";
-                        string sAct = evt switch { CombatEvent.DamageTaken dt => dt.Action, CombatEvent.Healed h => h.Action, CombatEvent.StatusEffect s => s.Status, _ => "" } ?? "";
+                    if (logConfig.OnlyDamagingEvents && !InteractiveLogUtilities.IsDamagingEvent(evt)) continue;
+                    if (!InteractiveLogUtilities.MatchesSearch(evt, logSearchTerm)) continue;
 
-                        if (sSrc.Contains(logSearchTerm, StringComparison.OrdinalIgnoreCase)) match = true;
-                        if (sAct.Contains(logSearchTerm, StringComparison.OrdinalIgnoreCase)) match = true;
-
-                        if (!match) continue;
-                    }
                     ImGui.TableNextRow();
 
-                    ImGui.TableNextColumn();
-                    var relativeSeconds = (evt.Snapshot.Time - ActiveDeathReplay.TimeOfDeath).TotalSeconds;
+                    float relativeSeconds = (float)(evt.Snapshot.Time - ActiveDeathReplay.TimeOfDeath).TotalSeconds;
+                    float deathOffset = GetDeathTimeOffset();
+                    float absoluteSeconds = deathOffset + relativeSeconds;
 
-                    if (ImGui.Selectable($"{relativeSeconds:F1}s##{evt.GetHashCode()}", false, ImGuiSelectableFlags.SpanAllColumns))
+                    if (showTimeCol)
                     {
-                        syncTarget = null;
-                        replayTimeOffset = (float)relativeSeconds;
-                        isPlaybackActive = false;
-                        BroadcastTimeSync();
+                        ImGui.TableNextColumn();
+                        float shownTime = logConfig.UseAbsolutePullTime ? absoluteSeconds : relativeSeconds;
+
+                        if (ImGui.Selectable($"{shownTime:F1}s##{evt.GetHashCode()}", false, ImGuiSelectableFlags.SpanAllColumns))
+                        {
+                            syncTarget = null;
+                            replayTimeOffset = logConfig.UseAbsolutePullTime ? shownTime - deathOffset : shownTime;
+                            isPlaybackActive = false;
+                            BroadcastTimeSync();
+                        }
                     }
 
-                    ImGui.TableNextColumn();
-                    string source = evt switch
+                    if (showHpCol)
                     {
-                        CombatEvent.DamageTaken dt => dt.Source ?? "-",
-                        CombatEvent.Healed h => h.Source ?? "-",
-                        CombatEvent.StatusEffect s => s.Source ?? "-",
-                        _ => "-"
-                    };
+                        ImGui.TableNextColumn();
+                        float hpPct = evt.Snapshot.MaxHp > 0 ? (float)evt.Snapshot.CurrentHp / evt.Snapshot.MaxHp : 0f;
+                        Vector4 hpColor = hpPct <= 0.16f
+                            ? new Vector4(0.78f, 0.22f, 0.22f, 1.0f)
+                            : hpPct < 0.50f
+                                ? new Vector4(0.72f, 0.66f, 0.25f, 1.0f)
+                                : ColorHealing;
+                        ImGui.TextColored(hpColor, $"{evt.Snapshot.CurrentHp:N0}");
+                    }
 
-                    ImGui.Text(GetAnonymizedName(source));
+                    if (showSourceCol)
+                    {
+                        ImGui.TableNextColumn();
+                        string source = InteractiveLogUtilities.GetSource(evt);
+                        ImGui.Text(GetAnonymizedName(source));
+                    }
 
-                    ImGui.TableNextColumn();
-                    DrawEventCell(evt);
+                    if (showEventCol)
+                    {
+                        ImGui.TableNextColumn();
+                        DrawEventCell(evt);
+                    }
                 }
                 ImGui.EndTable();
             }

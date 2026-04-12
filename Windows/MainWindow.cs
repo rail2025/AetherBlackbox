@@ -101,6 +101,9 @@ namespace AetherBlackbox.Windows
         private string? syncTarget = null;
         private float lastPingTime = 0f;
 
+        private Vector2 partyPanelPosition = new(-1f, -1f);
+        private bool isDraggingPartyPanel = false;
+
         private readonly uint[] Palette = new uint[] { 0xFFFFB358, 0xFF727BFF, 0xFFB4F5AF, 0xFF2299D2, 0xFFFF8CBC, 0xFF57A6FF };
         private uint GetUserColor(string id)
         {
@@ -513,6 +516,10 @@ namespace AetherBlackbox.Windows
                         }
                         ImGui.EndChild();
                         ImGui.PopStyleColor();
+                    }
+                    if (configuration.ShowPartyMemberList)
+                    {
+                        DrawPartyMembersPanel(canvasStartPos);
                     }
                 }
                 ImGui.EndChild();

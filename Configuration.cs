@@ -45,11 +45,16 @@ public class Configuration : IPluginConfiguration
     public int KeepReplaysForDays { get; set; } = 14;
     public bool IsToolbarVisible { get; set; } = true;
 
+    public bool ShowPartyMemberList { get; set; } = false;
+    public float PartyMemberListOffsetX { get; set; } = -1f;
+    public float PartyMemberListOffsetY { get; set; } = -1f;
+
     public bool AnonymizeNames { get; set; } = false;
     public float MapOffsetX { get; set; } = 0.0f;
     public float MapOffsetZ { get; set; } = 0.0f;
     public float MapScaleMultiplier { get; set; } = 1.0f;
     public bool IsMapLocked { get; set; } = true;
+    public InteractiveLogConfig InteractiveLog { get; set; } = new();
     public int Version { get; set; } = 2;
 
     [JsonExtensionData]
@@ -73,6 +78,7 @@ public class Configuration : IPluginConfiguration
 
     public void Migrate()
     {
+        InteractiveLog ??= new InteractiveLogConfig();
         if (Version == 0)
         {
             foreach (var (k, v) in EnumCaptureConfigs())
@@ -114,5 +120,15 @@ public class Configuration : IPluginConfiguration
         public NotificationStyle NotificationStyle { get; set; }
         public bool OnlyInstances { get; set; }
         public bool DisableInPvp { get; set; }
+    }
+    [Serializable]
+    public class InteractiveLogConfig
+    {
+        public bool ShowTimeColumn { get; set; } = true;
+        public bool ShowHpColumn { get; set; } = false;
+        public bool ShowSourceColumn { get; set; } = true;
+        public bool ShowEventColumn { get; set; } = true;
+        public bool OnlyDamagingEvents { get; set; } = false;
+        public bool UseAbsolutePullTime { get; set; } = false;
     }
 }
