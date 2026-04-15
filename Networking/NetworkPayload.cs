@@ -11,7 +11,6 @@ namespace AetherBlackbox.Networking
         Undo,
         TimeSync,
         EncounterSync,
-        DrawLaser,
         BroadcastHeaders,
     }
 

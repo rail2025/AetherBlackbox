@@ -17,7 +17,7 @@ namespace AetherBlackbox.DrawingLogic
         }
 
         private readonly List<LaserPoint> _points = new();
-        public DateTime LastUpdateTime { get; private set; }
+        public DateTime LastUpdateTime { get; set; }
 
         private readonly Vector4 _coreColor = new Vector4(0.718f, 0.973f, 0.718f, 1.0f);
         private readonly Vector4 _glowColor = new Vector4(0.0f, 1.0f, 0.0f, 1.0f);

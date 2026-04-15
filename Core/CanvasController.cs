@@ -76,10 +76,11 @@ namespace AetherBlackbox.Core
             );
             this.inPlaceTextEditor = new InPlaceTextEditor(plugin, this.undoManager, this.pageManager);
         }
-        private DrawableLaser? activeLaser;
-        private DateTime lastLaserUpdate = DateTime.MinValue;
+        private bool isDrawingOnCanvas = false;
+        private BaseDrawable? currentDrawingObjectInternal = null;
+        private readonly List<DrawableLaser> _ephemeralDrawables = new();
 
-        public BaseDrawable? GetCurrentDrawingObjectForPreview() => activeLaser;
+        public BaseDrawable? GetCurrentDrawingObjectForPreview() => currentDrawingObjectInternal;
 
         private void ApplyTrackingAndTiming(BaseDrawable shape, float currentReplayTime, Vector2 effectivePos, Vector2 mousePosScreen, ReplayRenderer.ViewContext? viewContext, AetherBlackbox.Core.ReplayFrame? currentFrame)
         {
@@ -172,68 +173,6 @@ namespace AetherBlackbox.Core
                 return;
             }
 
-            if (currentMode == DrawMode.Laser)
-            {
-                if (isLMBClicked)
-                {
-                    var color = getBrushColorFunc();
-                    var thickness = getBrushThicknessFunc();
-                    activeLaser = new DrawableLaser(effectivePos, color, thickness) { ReplayTime = currentReplayTime };
-                    lastLaserUpdate = DateTime.Now;
-                }
-                else if (isLMBDown && activeLaser != null)
-                {
-                    activeLaser.AddPoint(effectivePos);
-
-                    if ((DateTime.Now - lastLaserUpdate).TotalMilliseconds > 40)
-                    {
-                        var points = activeLaser.GetPoints();
-                        int byteCount = 16 + 4 + (points.Count * 8);
-                        using var ms = new System.IO.MemoryStream(byteCount);
-                        using var writer = new System.IO.BinaryWriter(ms);
-
-                        writer.Write(0.718f);
-                        writer.Write(0.973f);
-                        writer.Write(0.718f);
-                        writer.Write(1.0f);
-
-                        writer.Write(points.Count);
-
-                        bool hasView = viewContext != null;
-                        Vector2 canvasCenter = hasView ? (viewContext.CanvasOrigin + (viewContext.CanvasSize / 2f) + viewContext.PanOffset) : Vector2.Zero;
-                        float scale = hasView ? (ReplayRenderer.DefaultPixelsPerYard * ImGuiHelpers.GlobalScale * viewContext.Zoom) : 1f;
-
-                        foreach (var p in points)
-                        {
-                            if (hasView)
-                            {
-                                var screenPos = p + canvasOriginScreen;
-                                writer.Write((screenPos.X - canvasCenter.X) / scale);
-                                writer.Write((screenPos.Y - canvasCenter.Y) / scale);
-                            }
-                            else
-                            {
-                                writer.Write(p.X);
-                                writer.Write(p.Y);
-                            }
-                        }
-
-                        plugin.NetworkManager?.SendStateUpdateAsync(new Networking.NetworkPayload
-                        {
-                            PageIndex = 0,
-                            Action = (Networking.PayloadActionType)7,
-                            Data = ms.ToArray()
-                        });
-                        lastLaserUpdate = DateTime.Now;
-                    }
-                }
-                else if (isLMBReleased && activeLaser != null)
-                {
-                    activeLaser = null;
-                }
-                return;
-            }
-
             if (currentMode == DrawMode.TextTool)
             {
                 if (isLMBClicked)
@@ -261,42 +200,135 @@ namespace AetherBlackbox.Core
                 return;
             }
 
-            if (isLMBClicked)
-            {
-                var color = getBrushColorFunc();
-                var thickness = getBrushThicknessFunc();
-                bool isFilled = getShapeFilledFunc != null && getShapeFilledFunc();
-                var newShape = CreateNewDrawingObject(currentMode, effectivePos, color, thickness, isFilled, currentReplayTime);
-                if (newShape != null)
-                {
-                    undoManager.RecordAction(currentDrawables, "Draw Shape");
-                    newShape.IsPreview = true;
-                    ApplyTrackingAndTiming(newShape, currentReplayTime, effectivePos, mousePosScreen, viewContext, currentFrame);
-                    currentDrawables.Add(newShape);
-                }
-            }
-            else if (isLMBDown)
-            {
-                var previewShape = currentDrawables.LastOrDefault(d => d.IsPreview);
-                if (previewShape != null)
-                {
-                    if (previewShape is DrawablePath p) p.AddPoint(effectivePos);
-                    else if (previewShape is DrawableDash d) d.AddPoint(effectivePos);
-                    else previewShape.UpdatePreview(effectivePos);
-                }
-            }
-            else if (isLMBReleased)
-            {
-                var previewShape = currentDrawables.LastOrDefault(d => d.IsPreview);
-                if (previewShape != null)
-                {
-                    previewShape.IsPreview = false;
-                    if (previewShape is DrawablePath p && p.PointsRelative.Count < 2) currentDrawables.Remove(previewShape);
-                    else if (previewShape is DrawableDash d && d.PointsRelative.Count < 2) currentDrawables.Remove(previewShape);
-                }
-            }
+            HandleShapeDrawingInput(currentMode, effectivePos, mousePosScreen, isLMBDown, isLMBClicked, isLMBReleased, currentReplayTime, viewContext, currentFrame);
         }
 
+
+        private void HandleShapeDrawingInput(DrawMode currentMode, Vector2 effectivePos, Vector2 mousePosScreen, bool isLMBDown, bool isLMBClickedOnCanvas, bool isLMBReleased, float currentReplayTime, ReplayRenderer.ViewContext? viewContext, AetherBlackbox.Core.ReplayFrame? currentFrame)
+        {
+            if (isLMBDown)
+            {
+                if (!isDrawingOnCanvas && isLMBClickedOnCanvas)
+                {
+                    isDrawingOnCanvas = true;
+                    foreach (var sel in selectedDrawablesRef) sel.IsSelected = false;
+                    selectedDrawablesRef.Clear();
+                    setHoveredDrawableDelegate(null);
+
+                    if (currentMode == DrawMode.Laser)
+                    {
+                        var newLaser = new DrawableLaser(effectivePos, getBrushColorFunc(), getBrushThicknessFunc()) { ReplayTime = currentReplayTime };
+                        ApplyTrackingAndTiming(newLaser, currentReplayTime, effectivePos, mousePosScreen, viewContext, currentFrame);
+                        currentDrawingObjectInternal = newLaser;
+                        _ephemeralDrawables.Add(newLaser);
+                    }
+                    else
+                    {
+                        currentDrawingObjectInternal = CreateNewDrawingObject(currentMode, effectivePos, getBrushColorFunc(), getBrushThicknessFunc(), getShapeFilledFunc != null && getShapeFilledFunc(), currentReplayTime);
+                        if (currentDrawingObjectInternal != null)
+                        {
+                            undoManager.RecordAction(pageManager.GetCurrentPageDrawables(), $"Start Drawing {currentMode}");
+                            currentDrawingObjectInternal.IsPreview = true;
+                            ApplyTrackingAndTiming(currentDrawingObjectInternal, currentReplayTime, effectivePos, mousePosScreen, viewContext, currentFrame);
+                        }
+                    }
+                }
+
+                if (isDrawingOnCanvas && currentDrawingObjectInternal != null)
+                {
+                    if (currentDrawingObjectInternal is DrawableLaser laser)
+                    {
+                        laser.AddPoint(effectivePos);
+                        if (pageManager.IsLiveMode && (DateTime.Now - laser.LastUpdateTime).TotalMilliseconds > 40)
+                        {
+                            var payload = new AetherBlackbox.Networking.NetworkPayload
+                            {
+                                PageIndex = pageManager.GetCurrentPageIndex(),
+                                Action = AetherBlackbox.Networking.PayloadActionType.AddObjects,
+                                Data = AetherBlackbox.Serialization.DrawableSerializer.SerializePageToBytes(new List<BaseDrawable> { laser })
+                            };
+                            _ = plugin.NetworkManager.SendStateUpdateAsync(payload);
+                            laser.LastUpdateTime = DateTime.Now;
+                        }
+                    }
+                    else if (currentDrawingObjectInternal is DrawablePath p) p.AddPoint(effectivePos);
+                    else if (currentDrawingObjectInternal is DrawableDash d) d.AddPoint(effectivePos);
+                    else currentDrawingObjectInternal.UpdatePreview(effectivePos);
+                }
+            }
+            if (isDrawingOnCanvas && isLMBReleased)
+            {
+                FinalizeCurrentDrawing();
+            }
+        }
+        private void FinalizeCurrentDrawing()
+        {
+            if (currentDrawingObjectInternal == null)
+            {
+                isDrawingOnCanvas = false;
+                return;
+            }
+
+            if (currentDrawingObjectInternal is DrawableLaser laser)
+            {
+                _ = System.Threading.Tasks.Task.Run(async () =>
+                {
+                    await System.Threading.Tasks.Task.Delay(600);
+                    if (pageManager.IsLiveMode)
+                    {
+                        using var ms = new System.IO.MemoryStream();
+                        using var writer = new System.IO.BinaryWriter(ms);
+                        writer.Write(1);
+                        writer.Write(laser.UniqueId.ToByteArray());
+
+                        var payload = new AetherBlackbox.Networking.NetworkPayload
+                        {
+                            PageIndex = pageManager.GetCurrentPageIndex(),
+                            Action = AetherBlackbox.Networking.PayloadActionType.DeleteObjects,
+                            Data = ms.ToArray()
+                        };
+                        _ = plugin.NetworkManager?.SendStateUpdateAsync(payload);
+                    }
+                });
+                currentDrawingObjectInternal = null;
+                isDrawingOnCanvas = false;
+                return;
+            }
+
+            currentDrawingObjectInternal.IsPreview = false;
+            var currentDrawables = pageManager.GetCurrentPageDrawables();
+
+            if (currentDrawables != null)
+            {
+                bool isValidObject = true;
+                if (currentDrawingObjectInternal is DrawablePath p && p.PointsRelative.Count < 2) isValidObject = false;
+                else if (currentDrawingObjectInternal is DrawableDash d && d.PointsRelative.Count < 2) isValidObject = false;
+
+                if (isValidObject)
+                {
+                    currentDrawables.Add(currentDrawingObjectInternal);
+
+                    if (pageManager.IsLiveMode)
+                    {
+                        var payload = new AetherBlackbox.Networking.NetworkPayload
+                        {
+                            PageIndex = pageManager.GetCurrentPageIndex(),
+                            Action = AetherBlackbox.Networking.PayloadActionType.AddObjects,
+                            Data = AetherBlackbox.Serialization.DrawableSerializer.SerializePageToBytes(new List<BaseDrawable> { currentDrawingObjectInternal })
+                        };
+                        _ = plugin.NetworkManager?.SendStateUpdateAsync(payload);
+                    }
+                }
+                else
+                {
+                    var undoneState = undoManager.Undo();
+                    if (undoneState != null) pageManager.SetCurrentPageDrawables(undoneState);
+                }
+            }
+
+            currentDrawingObjectInternal = null;
+            isDrawingOnCanvas = false;
+        }
         private bool IsImagePlacementMode(DrawMode mode)
         {
             return ToolRegistry.Tools.TryGetValue(mode, out var meta) && meta.IsPlaceableImage;

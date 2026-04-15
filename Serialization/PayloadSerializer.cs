@@ -112,41 +112,5 @@ namespace AetherBlackbox.Serialization
                 return (reader.ReadUInt32(), reader.ReadInt32(), reader.ReadUInt64());
             }
         }
-
-        public static byte[] SerializeDrawLaser(List<Vector2> points, Vector4 color)
-        {
-            using (var memoryStream = new MemoryStream())
-            using (var writer = new BinaryWriter(memoryStream))
-            {
-                writer.Write(color.X);
-                writer.Write(color.Y);
-                writer.Write(color.Z);
-                writer.Write(color.W);
-
-                writer.Write(points.Count);
-                foreach (var point in points)
-                {
-                    writer.Write(point.X);
-                    writer.Write(point.Y);
-                }
-                return memoryStream.ToArray();
-            }
-        }
-
-        public static (List<Vector2> points, Vector4 color) DeserializeDrawLaser(byte[] data)
-        {
-            using (var memoryStream = new MemoryStream(data))
-            using (var reader = new BinaryReader(memoryStream))
-            {
-                var color = new Vector4(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
-                int count = reader.ReadInt32();
-                var points = new List<Vector2>(count);
-                for (int i = 0; i < count; i++)
-                {
-                    points.Add(new Vector2(reader.ReadSingle(), reader.ReadSingle()));
-                }
-                return (points, color);
-            }
-        }
     }
 }

@@ -60,17 +60,16 @@ public class Plugin : IDalamudPlugin
         Capture = new CombatEventCapture(this);
         NotificationHandler = new NotificationHandler(this);
         NetworkManager = new NetworkManager();
-        NetworkManager.OnConnected += () =>
+        void BroadcastHeaders()
         {
             var headers = PullManager.GetLastHeadersJson();
-            if (headers != "[]") NetworkManager.SendHeadersBroadcastAsync(headers);
-        };
+            if (headers != "[]")
+                NetworkManager.SendHeadersBroadcastAsync(headers);
+        }
+
+        NetworkManager.OnConnected += BroadcastHeaders;
         NetworkManager.OnReplayRequested += hash => PullManager.UploadReplayByHash(hash);
-        NetworkManager.OnHeadersRequested += () =>
-        {
-            var headers = PullManager.GetLastHeadersJson();
-            if (headers != "[]") NetworkManager.SendHeadersBroadcastAsync(headers);
-        };
+        NetworkManager.OnHeadersRequested += BroadcastHeaders;
         Service.Condition.ConditionChange += OnConditionChange;
         RecapConfigWindow = new RecapConfigWindow(this);
         

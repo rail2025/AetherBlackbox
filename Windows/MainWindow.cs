@@ -86,15 +86,12 @@ namespace AetherBlackbox.Windows
 
         private bool isLaserMode = false;
         public void PerformUndo() => canvasController.Undo();
-        private DrawableLaser? currentLaser = null;
-
+        
         private List<Lumina.Excel.Sheets.Status> statusSearchResults = new();
 
         public bool isNetworkHost { get; private set; } = false;
         private float lastTimeSyncBroadcast = 0f;
-        private float lastLaserBroadcast = 0f;
-        private List<DrawableLaser> remoteLasers = new();
-
+     
         private Dictionary<string, float> userMarkers = new();
         private Dictionary<string, (float Time, int TotalViewers)> activePings = new();
         private HashSet<string> connectedUsers = new();
@@ -193,22 +190,7 @@ namespace AetherBlackbox.Windows
                 }
             }
             else if (payload.Action == Networking.PayloadActionType.TimeSync)
-            { }
-            else if (payload.Action == Networking.PayloadActionType.DrawLaser)
-            {
-                Service.PluginLog.Info($"[LASER IN] Received laser payload. Total data bytes: {payload.Data?.Length ?? 0}");
-                var (mapPoints, color) = Serialization.PayloadSerializer.DeserializeDrawLaser(payload.Data!);
-
-                var effectiveCanvasCenter = (currentCanvasDrawSize / 2) + canvasPanOffset;
-                float effectiveScale = 8f * ImGuiHelpers.GlobalScale * canvasZoom;
-
-                var screenPoints = mapPoints.Select(p => new Vector2(
-                    effectiveCanvasCenter.X + (p.X * effectiveScale),
-                    effectiveCanvasCenter.Y + (p.Y * effectiveScale)
-                )).ToList();
-
-                remoteLasers.Add(new DrawableLaser(screenPoints, color, 2f));
-            }
+            { }            
         }
 
         private float GetDeathTimeOffset()
@@ -224,27 +206,6 @@ namespace AetherBlackbox.Windows
             if (!plugin.NetworkManager.IsConnected) return;
             float absTime = GetDeathTimeOffset() + replayTimeOffset;
             _ = plugin.NetworkManager.BroadcastUserTimeAsync(absTime);
-        }
-        private void BroadcastLaser()
-        {
-            if (currentLaser == null || !plugin.NetworkManager.IsConnected) return;
-            var screenPoints = currentLaser.GetPoints();
-            if (screenPoints.Count == 0) return;
-
-            var effectiveCanvasCenter = (currentCanvasDrawSize / 2) + canvasPanOffset;
-            float effectiveScale = 8f * ImGuiHelpers.GlobalScale * canvasZoom;
-
-            var mapPoints = screenPoints.Select(p => new Vector2(
-                (p.X - effectiveCanvasCenter.X) / effectiveScale,
-                (p.Y - effectiveCanvasCenter.Y) / effectiveScale
-            )).ToList();
-
-            var payload = new Networking.NetworkPayload
-            {
-                Action = Networking.PayloadActionType.DrawLaser,
-                Data = Serialization.PayloadSerializer.SerializeDrawLaser(mapPoints, new Vector4(0.718f, 0.973f, 0.718f, 1.0f))
-            };
-            _ = plugin.NetworkManager.SendStateUpdateAsync(payload);
         }
 
         public void Dispose()
@@ -605,16 +566,6 @@ namespace AetherBlackbox.Windows
                             () => currentDrawMode, () => currentBrushColor, () => currentBrushThickness, () => currentShapeFilled,
                             viewContext, targetOffset, closestFrame);
                     }
-
-                    if (currentDrawMode == DrawMode.Laser && plugin.NetworkManager.IsConnected && active)
-                    {
-                        lastLaserBroadcast += ImGui.GetIO().DeltaTime;
-                        if (lastLaserBroadcast >= 0.05f)
-                        {
-                            BroadcastLaser();
-                            lastLaserBroadcast = 0f;
-                        }
-                    }
                 }
                 else if (active && !isRMBDragging)
                 {
@@ -728,24 +679,6 @@ namespace AetherBlackbox.Windows
                 }
             }
             canvasController.GetCurrentDrawingObjectForPreview()?.DrawProjected(drawList, renderViewContext, closestFrame, targetOffset);
-
-            if (currentLaser != null)
-            {
-                currentLaser.Draw(drawList, canvasOriginScreen);
-                if ((DateTime.Now - currentLaser.LastUpdateTime).TotalSeconds > 1.2)
-                {
-                    currentLaser = null;
-                }
-            }
-            for (int i = remoteLasers.Count - 1; i >= 0; i--)
-            {
-                var laser = remoteLasers[i];
-                laser.Draw(drawList, canvasOriginScreen);
-                if ((DateTime.Now - laser.LastUpdateTime).TotalSeconds > 1.2)
-                {
-                    remoteLasers.RemoveAt(i);
-                }
-            }
 
             ImGui.PopClipRect();
 
