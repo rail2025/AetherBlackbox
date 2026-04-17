@@ -52,7 +52,13 @@ namespace AetherBlackbox.Core
             return newPage;
         }
 
+        public void EnterLiveMode() => IsLiveMode = true;
 
+        public void ExitLiveMode()
+        {
+            IsLiveMode = false;
+            IsSessionLocked = false;
+        }
 
         public List<PageData> GetAllPages()
         {

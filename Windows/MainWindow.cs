@@ -157,7 +157,12 @@ namespace AetherBlackbox.Windows
             this.plugin.NetworkManager.OnUserPingReceived += OnUserPingReceived;
             this.plugin.NetworkManager.OnUserJoined += OnUserJoined;
             this.plugin.NetworkManager.OnUserLeft += OnUserLeft;
+            this.plugin.NetworkManager.OnConnected += OnNetworkConnected;
+            this.plugin.NetworkManager.OnDisconnected += OnNetworkDisconnected;
         }
+
+        private void OnNetworkConnected() => pageManager.EnterLiveMode();
+        private void OnNetworkDisconnected() => pageManager.ExitLiveMode();
 
         private void OnUserTimeReceived(string senderId, float time) => userMarkers[senderId] = time;
         private void OnUserPingReceived(string senderId, float time) => activePings[senderId] = (time, connectedUsers.Count + 1);
@@ -216,6 +221,8 @@ namespace AetherBlackbox.Windows
             this.plugin.NetworkManager.OnUserPingReceived -= OnUserPingReceived;
             this.plugin.NetworkManager.OnUserJoined -= OnUserJoined;
             this.plugin.NetworkManager.OnUserLeft -= OnUserLeft;
+            this.plugin.NetworkManager.OnConnected -= OnNetworkConnected;
+            this.plugin.NetworkManager.OnDisconnected -= OnNetworkDisconnected;
         }
 
         public void OpenReplay(Death death)

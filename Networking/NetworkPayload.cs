@@ -4,14 +4,17 @@ namespace AetherBlackbox.Networking
 {
     public enum PayloadActionType : byte
     {
-        AddObjects,
-        DeleteObjects,
-        UpdateObjects,
-        SessionLock,
-        Undo,
-        TimeSync,
-        EncounterSync,
-        BroadcastHeaders,
+        AddObjects = 0,
+        DeleteObjects = 1,
+        UpdateObjects = 2,
+        ClearPage = 3,
+        UpdateGrid = 4,
+        UpdateGridVisibility = 5,
+        SessionLock = 6,
+        Undo = 7,
+        TimeSync = 8,
+        EncounterSync = 9,
+        BroadcastHeaders = 10,
     }
 
     [Serializable]
