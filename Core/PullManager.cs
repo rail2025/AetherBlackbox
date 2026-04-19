@@ -13,6 +13,7 @@ namespace AetherBlackbox.Core
     public class PullManager : IDisposable
     {
         private readonly Plugin plugin;
+        public ReplayFileManager FileManager { get; private set; }
         public List<PullSession> History { get; private set; } = new();
         public PullSession? CurrentSession { get; private set; }
 
@@ -23,45 +24,8 @@ namespace AetherBlackbox.Core
         public PullManager(Plugin plugin)
         {
             this.plugin = plugin;
-            CleanUpOldReplays();
-        }
-        private void CleanUpOldReplays()
-        {
-            try
-            {
-                int days = plugin.Configuration.KeepReplaysForDays;
-                if (days <= 0) return;
-
-                var folder = Path.Combine(Service.PluginInterface.ConfigDirectory.FullName, "replays");
-                if (!Directory.Exists(folder)) return;
-
-                var cutoff = DateTime.Now.AddDays(-days);
-                Task.Run(() =>
-                {
-                    try
-                    {
-                        var files = Directory.GetFiles(folder, "*.json.gz");
-                        int deleted = 0;
-                        foreach (var file in files)
-                        {
-                            if (File.GetCreationTime(file) < cutoff)
-                            {
-                                try { File.Delete(file); deleted++; }
-                                catch (Exception ex) { Service.PluginLog.Warning(ex, $"Failed to delete old replay file: {file}"); }
-                            }
-                        }
-                        if (deleted > 0) Service.PluginLog.Info($"[PullManager] Auto-cleanup: Deleted {deleted} replay files older than {days} days.");
-                    }
-                    catch (Exception ex)
-                    {
-                        Service.PluginLog.Error(ex, "Background cleanup task encountered a critical error.");
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                Service.PluginLog.Error(ex, "Failed to clean up old replays.");
-            }
+            this.FileManager = new ReplayFileManager(plugin);
+            this.FileManager.CleanUpOldReplays();
         }
 
         public void StartSession()
@@ -159,7 +123,7 @@ namespace AetherBlackbox.Core
 
             History.Add(CurrentSession);
             var sessionToSave = CurrentSession;
-            Task.Run(() => SaveSession(sessionToSave));
+            Task.Run(() => FileManager.SaveSession(sessionToSave));
 
             var headerBroadcast = new[] {
                 new {
@@ -175,28 +139,6 @@ namespace AetherBlackbox.Core
             Service.PluginLog.Information($"Session {CurrentSession.PullNumber} ended. Recorded {CurrentSession.Deaths.Count} deaths.");
 
             CurrentSession = null;
-        }
-
-        private class CategoryShortener : Newtonsoft.Json.Serialization.ISerializationBinder
-        {
-            public void BindToName(Type type, out string? assemblyName, out string? typeName)
-            {
-                assemblyName = null;
-                typeName = type.Name;
-            }
-
-            public Type BindToType(string? assemblyName, string typeName)
-            {
-                return typeName switch
-                {
-                    "StatusEffect" => typeof(Events.CombatEvent.StatusEffect),
-                    "HoT" => typeof(Events.CombatEvent.HoT),
-                    "DoT" => typeof(Events.CombatEvent.DoT),
-                    "DamageTaken" => typeof(Events.CombatEvent.DamageTaken),
-                    "Healed" => typeof(Events.CombatEvent.Healed),
-                    _ => typeof(Events.CombatEvent)
-                };
-            }
         }
 
         public void AddDeath(Death death)
@@ -272,7 +214,7 @@ namespace AetherBlackbox.Core
                     var serializer = new JsonSerializer
                     {
                         TypeNameHandling = TypeNameHandling.Auto,
-                        SerializationBinder = new CategoryShortener()
+                        SerializationBinder = new ReplayFileManager.CategoryShortener()
                     };
                     serializer.Serialize(jw, body);
                 }
@@ -289,172 +231,16 @@ namespace AetherBlackbox.Core
             plugin.NetworkManager.SendStateUpdateAsync(payload);
             Service.PluginLog.Info($"[PullManager] Finished uploading EncounterSync for {hash}. Size: {replayBinary.Length / 1024} KB");
         }
-        public class ReplayFileHeader
+        public List<ReplayFileManager.ReplayFileHeader> GetSavedReplays()
         {
-            public string? FilePath;
-            public string? FileName;
-            public DateTime CreationTime;
-            public SearchHeader? Header;
-        }
-        private class SavedReplayBody
-        {
-            public Dictionary<uint, ReplayMetadata>? Metadata { get; set; }
-            public List<ReplayFrame>? Frames { get; set; }
-            public List<WaymarkSnapshot>? Waymarks { get; set; }
-            public List<Death>? Deaths { get; set; }
-        }
-
-        public List<ReplayFileHeader> GetSavedReplays()
-        {
-            var results = new List<ReplayFileHeader>();
-            var folder = Path.Combine(Service.PluginInterface.ConfigDirectory.FullName, "replays");
-            if (!Directory.Exists(folder)) return results;
-
-            foreach (var file in Directory.GetFiles(folder, "*.json.gz"))
-            {
-                try
-                {
-                    using var fs = new FileStream(file, FileMode.Open, FileAccess.Read);
-                    using var reader = new BinaryReader(fs);
-                    var headerJson = reader.ReadString();
-                    var header = JsonConvert.DeserializeObject<SearchHeader>(headerJson);
-
-                    if (header != null)
-                    {
-                        results.Add(new ReplayFileHeader
-                        {
-                            FilePath = file,
-                            FileName = Path.GetFileName(file),
-                            CreationTime = File.GetCreationTime(file),
-                            Header = header
-                        });
-                    }
-                }
-                catch (Exception) { /* Ignore bad files */ }
-            }
-            return results.OrderByDescending(r => r.CreationTime).ToList();
+            return FileManager.GetSavedReplays();
         }
 
         public PullSession? LoadSession(string path)
         {
-            try
-            {
-                using var fs = new FileStream(path, FileMode.Open, FileAccess.Read);
-                using (var reader = new BinaryReader(fs, System.Text.Encoding.UTF8, leaveOpen: true))
-                {
-                    reader.ReadString();
-                }
-
-                using var gzip = new GZipStream(fs, CompressionMode.Decompress);
-                using var sr = new StreamReader(gzip);
-                using var jr = new JsonTextReader(sr);
-                var serializer = new JsonSerializer
-                {
-                    TypeNameHandling = TypeNameHandling.Auto,
-                    SerializationBinder = new CategoryShortener()
-                };
-                var body = serializer.Deserialize<SavedReplayBody>(jr);
-                if (body == null) return null;
-
-                DateTime calculatedStartTime = File.GetCreationTime(path);
-                DateTime? calculatedEndTime = null;
-                string extractedZone = "Imported";
-
-                var fileName = Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(path));
-                if (fileName.Length > 20)
-                {
-                    string datePart = fileName.Substring(0, 19);
-                    if (DateTime.TryParseExact(datePart, "yyyy-MM-dd_HH-mm-ss", null, System.Globalization.DateTimeStyles.None, out var parsedDate))
-                    {
-                        calculatedStartTime = parsedDate;
-                        extractedZone = fileName.Substring(20).Replace("_", " ");
-                    }
-                }
-
-                if (body.Frames != null && body.Frames.Count > 0)
-                {
-                    calculatedEndTime = calculatedStartTime.AddSeconds(body.Frames.Last().TimeOffset);
-                }
-
-                var session = new PullSession
-                {
-                    StartTime = calculatedStartTime,
-                    EndTime = calculatedEndTime,
-                    PullNumber = (uint)(History.Count + 1),
-                    ZoneName = extractedZone,
-                    ReplayData = new ReplayRecording
-                    {
-                        Metadata = body.Metadata,
-                        Frames = body.Frames,
-                        Waymarks = body.Waymarks
-                    },
-                    Deaths = body.Deaths ?? new List<Death>()
-                };
-
-                if (session.Deaths != null)
-                {
-                    foreach (var death in session.Deaths)
-                    {
-                        death.ReplayData = session.ReplayData;
-                    }
-                }
-            
-                History.Add(session);
-                return session;
-            }
-            catch (Exception ex)
-            {
-                Service.PluginLog.Error(ex, $"Failed to load {path}");
-                return null;
-            }
-        }
-        private void SaveSession(PullSession session)
-        {
-            try
-            {
-                var folder = Path.Combine(Service.PluginInterface.ConfigDirectory.FullName, "replays");
-                if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
-
-                var invalidChars = Path.GetInvalidFileNameChars();
-                var cleanZone = new string(session.ZoneName.Select(c => invalidChars.Contains(c) ? '_' : c).ToArray());
-                if (string.IsNullOrWhiteSpace(cleanZone) || cleanZone.All(c => c == '_')) cleanZone = "Unknown";
-
-                var filename = $"{session.StartTime:yyyy-MM-dd_HH-mm-ss}_{cleanZone}.json.gz";
-                var fullPath = Path.Combine(folder, filename);
-
-                using var fs = new FileStream(fullPath, FileMode.Create);
-
-                using (var writer = new BinaryWriter(fs, System.Text.Encoding.UTF8, leaveOpen: true))
-                {
-                    var headerJson = JsonConvert.SerializeObject(session.ReplayData.Header);
-                    writer.Write(headerJson);
-                }
-
-                List<Death> safeDeaths;
-                lock (session.Deaths)
-                {
-                    safeDeaths = session.Deaths.ToList();
-                }
-                var body = new { session.ReplayData.Metadata, session.ReplayData.Frames, session.ReplayData.Waymarks, Deaths = safeDeaths };
-
-                using (var gzip = new GZipStream(fs, CompressionLevel.Optimal))
-                using (var sw = new StreamWriter(gzip))
-                using (var jw = new JsonTextWriter(sw))
-                {
-                    var serializer = new JsonSerializer
-                    {
-                        TypeNameHandling = TypeNameHandling.Auto,
-                        SerializationBinder = new CategoryShortener()
-                    };
-                    serializer.Serialize(jw, body);
-                }
-
-                Service.PluginLog.Debug($"[PullManager] Saved replay: {filename}");
-            }
-            catch (Exception ex)
-            {
-                Service.PluginLog.Error(ex, $"[PullManager] Failed to save replay #{session.PullNumber}");
-            }
+            var session = FileManager.LoadSession(path, History.Count + 1);
+            if (session != null) History.Add(session);
+            return session;
         }
         public string GetLastHeadersJson(int count = 20)
         {

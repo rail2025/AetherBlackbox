@@ -32,7 +32,7 @@ namespace AetherBlackbox.Windows
         private readonly Configuration configuration;
         private readonly CanvasController canvasController;
         private readonly PageManager pageManager;
-        private List<PullManager.ReplayFileHeader>? cachedSavedReplays;
+        private List<ReplayFileManager.ReplayFileHeader>? cachedSavedReplays;
         private string logSearchTerm = "";
         private readonly ReplayRenderer replayRenderer;
 
