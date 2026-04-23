@@ -130,7 +130,10 @@ namespace AetherBlackbox.Core
                     Hash = CurrentSession.IdentityHash,
                     EventCount = CurrentSession.EventCount,
                     Date = CurrentSession.StartTime,
-                    Zone = CurrentSession.ZoneName
+                    Zone = CurrentSession.ZoneName,
+                    ZoneName = terriName,
+                    BossName = bossName,
+                    LowestHpPercent = hpPct
                 }
             };
 
@@ -246,11 +249,36 @@ namespace AetherBlackbox.Core
         {
             var headers = History.OrderByDescending(h => h.StartTime)
                                  .Take(count)
-                                 .Select(h => new {
-                                     Hash = h.IdentityHash,
-                                     EventCount = h.EventCount,
-                                     Date = h.StartTime,
-                                     Zone = h.ZoneName
+                                 .Select(h => {
+                                     string zone = h.ZoneName;
+                                     string boss = "Unknown";
+                                     float hp = 0f;
+                                     if (!string.IsNullOrEmpty(h.ZoneName) && h.ZoneName.Contains(" - "))
+                                     {
+                                         var parts = h.ZoneName.Split(new[] { " - " }, 2, StringSplitOptions.None);
+                                         zone = parts[0];
+                                         int pctIndex = parts[1].LastIndexOf(" (");
+                                         if (pctIndex > 0)
+                                         {
+                                             boss = parts[1].Substring(0, pctIndex);
+                                             string pctStr = parts[1].Substring(pctIndex + 2).Replace("%", "").Replace(")", "");
+                                             float.TryParse(pctStr, out hp);
+                                         }
+                                         else
+                                         {
+                                             boss = parts[1];
+                                         }
+                                     }
+                                     return new
+                                     {
+                                         Hash = h.IdentityHash,
+                                         EventCount = h.EventCount,
+                                         Date = h.StartTime,
+                                         Zone = h.ZoneName,
+                                         ZoneName = zone,
+                                         BossName = boss,
+                                         LowestHpPercent = hp
+                                     };
                                  }).ToList();
 
             return JsonConvert.SerializeObject(headers);

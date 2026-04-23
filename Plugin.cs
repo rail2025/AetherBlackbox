@@ -48,6 +48,7 @@ public class Plugin : IDalamudPlugin
 
     public Dictionary<ulong, List<Death>> DeathsPerPlayer { get; } = new();
     public Dictionary<ulong, IPlayerCharacter> Players { get; } = new();
+    private Dalamud.Plugin.Ipc.ICallGateProvider<string>? pullMetadataIpcProvider;
 
     public Plugin(IDalamudPluginInterface pluginInterface)
     {
@@ -71,6 +72,15 @@ public class Plugin : IDalamudPlugin
         NetworkManager.OnReplayRequested += hash => PullManager.UploadReplayByHash(hash);
         NetworkManager.OnHeadersRequested += BroadcastHeaders;
         Service.Condition.ConditionChange += OnConditionChange;
+        try
+        {
+            pullMetadataIpcProvider = Service.PluginInterface.GetIpcProvider<string>("AetherBlackbox.GetLastPullMetadata");
+            pullMetadataIpcProvider.RegisterFunc(GetPullMetadataPayload);
+        }
+        catch (System.Exception ex)
+        {
+            Service.PluginLog.Error(ex, "Failed to register IPC provider.");
+        }
         RecapConfigWindow = new RecapConfigWindow(this);
         
         // CanvasConfigWindow is for the drawing config
@@ -121,6 +131,7 @@ public class Plugin : IDalamudPlugin
 
     public void Dispose()
     {
+        pullMetadataIpcProvider?.UnregisterFunc();
         Service.Condition.ConditionChange -= OnConditionChange;
         Service.CommandManager.RemoveHandler("/abb");
         Service.CommandManager.RemoveHandler("/aetherblackbox");
@@ -140,6 +151,18 @@ public class Plugin : IDalamudPlugin
         MainWindow.Dispose();
         LiveSessionWindow.Dispose();
         AboutWindow.Dispose();
+    }
+    private string GetPullMetadataPayload()
+    {
+        try
+        {
+            return PullManager.GetLastHeadersJson();
+        }
+        catch (System.Exception ex)
+        {
+            Service.PluginLog.Error(ex, "Error getting pull metadata for IPC.");
+            return string.Empty;
+        }
     }
 
 }
