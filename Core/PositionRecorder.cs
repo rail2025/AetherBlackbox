@@ -224,10 +224,31 @@ namespace AetherBlackbox.Core
 
                     bool statusChanged = lastState.ObjectId == 0 || sHash != lastRecordedStates[player.EntityId].StatusHash;
 
+                    string playerName = string.Empty;
+                    if (isNewEntity)
+                    {
+                        if (plugin.Configuration.AnonymizeNames)
+                        {
+                            playerName = player.ClassJob.RowId switch
+                            {
+                                19 => "PLD", 21 => "WAR", 32 => "DRK", 37 => "GNB",
+                                24 => "WHM", 28 => "SCH", 33 => "AST", 40 => "SGE",
+                                20 => "MNK", 22 => "DRG", 30 => "NIN", 34 => "SAM", 39 => "RPR", 41 => "VPR",
+                                23 => "BRD", 31 => "MCH", 38 => "DNC",
+                                25 => "BLM", 27 => "SMN", 35 => "RDM", 42 => "PCT",
+                                _ => "PLAYER"
+                            };
+                        }
+                        else
+                        {
+                            playerName = player.Name.TextValue;
+                        }
+                    }
+
                     var snapshot = new EntityPositionSnapshot
                     {
                         ObjectId = player.EntityId,
-                        Name = isNewEntity ? player.Name.TextValue : string.Empty,
+                        Name = playerName,
                         Position = player.Position,
                         Rotation = player.Rotation,
                         CurrentHp = player.CurrentHp,
