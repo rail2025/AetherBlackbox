@@ -23,7 +23,7 @@ public record CombatEvent {
     public record StatusEffect : CombatEvent {
         public required uint Id { get; init; }
         public required uint StackCount { get; init; }
-        public required string? Source { get; init; }
+        public required uint SourceActorId { get; init; }
         public required uint? Icon { get; init; }
         public required float Duration { get; init; }
         public required string? Status { get; init; }
@@ -40,7 +40,7 @@ public record CombatEvent {
     }
 
     public record DamageTaken : CombatEvent {
-        public required string? Source { get; init; }
+        public required uint SourceActorId { get; init; }
         public required uint Amount { get; init; }
         public required string Action { get; init; }
         public bool Crit { get; init; }
@@ -53,7 +53,7 @@ public record CombatEvent {
     }
 
     public record Healed : CombatEvent {
-        public required string? Source { get; init; }
+        public required uint SourceActorId { get; init; }
         public required uint Amount { get; init; }
         public required string Action { get; init; }
         public bool Crit { get; init; }

@@ -52,6 +52,7 @@ namespace AetherBlackbox.Core
 
     public class ReplayMetadata
     {
+        public uint EntityId { get; set; }
         public string Name { get; set; } = string.Empty;
         public uint MaxHp { get; set; }
         public uint ClassJobId { get; set; }

@@ -55,6 +55,38 @@ public class CombatEventCapture : IDisposable {
         processPacketActorControlHook.Enable();
     }
 
+    private void RegisterEntityMetadata(uint entityId, IPlayerCharacter p)
+    {
+        if (!plugin.PullManager.IsInSession || plugin.PullManager.CurrentSession == null) return;
+        var session = plugin.PullManager.CurrentSession;
+        if (session.Metadata.ContainsKey(entityId)) return;
+
+        var jobAbbr = p.ClassJob.Value.Abbreviation.ExtractText();
+        if (string.IsNullOrEmpty(jobAbbr)) jobAbbr = "UNK";
+        string nameToStore;
+
+        if (plugin.Configuration.AnonymizeNames)
+        {
+            int count = 0;
+            foreach (var meta in session.Metadata.Values)
+            {
+                if (meta.ClassJobId == p.ClassJob.RowId) count++;
+            }
+            nameToStore = count == 0 ? jobAbbr : $"{jobAbbr} {count + 1}";
+        }
+        else
+        {
+            nameToStore = p.Name.TextValue;
+        }
+
+        session.Metadata[entityId] = new ReplayMetadata
+        {
+            EntityId = entityId,
+            ClassJobId = p.ClassJob.RowId,
+            Name = nameToStore
+        };
+    }
+
     private unsafe void ProcessPacketActionEffectDetour(
         uint casterEntityId, Character* casterPtr, Vector3* targetPos, ActionEffectHandler.Header* effectHeader, ActionEffectHandler.TargetEffects* effectArray,
         GameObjectId* targetEntityIds) {
@@ -75,11 +107,17 @@ public class CombatEventCapture : IDisposable {
                 plugin.PositionRecorder.OnActionUsed(casterEntityId, actionId);
             }
 
+            if (casterPtr != null && casterPtr->GameObject.ObjectKind == ObjectKind.Pc)
+            {
+                if (Service.ObjectTable.SearchById(casterEntityId) is IPlayerCharacter casterPc)
+                    RegisterEntityMetadata(casterEntityId, casterPc);
+            }
+
             Action? action = null;
-            string? source = null;
             List<uint>? additionalStatus = null;
 
-            for (var i = 0; i < effectHeader->NumTargets; i++) {
+            for (var i = 0; i < effectHeader->NumTargets; i++)
+            {
                 var actionTargetId = (uint)(targetEntityIds[i] & uint.MaxValue);
                 if (!plugin.ConditionEvaluator.ShouldCapture(actionTargetId))
                     continue;
@@ -106,7 +144,11 @@ public class CombatEventCapture : IDisposable {
                 }
                 if (Service.ObjectTable.SearchById(actionTargetId) is not IPlayerCharacter p)
                     continue;
-                for (var j = 0; j < 8; j++) {
+
+                RegisterEntityMetadata(actionTargetId, p);
+
+                for (var j = 0; j < 8; j++)
+                {
                     ref var actionEffect = ref effectArray[i].Effects[j];
                     if (actionEffect.Type == 0)
                         continue;
@@ -115,10 +157,9 @@ public class CombatEventCapture : IDisposable {
                         amount += (uint)actionEffect.Param3 << 16;
 
                     action ??= Service.DataManager.GetExcelSheet<Action>().GetRowOrDefault(actionId);
-                    if (source == null && casterPtr != null)
-                        source = casterPtr->NameString;
 
-                    switch ((ActionEffectType)actionEffect.Type) {
+                    switch ((ActionEffectType)actionEffect.Type)
+                    {
                         case ActionEffectType.Miss:
                         case ActionEffectType.Damage:
                         case ActionEffectType.BlockedDamage:
@@ -150,7 +191,7 @@ public class CombatEventCapture : IDisposable {
                                     // 2115 = Conked, BLU Magic Hammer
                                     // 3642 = Candy Cane, BLU Candy Cane
                                     Snapshot = p.Snapshot(true, additionalStatus),
-                                    Source = source,
+                                    SourceActorId = casterEntityId,
                                     Amount = amount,
                                     Action = action?.ActionCategory.RowId == 1 ? "Auto-attack" : action?.Name.ExtractText() ?? "",
                                     Icon = action?.Icon,
@@ -166,7 +207,7 @@ public class CombatEventCapture : IDisposable {
                             combatEvents.AddEntry(actionTargetId,
                                 new CombatEvent.Healed {
                                     Snapshot = p.Snapshot(true),
-                                    Source = source,
+                                    SourceActorId = casterEntityId,
                                     Amount = amount,
                                     Action = action?.Name.ExtractText() ?? "",
                                     Icon = action?.Icon,
@@ -194,16 +235,19 @@ public class CombatEventCapture : IDisposable {
             if (Service.ObjectTable.SearchById(entityId) is not IPlayerCharacter p)
                 return;
 
-            switch ((ActorControlCategory)category) {
+            RegisterEntityMetadata(entityId, p);
+
+            switch ((ActorControlCategory)category)
+            {
                 case ActorControlCategory.DoT: combatEvents.AddEntry(entityId, new CombatEvent.DoT { Snapshot = p.Snapshot(), Amount = param2 }); break;
                 case ActorControlCategory.HoT:
-                    if (param1 != 0) {
-                        var sourceName = Service.ObjectTable.SearchById(entityId)?.Name.TextValue;
+                    if (param1 != 0)
+                    {
                         var status = Service.DataManager.GetExcelSheet<Status>().GetRowOrDefault(param1);
                         combatEvents.AddEntry(entityId,
                             new CombatEvent.Healed {
                                 Snapshot = p.Snapshot(),
-                                Source = sourceName,
+                                SourceActorId = entityId,
                                 Amount = param2,
                                 Action = status?.Name.ExtractText() ?? "",
                                 Icon = status?.Icon,
@@ -224,14 +268,13 @@ public class CombatEventCapture : IDisposable {
                             var death = new Death
                             {
                                 PlayerId = entityId,
-                                PlayerName = p.Name.TextValue,
                                 TimeOfDeath = DateTime.Now,
                                 Events = events,
                                 ReplayData = replayData,
                                 TerritoryTypeId = Service.ClientState.TerritoryType
                             };
 
-                            Service.PluginLog.Info($"Capture: Created Death object for {death.PlayerName} at {death.TimeOfDeath:HH:mm:ss.fff}");
+                            Service.PluginLog.Info($"Capture: Created Death object for {entityId} at {death.TimeOfDeath:HH:mm:ss.fff}");
 
                             plugin.DeathsPerPlayer.AddEntry(entityId, death);
                             plugin.NotificationHandler.DisplayDeath(death);
@@ -262,10 +305,10 @@ public class CombatEventCapture : IDisposable {
             if (Service.ObjectTable.SearchById(targetId) is not IPlayerCharacter p)
                 return;
 
+            RegisterEntityMetadata(targetId, p);
+
             var effects = (StatusEffectAddEntry*)message->Effects;
             var effectCount = Math.Min(message->EffectCount, 4u);
-            string? cachedSource = null;
-            uint lastSourceId = 0;
 
             for (uint j = 0; j < effectCount; j++)
             {
@@ -274,16 +317,16 @@ public class CombatEventCapture : IDisposable {
                 if (effectId <= 0 || effect.Duration < 0)
                     continue;
 
-                if (cachedSource == null || effect.SourceActorId != lastSourceId)
+                if (Service.ObjectTable.SearchById(effect.SourceActorId) is IPlayerCharacter sourcePc)
                 {
-                    cachedSource = Service.ObjectTable.SearchById(effect.SourceActorId)?.Name.TextValue;
-                    lastSourceId = effect.SourceActorId;
+                    RegisterEntityMetadata(effect.SourceActorId, sourcePc);
                 }
 
                 var status = Service.DataManager.GetExcelSheet<Status>().GetRowOrDefault(effectId);
 
                 combatEvents.AddEntry(targetId,
-                    new CombatEvent.StatusEffect {
+                    new CombatEvent.StatusEffect
+                    {
                         Snapshot = p.Snapshot(),
                         Id = effectId,
                         StackCount = effect.StackCount <= status?.MaxStacks ? effect.StackCount : 0u,
@@ -291,7 +334,7 @@ public class CombatEventCapture : IDisposable {
                         Status = status?.Name.ExtractText(),
                         Description = status?.Description.ExtractText(),
                         Category = (StatusCategory)(status?.StatusCategory ?? 0),
-                        Source = cachedSource,
+                        SourceActorId = effect.SourceActorId,
                         Duration = effect.Duration
                     });
             }

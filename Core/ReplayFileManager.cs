@@ -215,11 +215,11 @@ namespace AetherBlackbox.Core
 
                 using var fs = new FileStream(fullPath, FileMode.Create);
 
-                using (var writer = new BinaryWriter(fs, System.Text.Encoding.UTF8, leaveOpen: true))
+                var serializer = new JsonSerializer
                 {
-                    var headerJson = JsonConvert.SerializeObject(session.ReplayData.Header);
-                    writer.Write(headerJson ?? string.Empty);
-                }
+                    TypeNameHandling = TypeNameHandling.Auto,
+                    SerializationBinder = new CategoryShortener()
+                };
 
                 List<Death> safeDeaths;
                 lock (session.Deaths)
@@ -228,76 +228,11 @@ namespace AetherBlackbox.Core
                 }
                 var body = new { session.ReplayData.Metadata, session.ReplayData.Frames, session.ReplayData.Waymarks, Deaths = safeDeaths };
 
-                var serializer = new JsonSerializer
+                using (var gzip = new GZipStream(fs, CompressionLevel.Optimal))
+                using (var sw = new StreamWriter(gzip))
+                using (var jw = new JsonTextWriter(sw))
                 {
-                    TypeNameHandling = TypeNameHandling.Auto,
-                    SerializationBinder = new CategoryShortener()
-                };
-
-                if (plugin.Configuration.AnonymizeNames)
-                {
-                    var jBody = Newtonsoft.Json.Linq.JObject.FromObject(body, serializer);
-                    var jobAbbrMap = new Dictionary<uint, string>
-                    {
-                        {19,"PLD"}, {21,"WAR"}, {32,"DRK"}, {37,"GNB"},
-                        {24,"WHM"}, {28,"SCH"}, {33,"AST"}, {40,"SGE"},
-                        {20,"MNK"}, {22,"DRG"}, {30,"NIN"}, {34,"SAM"}, {39,"RPR"}, {41,"VPR"},
-                        {23,"BRD"}, {31,"MCH"}, {38,"DNC"},
-                        {25,"BLM"}, {27,"SMN"}, {35,"RDM"}, {42,"PCT"}
-                    };
-                    var nameToJobMap = new Dictionary<string, string>();
-
-                    if (session.ReplayData?.Metadata != null)
-                    {
-                        foreach (var kvp in session.ReplayData.Metadata)
-                        {
-                            if (kvp.Value.ClassJobId > 0 && !string.IsNullOrEmpty(kvp.Value.Name))
-                            {
-                                nameToJobMap[kvp.Value.Name] = jobAbbrMap.TryGetValue(kvp.Value.ClassJobId, out var abbr) ? abbr : "PLAYER";
-                            }
-                        }
-                    }
-
-                    void AnonymizeToken(Newtonsoft.Json.Linq.JToken token)
-                    {
-                        if (token is Newtonsoft.Json.Linq.JObject obj)
-                        {
-                            foreach (var prop in obj.Properties())
-                            {
-                                if (prop.Name == "Source" || prop.Name == "PlayerName" || prop.Name == "Name")
-                                {
-                                    var val = prop.Value?.ToString();
-                                    if (!string.IsNullOrEmpty(val) && nameToJobMap.TryGetValue(val, out var jobName))
-                                        prop.Value = jobName;
-                                    else if ((prop.Name == "PlayerName" || prop.Name == "Name") && prop.Value != null && obj["ClassJobId"] != null)
-                                        prop.Value = "PLAYER";
-                                }
-                                else AnonymizeToken(prop.Value);
-                            }
-                        }
-                        else if (token is Newtonsoft.Json.Linq.JArray arr)
-                        {
-                            foreach (var item in arr) AnonymizeToken(item);
-                        }
-                    }
-
-                    AnonymizeToken(jBody);
-
-                    using (var gzip = new GZipStream(fs, CompressionLevel.Optimal))
-                    using (var sw = new StreamWriter(gzip))
-                    using (var jw = new JsonTextWriter(sw))
-                    {
-                        jBody.WriteTo(jw);
-                    }
-                }
-                else
-                {
-                    using (var gzip = new GZipStream(fs, CompressionLevel.Optimal))
-                    using (var sw = new StreamWriter(gzip))
-                    using (var jw = new JsonTextWriter(sw))
-                    {
-                        serializer.Serialize(jw, body);
-                    }
+                    serializer.Serialize(jw, body);
                 }
 
                 Service.PluginLog.Debug($"[ReplayFileManager] Saved replay: {filename}");

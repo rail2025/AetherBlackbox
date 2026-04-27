@@ -7,7 +7,6 @@ namespace AetherBlackbox.Events;
 public record Death
 {
     public uint PlayerId { get; init; }
-    public string PlayerName { get; init; } = null!;
     public DateTime TimeOfDeath { get; init; }
     public uint TerritoryTypeId { get; init; }
 

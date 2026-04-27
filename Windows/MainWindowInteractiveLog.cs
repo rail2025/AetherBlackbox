@@ -109,7 +109,7 @@ namespace AetherBlackbox.Windows
                 foreach (var evt in ActiveDeathReplay.Events.AsEnumerable().Reverse())
                 {
                     if (logConfig.OnlyDamagingEvents && !InteractiveLogUtilities.IsDamagingEvent(evt)) continue;
-                    if (!InteractiveLogUtilities.MatchesSearch(evt, logSearchTerm)) continue;
+                    if (!InteractiveLogUtilities.MatchesSearch(evt, logSearchTerm, ActiveDeathReplay.ReplayData)) continue;
 
                     ImGui.TableNextRow();
 
@@ -146,7 +146,7 @@ namespace AetherBlackbox.Windows
                     if (showSourceCol)
                     {
                         ImGui.TableNextColumn();
-                        string source = InteractiveLogUtilities.GetSource(evt);
+                        string source = InteractiveLogUtilities.GetSource(evt, ActiveDeathReplay.ReplayData);
                         ImGui.Text(GetAnonymizedName(source));
                     }
 

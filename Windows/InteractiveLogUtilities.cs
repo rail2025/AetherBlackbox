@@ -10,15 +10,20 @@ namespace AetherBlackbox.Windows
             return evt is CombatEvent.DamageTaken || evt is CombatEvent.DoT;
         }
 
-        public static string GetSource(CombatEvent evt)
+        public static string GetSource(CombatEvent evt, Core.ReplayRecording? replayData)
         {
-            return evt switch
+            uint sourceId = evt switch
             {
-                CombatEvent.DamageTaken dt => dt.Source ?? "-",
-                CombatEvent.Healed h => h.Source ?? "-",
-                CombatEvent.StatusEffect s => s.Source ?? "-",
-                _ => "-"
+                CombatEvent.DamageTaken dt => dt.SourceActorId,
+                CombatEvent.Healed h => h.SourceActorId,
+                CombatEvent.StatusEffect s => s.SourceActorId,
+                _ => 0
             };
+
+            if (sourceId == 0) return "-";
+            if (replayData?.Metadata != null && replayData.Metadata.TryGetValue(sourceId, out var meta))
+                return meta.Name;
+            return "Unknown";
         }
 
         public static string GetSearchableActionText(CombatEvent evt)
@@ -32,11 +37,11 @@ namespace AetherBlackbox.Windows
             };
         }
 
-        public static bool MatchesSearch(CombatEvent evt, string search)
+        public static bool MatchesSearch(CombatEvent evt, string search, Core.ReplayRecording? replayData)
         {
             if (string.IsNullOrWhiteSpace(search)) return true;
 
-            var source = GetSource(evt);
+            var source = GetSource(evt, replayData);
             var action = GetSearchableActionText(evt);
 
             return source.Contains(search, StringComparison.OrdinalIgnoreCase)

@@ -34,7 +34,17 @@ public class NotificationHandler : Window {
         chatLinkPayload = Service.ChatGui.AddChatLinkHandler(0, OnChatLinkClick);
     }
 
-    private void OnChatLinkClick(uint cmdId, SeString msg) {
+    private string GetDeathPlayerName(Death death)
+    {
+        if (death.ReplayData?.Metadata != null && death.ReplayData.Metadata.TryGetValue(death.PlayerId, out var meta))
+            return meta.Name;
+        if (plugin.PullManager.CurrentSession?.Metadata != null && plugin.PullManager.CurrentSession.Metadata.TryGetValue(death.PlayerId, out var currentMeta))
+            return currentMeta.Name;
+        return "Unknown";
+    }
+
+    private void OnChatLinkClick(uint cmdId, SeString msg)
+    {
         if (msg.Payloads is [.., RawPayload p, _] && DeathNotificationPayload.Decode(p) is { } payload
                                                   && plugin.DeathsPerPlayer.TryGetValue(payload.PlayerId, out var deaths)) {
             var death = deaths.FirstOrDefault(d => d.TimeOfDeath.Ticks == payload.DeathTimestamp);
@@ -51,12 +61,17 @@ public class NotificationHandler : Window {
         WindowName = windowWasMoved ? "###AetherBlackboxPopup" : "(Drag me somewhere)###AetherBlackboxPopup";
 
         var elapsed = (DateTime.Now - popupDeath?.TimeOfDeath)?.TotalSeconds;
-        if (!plugin.MainWindow.IsOpen && elapsed < 30) {
+        if (!plugin.MainWindow.IsOpen && elapsed < 30)
+        {
             var label = $"Show Aether Blackbox ({30 - elapsed:N0}s)";
-            if (popupDeath?.PlayerName is { } playerName)
+            if (popupDeath != null)
+            {
+                var playerName = GetDeathPlayerName(popupDeath);
                 label = AppendCenteredPlayerName(label, playerName);
+            }
 
-            if (ImGui.Button(label, new Vector2(-1, -1))) {
+            if (ImGui.Button(label, new Vector2(-1, -1)))
+            {
                 if (popupDeath != null)
                 {
                     plugin.MainWindow.OpenReplay(popupDeath);
@@ -95,9 +110,12 @@ public class NotificationHandler : Window {
         }
     }
 
-    public void DisplayDeath(Death death) {
+    public void DisplayDeath(Death death)
+    {
         var displayType = plugin.ConditionEvaluator.GetNotificationType(death.PlayerId);
-        switch (displayType) {
+        var playerName = GetDeathPlayerName(death);
+        switch (displayType)
+        {
             case NotificationStyle.Popup:
                 popupDeath = death;
                 IsOpen = true;
@@ -106,10 +124,10 @@ public class NotificationHandler : Window {
                 var chatMsg = HasAuthor(plugin.Configuration.ChatType)
                     ? new SeString(chatLinkPayload, new TextPayload(" has died "), new UIForegroundPayload(710), new TextPayload("[ Show Aether Blackbox ]"),
                         new UIForegroundPayload(0), new DeathNotificationPayload(death.TimeOfDeath.Ticks, death.PlayerId), RawPayload.LinkTerminator)
-                    : new SeString(chatLinkPayload, new UIForegroundPayload(1), new TextPayload(death.PlayerName), new UIForegroundPayload(0),
+                    : new SeString(chatLinkPayload, new UIForegroundPayload(1), new TextPayload(playerName), new UIForegroundPayload(0),
                         new TextPayload(" has died "), new UIForegroundPayload(710), new TextPayload("[ Show Aether Blackbox ]"), new UIForegroundPayload(0),
                         new DeathNotificationPayload(death.TimeOfDeath.Ticks, death.PlayerId), RawPayload.LinkTerminator);
-                Service.ChatGui.Print(new XivChatEntry { Message = chatMsg, Type = plugin.Configuration.ChatType, Name = death.PlayerName });
+                Service.ChatGui.Print(new XivChatEntry { Message = chatMsg, Type = plugin.Configuration.ChatType, Name = playerName });
                 break;
             case NotificationStyle.OpenAetherBlackbox:
                 plugin.MainWindow.OpenReplay(death);

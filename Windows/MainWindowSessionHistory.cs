@@ -104,7 +104,8 @@ namespace AetherBlackbox.Windows
                                 ImGui.Indent();
                                 bool isSelected = (death == ActiveDeathReplay);
 
-                                string displayName = GetAnonymizedName(death.PlayerName, death.ReplayData);
+                                string playerName = death.ReplayData?.Metadata != null && death.ReplayData.Metadata.TryGetValue(death.PlayerId, out var meta) ? meta.Name : "Unknown";
+                                string displayName = GetAnonymizedName(playerName, death.ReplayData);
                                 var timeIntoPull = death.TimeOfDeath - pull.StartTime;
                                 string deathLabel = $"{displayName} ({timeIntoPull:mm\\:ss})";
 
