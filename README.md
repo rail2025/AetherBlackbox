@@ -36,7 +36,7 @@ If you want more detail or want to share things with your group, you can export 
 
 ### Sync with your footage
 
-![VOD sync](docs/vod-sync.gif)
+![VOD sync](docs/vod-sync.gif) <img src="https://github.com/rail2025/AetherBlackbox/blob/main/blackboxvodteaser.gif" />
 
 * Link your OBS recordings to the replay
 * Watch your POV alongside the 2D timeline
