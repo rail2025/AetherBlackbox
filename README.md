@@ -1,24 +1,110 @@
+---
+
 # Aether Blackbox
 
-**AetherDraw + Death Recap = visualized combat replays for FFXIV**
+See what actually caused your wipe.
 
-Visually inspect your positioning leading up to death.
+Aether Blackbox records your pulls and lets you replay them in a 2D timeline. You can scrub through positioning, damage, and mechanics, or sync it with your own footage to see what happened from your POV.
 
-* Track healing, damage taken, buffs, debuffs, and barriers
-* Scrub through a timeline of events
-* Search status effects
-* Zoom, pan, and analyze encounters in a 2D replay view
-* Draw strategies and annotate directly on the replay canvas
-* Time-synchronized, world-anchored telestration (annotations that follow players/bosses across the replay timeline)
-* Export encounter replays and drawings to share with others
+---
 
 <br>
 
 <img width="1007" height="642" alt="abb main window" src="https://github.com/user-attachments/assets/fab0596c-f07f-4844-bfb7-d10eb01e8bc1" />
+
+---
+
+## How it works
+
+1. Do a pull like normal (it records automatically)
+2. Open the replay and scrub back through the fight
+3. Check positioning, damage, buffs, etc leading up to the wipe
+
+If you want more detail or want to share things with your group, you can export it to the web app.
+
+---
+
+## What you can do
+
+### Replay fights
+
+* Scrub through a timeline of the encounter
+* See where everyone was standing at any moment
+* Track damage taken, healing, buffs, and barriers
+
+---
+
+### Sync with your footage
+
+![VOD sync](docs/vod-sync.gif)
+
+* Link your OBS recordings to the replay
+* Watch your POV alongside the 2D timeline
+
+---
+
+### Draw on the fight
+
+<img width="1007" alt="abb demo" src="https://github.com/user-attachments/assets/e2679e01-9274-454a-b884-0230e857395d" />
+
+* Add annotations directly on the arena
+* Draw markers that stick to players or bosses over time
+
+---
+
+### Save and reuse stuff
+
+* Turn moments into simple slides
+* Build a small library of strats or wipe reviews
+
+---
+
+## Where it runs
+
+### In-game plugin
+
+* Records encounters automatically
+* Lets you immediately review a wipe
+* Basic replay and drawing tools
+
+### Web app
+
+* VOD sync
+* Better tools for reviewing and sharing
+* Saved replays and plans
+
+---
+
+## When this is useful
+
+* "where was I standing"
+* "why did that mechanic hit me"
+* "what actually killed us here"
+
+---
+
+## Getting started
+
+<!-- Link to your site / tutorial -->
+
+* Walkthrough: [https://blackbox.aetherdraw.me](https://blackbox.aetherdraw.me)
+* Download / install: [https://github.com/rail2025/AetherBlackbox](https://github.com/rail2025/AetherBlackbox)
+
+---
+
+## Notes
+
+* Works best if you already record your gameplay (for VOD sync)
+* You can still use the replay without any video
+
+---
+
+
+
 <br>
 <img width="1007" alt="abb demo" src="https://github.com/user-attachments/assets/fd3aae03-a96e-4ca6-b2d7-cef4e8121a25" />
 <br>
-<img width="1007" alt="abb demo" src="https://github.com/user-attachments/assets/e2679e01-9274-454a-b884-0230e857395d" />
+
 <br>
 
 ---
