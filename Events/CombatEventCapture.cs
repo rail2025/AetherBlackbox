@@ -17,7 +17,8 @@ using Status = Lumina.Excel.Sheets.Status;
 
 namespace AetherBlackbox.Events;
 
-public class CombatEventCapture : IDisposable {
+public class CombatEventCapture : IDisposable
+{
     private readonly Dictionary<ulong, List<CombatEvent>> combatEvents = new();
     private readonly Plugin plugin;
 
@@ -89,14 +90,17 @@ public class CombatEventCapture : IDisposable {
 
     private unsafe void ProcessPacketActionEffectDetour(
         uint casterEntityId, Character* casterPtr, Vector3* targetPos, ActionEffectHandler.Header* effectHeader, ActionEffectHandler.TargetEffects* effectArray,
-        GameObjectId* targetEntityIds) {
+        GameObjectId* targetEntityIds)
+    {
         processPacketActionEffectHook.Original(casterEntityId, casterPtr, targetPos, effectHeader, effectArray, targetEntityIds);
 
-        try {
+        try
+        {
             if (effectHeader->NumTargets == 0)
                 return;
 
-            var actionId = (ActionType)effectHeader->ActionType switch {
+            var actionId = (ActionType)effectHeader->ActionType switch
+            {
                 ActionType.Mount => 0xD000000 + effectHeader->ActionId,
                 ActionType.Item => 0x2000000 + effectHeader->ActionId,
                 _ => effectHeader->SpellId
@@ -182,7 +186,8 @@ public class CombatEventCapture : IDisposable {
                             }
 
                             combatEvents.AddEntry(actionTargetId,
-                                new CombatEvent.DamageTaken {
+                                new CombatEvent.DamageTaken
+                                {
                                     // 1203 = Addle
                                     // 1195 = Feint
                                     // 1193 = Reprisal
@@ -205,7 +210,8 @@ public class CombatEventCapture : IDisposable {
                             break;
                         case ActionEffectType.Heal:
                             combatEvents.AddEntry(actionTargetId,
-                                new CombatEvent.Healed {
+                                new CombatEvent.Healed
+                                {
                                     Snapshot = p.Snapshot(true),
                                     SourceActorId = casterEntityId,
                                     Amount = amount,
@@ -217,7 +223,9 @@ public class CombatEventCapture : IDisposable {
                     }
                 }
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             Service.PluginLog.Error(e, "Caught unexpected exception");
         }
     }
@@ -228,7 +236,8 @@ public class CombatEventCapture : IDisposable {
     {
         processPacketActorControlHook.Original(entityId, category, param1, param2, param3, param4, param5, param6, param7, param8, targetId, param9);
 
-        try {
+        try
+        {
             if (!plugin.ConditionEvaluator.ShouldCapture(entityId))
                 return;
 
@@ -245,7 +254,8 @@ public class CombatEventCapture : IDisposable {
                     {
                         var status = Service.DataManager.GetExcelSheet<Status>().GetRowOrDefault(param1);
                         combatEvents.AddEntry(entityId,
-                            new CombatEvent.Healed {
+                            new CombatEvent.Healed
+                            {
                                 Snapshot = p.Snapshot(),
                                 SourceActorId = entityId,
                                 Amount = param2,
@@ -253,7 +263,9 @@ public class CombatEventCapture : IDisposable {
                                 Icon = status?.Icon,
                                 Crit = param4 == 1
                             });
-                    } else {
+                    }
+                    else
+                    {
                         combatEvents.AddEntry(entityId, new CombatEvent.HoT { Snapshot = p.Snapshot(), Amount = param2 });
                     }
 
@@ -289,15 +301,19 @@ public class CombatEventCapture : IDisposable {
                         break;
                     }
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             Service.PluginLog.Error(e, "Caught unexpected exception");
         }
     }
 
-    private unsafe void ProcessPacketEffectResultDetour(uint targetId, IntPtr actionIntegrityData, byte isReplay) {
+    private unsafe void ProcessPacketEffectResultDetour(uint targetId, IntPtr actionIntegrityData, byte isReplay)
+    {
         processPacketEffectResultHook.Original(targetId, actionIntegrityData, isReplay);
 
-        try {
+        try
+        {
             var message = (AddStatusEffect*)actionIntegrityData;
             if (!plugin.ConditionEvaluator.ShouldCapture(targetId))
                 return;
@@ -338,23 +354,30 @@ public class CombatEventCapture : IDisposable {
                         Duration = effect.Duration
                     });
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             Service.PluginLog.Error(e, "Caught unexpected exception");
         }
     }
 
-    public void CleanCombatEvents() {
-        try {
+    public void CleanCombatEvents()
+    {
+        try
+        {
             var entriesToRemove = new List<ulong>();
-            foreach (var (id, events) in combatEvents) {
-                if (events.Count == 0 || (DateTime.Now - events.Last().Snapshot.Time).TotalSeconds > plugin.Configuration.KeepCombatEventsForSeconds) {
+            foreach (var (id, events) in combatEvents)
+            {
+                if (events.Count == 0 || (DateTime.Now - events.Last().Snapshot.Time).TotalSeconds > plugin.Configuration.KeepCombatEventsForSeconds)
+                {
                     entriesToRemove.Add(id);
                     continue;
                 }
 
                 var cutOffTime = DateTime.Now - TimeSpan.FromSeconds(plugin.Configuration.KeepCombatEventsForSeconds);
                 for (var i = 0; i < events.Count; i++)
-                    if (events[i].Snapshot.Time > cutOffTime) {
+                    if (events[i].Snapshot.Time > cutOffTime)
+                    {
                         events.RemoveRange(0, i);
                         break;
                     }
@@ -365,15 +388,18 @@ public class CombatEventCapture : IDisposable {
 
             entriesToRemove.Clear();
 
-            foreach (var (id, death) in plugin.DeathsPerPlayer) {
-                if (death.Count == 0 || (DateTime.Now - death.Last().TimeOfDeath).TotalMinutes > plugin.Configuration.KeepDeathsForMinutes) {
+            foreach (var (id, death) in plugin.DeathsPerPlayer)
+            {
+                if (death.Count == 0 || (DateTime.Now - death.Last().TimeOfDeath).TotalMinutes > plugin.Configuration.KeepDeathsForMinutes)
+                {
                     entriesToRemove.Add(id);
                     continue;
                 }
 
                 var cutOffTime = DateTime.Now - TimeSpan.FromMinutes(plugin.Configuration.KeepDeathsForMinutes);
                 for (var i = 0; i < death.Count; i++)
-                    if (death[i].TimeOfDeath > cutOffTime) {
+                    if (death[i].TimeOfDeath > cutOffTime)
+                    {
                         death.RemoveRange(0, i);
                         break;
                     }
@@ -381,12 +407,15 @@ public class CombatEventCapture : IDisposable {
 
             foreach (var entry in entriesToRemove)
                 plugin.DeathsPerPlayer.Remove(entry);
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             Service.PluginLog.Error(e, "Error while clearing events");
         }
     }
 
-    public void Dispose() {
+    public void Dispose()
+    {
         processPacketActionEffectHook.Dispose();
         processPacketEffectResultHook.Dispose();
         processPacketActorControlHook.Dispose();

@@ -215,6 +215,12 @@ namespace AetherBlackbox.Core
 
                 using var fs = new FileStream(fullPath, FileMode.Create);
 
+                using (var writer = new BinaryWriter(fs, System.Text.Encoding.UTF8, leaveOpen: true))
+                {
+                    var headerJson = JsonConvert.SerializeObject(session.ReplayData.Header);
+                    writer.Write(headerJson ?? string.Empty);
+                }
+
                 var serializer = new JsonSerializer
                 {
                     TypeNameHandling = TypeNameHandling.Auto,
