@@ -221,7 +221,14 @@ namespace AetherBlackbox.Core
                 if (obj is IPlayerCharacter player)
                 {
                     uint sHash = 0;
-                    unchecked { foreach (var s in player.StatusList) { if (s != null) sHash = (sHash * 397) ^ s.StatusId ^ s.Param ^ s.SourceId; } }
+                    try
+                    {
+                        if (player.StatusList != null)
+                        { 
+                            unchecked { foreach (var s in player.StatusList) { if (s != null) sHash = (sHash * 397) ^ s.StatusId ^ s.Param ^ s.SourceId; }
+                         }
+                    }
+                 } catch { }
 
                     bool statusChanged = lastState.ObjectId == 0 || sHash != lastRecordedStates[player.EntityId].StatusHash;
 
@@ -303,7 +310,19 @@ namespace AetherBlackbox.Core
                     }
 
                     uint sHash = 0;
-                    unchecked { foreach (var s in npc.StatusList) { if (s != null) sHash = (sHash * 397) ^ s.StatusId ^ s.Param ^ s.SourceId; } }
+                    try
+                    {
+                        if (npc.StatusList != null) 
+                        {
+                            unchecked
+                            {
+                                foreach (var s in npc.StatusList)
+                                {
+                                    if (s != null) sHash = (sHash * 397) ^ s.StatusId ^ s.Param ^ s.SourceId;
+                                }
+                            }
+                        } 
+                    } catch { }
                     bool statusChanged = lastRecordedStates[npc.EntityId].ObjectId == 0 || sHash != lastRecordedStates[npc.EntityId].StatusHash;
 
                     var snapshot = new EntityPositionSnapshot

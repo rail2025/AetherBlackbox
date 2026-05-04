@@ -405,12 +405,12 @@ namespace AetherBlackbox.Windows
                     }
                 }
 
-                if (ActiveDeathReplay.TerritoryTypeId == 992 || ActiveDeathReplay.TerritoryTypeId == 1321 ||
-                    ActiveDeathReplay.TerritoryTypeId == 1323 || ActiveDeathReplay.TerritoryTypeId == 1325 ||
-                    ActiveDeathReplay.TerritoryTypeId == 1327 || ActiveDeathReplay.TerritoryTypeId == 1238)
-                {
+               // if (ActiveDeathReplay.TerritoryTypeId == 992 || ActiveDeathReplay.TerritoryTypeId == 1321 ||
+                 //   ActiveDeathReplay.TerritoryTypeId == 1323 || ActiveDeathReplay.TerritoryTypeId == 1325 ||
+                   // ActiveDeathReplay.TerritoryTypeId == 1327 || ActiveDeathReplay.TerritoryTypeId == 1238)
+                //{
                     DrawMapCalibrationPanel();
-                }
+                //}
             }
 
             if (ImGui.BeginChild("CanvasDrawingArea", new Vector2(0, 0), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))

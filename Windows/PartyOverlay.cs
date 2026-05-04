@@ -15,6 +15,7 @@ namespace AetherBlackbox.Windows
         // Row data for a single party member in the overlay
         private sealed class PartyMemberRowData
         {
+            public required ulong EntityId { get; init; }
             public required string DisplayName { get; init; }
             public required uint MaxHp { get; init; }
             public required uint CurrentHp { get; init; }
@@ -113,6 +114,7 @@ namespace AetherBlackbox.Windows
 
                 rows.Add(new PartyMemberRowData
                 {
+                    EntityId = kvp.Key,
                     DisplayName = displayName,
                     MaxHp = kvp.Value.MaxHp,
                     CurrentHp = currentHp,
@@ -192,6 +194,10 @@ namespace AetherBlackbox.Windows
 
                 if (ImGui.BeginChild($"PartyMemberRow_{i}", new Vector2(-1, rowHeight), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
                 {
+                    if (ImGui.IsWindowHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                    {
+                        selectedEntityId = member.EntityId;
+                    }
                     ImGui.AlignTextToFramePadding();
                     ImGui.TextUnformatted(member.DisplayName);
 
