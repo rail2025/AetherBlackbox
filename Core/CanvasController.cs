@@ -54,8 +54,8 @@ namespace AetherBlackbox.Core
             this.getHoveredDrawableDelegate = getHoveredDrawableDelegate;
             this.setHoveredDrawableDelegate = setHoveredDrawableDelegate;
 
-            this.undoManager = new UndoManager();
-            this.shapeInteractionHandler = new ShapeInteractionHandler(
+            this.undoManager = new();
+            this.shapeInteractionHandler = new(
                 plugin,
                 this.undoManager,
                 this.pageManager,
@@ -74,7 +74,7 @@ namespace AetherBlackbox.Core
                     }
                 }
             );
-            this.inPlaceTextEditor = new InPlaceTextEditor(plugin, this.undoManager, this.pageManager);
+            this.inPlaceTextEditor = new(plugin, this.undoManager, this.pageManager);
         }
         private bool isDrawingOnCanvas = false;
         private BaseDrawable? currentDrawingObjectInternal = null;

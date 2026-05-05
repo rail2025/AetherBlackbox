@@ -84,7 +84,7 @@ namespace AetherBlackbox.Windows
                 closestFrame = GetClosestFrame(recording, targetOffset);
             }
 
-            var rows = new List<PartyMemberRowData>();
+            List<PartyMemberRowData> rows = [];
             foreach (var kvp in recording.Metadata.Where(kvp => kvp.Value.ClassJobId != 0 && !string.IsNullOrWhiteSpace(kvp.Value.Name)))
             {
                 uint currentHp = 0;
@@ -127,7 +127,7 @@ namespace AetherBlackbox.Windows
         }
 
         // Calculates panel width based on the longest display name plus space for 5 debuff icons
-        private float ComputePartyPanelWidth(List<PartyMemberRowData> members, float iconSize, float scale)
+        private static float ComputePartyPanelWidth(List<PartyMemberRowData> members, float iconSize, float scale)
         {
             float longestNameWidth = 0f;
             foreach (var member in members)
@@ -281,7 +281,7 @@ namespace AetherBlackbox.Windows
         }
 
         // Sorts the party list by tank > healer > melee > ranged > caster
-        private int GetPartyRolePriority(uint classJobId)
+        private static int GetPartyRolePriority(uint classJobId)
         {
             return classJobId switch
             {

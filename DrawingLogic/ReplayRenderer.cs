@@ -31,7 +31,7 @@ namespace AetherBlackbox.DrawingLogic
             var canvasCenter = (view.CanvasOrigin + (view.CanvasSize / 2)) + view.PanOffset;
             float scale = DefaultPixelsPerYard * ImGuiHelpers.GlobalScale * view.Zoom;
             var relPos = worldPos - view.CenterWorldPos;
-            return new Vector2(canvasCenter.X + (relPos.X * scale), canvasCenter.Y + (relPos.Z * scale));
+            return new(canvasCenter.X + (relPos.X * scale), canvasCenter.Y + (relPos.Z * scale));
         }
 
         public static Vector3 ScreenToWorld(Vector2 screenPos, ViewContext view)
@@ -40,7 +40,7 @@ namespace AetherBlackbox.DrawingLogic
             float scale = DefaultPixelsPerYard * ImGuiHelpers.GlobalScale * view.Zoom;
             float relX = (screenPos.X - canvasCenter.X) / scale;
             float relZ = (screenPos.Y - canvasCenter.Y) / scale;
-            return new Vector3(relX + view.CenterWorldPos.X, view.CenterWorldPos.Y, relZ + view.CenterWorldPos.Z);
+            return new(relX + view.CenterWorldPos.X, view.CenterWorldPos.Y, relZ + view.CenterWorldPos.Z);
         }
 
         public void Draw(ImDrawListPtr drawList, ReplayRecording recording, ReplayFrame frame, float targetOffset, Vector2 canvasOrigin, Vector2 canvasSize, Vector3 centerWorldPos, uint territoryTypeId, bool showNpcs, bool showHp, bool anonymizeNames, float zoom, Vector2 panOffset, Configuration config)
@@ -232,7 +232,7 @@ namespace AetherBlackbox.DrawingLogic
             drawList.AddImageQuad(_bossIconTexture.Handle,
                 Rot(-size / 2, -size / 2), Rot(size / 2, -size / 2),
                 Rot(size / 2, size / 2), Rot(-size / 2, size / 2),
-                new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1),
+                new(0, 0), new(1, 0), new(1, 1), new(0, 1),
                 0xFFFFFFFF);
             float iconRadius = size / 2;
             var rotX = (float)Math.Sin(state.Rotation);

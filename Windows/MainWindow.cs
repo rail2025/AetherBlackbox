@@ -69,8 +69,8 @@ namespace AetherBlackbox.Windows
         // Canvas
         private ulong selectedEntityId = 0;
         private BaseDrawable? hoveredDrawable = null;
-        private List<BaseDrawable> selectedDrawables = new List<BaseDrawable>();
-        private List<BaseDrawable> clipboard = new List<BaseDrawable>();
+        private List<BaseDrawable> selectedDrawables = [];
+        private List<BaseDrawable> clipboard = [];
 
         public bool IsDrawingMode { get; set; } = false;
         public DrawMode CurrentDrawMode { get => currentDrawMode; set { currentDrawMode = value; IsDrawingMode = true; } }
@@ -89,7 +89,7 @@ namespace AetherBlackbox.Windows
         
         private List<Lumina.Excel.Sheets.Status> statusSearchResults = new();
 
-        public bool isNetworkHost { get; private set; } = false;
+        public bool IsNetworkHost { get; private set; } = false;
         private float lastTimeSyncBroadcast = 0f;
      
         private Dictionary<string, float> userMarkers = new();
@@ -101,7 +101,7 @@ namespace AetherBlackbox.Windows
         private Vector2 partyPanelPosition = new(-1f, -1f);
         private bool isDraggingPartyPanel = false;
 
-        private readonly uint[] Palette = new uint[] { 0xFFFFB358, 0xFF727BFF, 0xFFB4F5AF, 0xFF2299D2, 0xFFFF8CBC, 0xFF57A6FF };
+        private readonly uint[] Palette = [0xFFFFB358, 0xFF727BFF, 0xFFB4F5AF, 0xFF2299D2, 0xFFFF8CBC, 0xFF57A6FF];
         private uint GetUserColor(string id)
         {
             int hash = 0;
@@ -147,8 +147,8 @@ namespace AetherBlackbox.Windows
 
             this.SizeConstraints = new WindowSizeConstraints { MinimumSize = new Vector2(1000f * ImGuiHelpers.GlobalScale, 600f * ImGuiHelpers.GlobalScale), MaximumSize = new Vector2(float.MaxValue, float.MaxValue) };
             this.RespectCloseHotkey = true;
-            this.currentBrushColor = new Vector4(this.configuration.DefaultBrushColorR, this.configuration.DefaultBrushColorG, this.configuration.DefaultBrushColorB, this.configuration.DefaultBrushColorA);
-            var initialThicknessPresets = new float[] { 1.5f, 4f, 7f, 10f };
+            this.currentBrushColor = new(this.configuration.DefaultBrushColorR, this.configuration.DefaultBrushColorG, this.configuration.DefaultBrushColorB, this.configuration.DefaultBrushColorA);
+            float[] initialThicknessPresets = [1.5f, 4f, 7f, 10f];
             this.currentBrushThickness = initialThicknessPresets.Contains(this.configuration.DefaultBrushThickness) ? this.configuration.DefaultBrushThickness : initialThicknessPresets[1];
 
             this.plugin.NetworkManager.OnHostStatusReceived += OnHostStatusReceived;
@@ -177,7 +177,7 @@ namespace AetherBlackbox.Windows
 
         private void OnHostStatusReceived(bool status)
         {
-            this.isNetworkHost = status;
+            this.IsNetworkHost = status;
         }
         private void OnStateUpdateReceived(Networking.NetworkPayload payload)
         {
@@ -237,7 +237,7 @@ namespace AetherBlackbox.Windows
             cachedArenaCenter = null;
             IsOpen = true;
 
-            if (plugin.NetworkManager.IsConnected && isNetworkHost && selectedPull != null)
+            if (plugin.NetworkManager.IsConnected && IsNetworkHost && selectedPull != null)
             {
                 var payload = new Networking.NetworkPayload
                 {
@@ -292,14 +292,14 @@ namespace AetherBlackbox.Windows
             {
                 if (plugin.NetworkManager.IsConnected)
                 {
-                    if (isNetworkHost)
+                    if (IsNetworkHost)
                         ImGui.TextColored(new Vector4(0.2f, 1.0f, 0.2f, 1.0f), "Live: HOST");
                     else
                         ImGui.TextColored(new Vector4(1.0f, 0.5f, 0.2f, 1.0f), "Live: VIEWER");
                     ImGui.SameLine();
                 }
 
-                bool isHostOrOffline = isNetworkHost || !plugin.NetworkManager.IsConnected;
+                bool isHostOrOffline = IsNetworkHost || !plugin.NetworkManager.IsConnected;
                 float currentDeathTime = GetDeathTimeOffset();
                 float timelineMin = -currentDeathTime < -20f ? -currentDeathTime : -20f;
 

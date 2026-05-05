@@ -43,7 +43,7 @@ namespace AetherBlackbox.Core
     {
         public const int CURRENT_SERIALIZER_VERSION = 1;
         private readonly List<SlideSnapshot> _stagedSlides = new();
-        private readonly object _slideLock = new object();
+        private readonly object _slideLock = new();
 
         public IReadOnlyList<SlideSnapshot> StagedSlides
         {

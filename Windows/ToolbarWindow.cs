@@ -18,7 +18,7 @@ namespace AetherBlackbox.Windows
     public class ToolbarGroup
     {
         public DrawMode Primary { get; set; }
-        public List<DrawMode> SubModes { get; set; } = new();
+        public List<DrawMode> SubModes { get; set; } = [];
         public string Tooltip { get; set; } = "";
     }
     public class ToolbarWindow : IDisposable
@@ -28,33 +28,33 @@ namespace AetherBlackbox.Windows
 
         private readonly List<ToolbarGroup> toolGroups;
         private readonly Dictionary<DrawMode, DrawMode> activeSubModeMap;
-        private static readonly float[] ThicknessPresets = { 1.5f, 4f, 7f, 10f };
-        private static readonly Vector4[] ColorPalette = {
+        private static readonly float[] ThicknessPresets = [1.5f, 4f, 7f, 10f];
+        private static readonly Vector4[] ColorPalette = [
             new(1.0f,1.0f,1.0f,1.0f), new(0.0f,0.0f,0.0f,1.0f),
             new(1.0f,0.0f,0.0f,1.0f), new(0.0f,1.0f,0.0f,1.0f),
             new(0.0f,0.0f,1.0f,1.0f), new(1.0f,1.0f,0.0f,1.0f),
             new(1.0f,0.0f,1.0f,1.0f), new(0.0f,1.0f,1.0f,1.0f),
             new(0.5f,0.5f,0.5f,1.0f), new(0.8f,0.4f,0.0f,1.0f)
-        };
+        ];
 
         public ToolbarWindow(Plugin plugin)
         {
             this.plugin = plugin;
-            
-            toolGroups = new List<ToolbarGroup>
-            {
-                new() { Primary = DrawMode.Pen, SubModes = new List<DrawMode> { DrawMode.Pen, DrawMode.StraightLine, DrawMode.Dash }, Tooltip = "Pen Tools" },
-                new() { Primary = DrawMode.Rectangle, SubModes = new List<DrawMode> { DrawMode.Rectangle, DrawMode.Circle, DrawMode.Donut, DrawMode.Arrow, DrawMode.Cone, DrawMode.Triangle, DrawMode.Pie }, Tooltip = "Shape Tools" },
-                new() { Primary = DrawMode.SquareImage, SubModes = new List<DrawMode> { DrawMode.SquareImage, DrawMode.CircleMarkImage, DrawMode.TriangleImage, DrawMode.PlusImage }, Tooltip = "Placeable Shapes" },
-                new() { Primary = DrawMode.RoleTankImage, SubModes = new List<DrawMode> { DrawMode.RoleTankImage, DrawMode.RoleHealerImage, DrawMode.RoleMeleeImage, DrawMode.RoleRangedImage, DrawMode.RoleCasterImage }, Tooltip = "Role Icons" },
-                new() { Primary = DrawMode.Party1Image, SubModes = new List<DrawMode> { DrawMode.Party1Image, DrawMode.Party2Image, DrawMode.Party3Image, DrawMode.Party4Image, DrawMode.Party5Image, DrawMode.Party6Image, DrawMode.Party7Image, DrawMode.Party8Image,DrawMode.Bind1Image, DrawMode.Bind2Image, DrawMode.Bind3Image, DrawMode.Ignore1Image, DrawMode.Ignore2Image }, Tooltip = "Party Number Icons" },
-                new() { Primary = DrawMode.Dot3Image, SubModes = new List<DrawMode> { DrawMode.Dot1Image, DrawMode.Dot2Image, DrawMode.Dot3Image, DrawMode.Dot4Image, DrawMode.Dot5Image, DrawMode.Dot6Image, DrawMode.Dot7Image, DrawMode.Dot8Image }, Tooltip = "Colored Dots" },
-                new() { Primary = DrawMode.StackImage, SubModes = new List<DrawMode> { DrawMode.StackImage, DrawMode.SpreadImage, DrawMode.LineStackImage, DrawMode.FlareImage, DrawMode.DonutAoEImage, DrawMode.CircleAoEImage, DrawMode.BossImage, DrawMode.GazeImage, DrawMode.TowerImage, DrawMode.ExasImage, DrawMode.Starburst}, Tooltip = "Mechanic Icons" },
-                new() { Primary = DrawMode.TextTool, SubModes = new List<DrawMode>(), Tooltip = "Text Tool" },
-                new() { Primary = DrawMode.Image, SubModes = new List<DrawMode>(), Tooltip = "Image" }
-            };
 
-            activeSubModeMap = new Dictionary<DrawMode, DrawMode>();
+            toolGroups =
+            [
+                new() { Primary = DrawMode.Pen, SubModes = [DrawMode.Pen, DrawMode.StraightLine, DrawMode.Dash], Tooltip = "Pen Tools" },
+                new() { Primary = DrawMode.Rectangle, SubModes = [DrawMode.Rectangle, DrawMode.Circle, DrawMode.Donut, DrawMode.Arrow, DrawMode.Cone, DrawMode.Triangle, DrawMode.Pie], Tooltip = "Shape Tools" },
+                new() { Primary = DrawMode.SquareImage, SubModes = [DrawMode.SquareImage, DrawMode.CircleMarkImage, DrawMode.TriangleImage, DrawMode.PlusImage], Tooltip = "Placeable Shapes" },
+                new() { Primary = DrawMode.RoleTankImage, SubModes = [DrawMode.RoleTankImage, DrawMode.RoleHealerImage, DrawMode.RoleMeleeImage, DrawMode.RoleRangedImage, DrawMode.RoleCasterImage], Tooltip = "Role Icons" },
+                new() { Primary = DrawMode.Party1Image, SubModes = [DrawMode.Party1Image, DrawMode.Party2Image, DrawMode.Party3Image, DrawMode.Party4Image, DrawMode.Party5Image, DrawMode.Party6Image, DrawMode.Party7Image, DrawMode.Party8Image,DrawMode.Bind1Image, DrawMode.Bind2Image, DrawMode.Bind3Image, DrawMode.Ignore1Image, DrawMode.Ignore2Image], Tooltip = "Party Number Icons" },
+                new() { Primary = DrawMode.Dot3Image, SubModes = [DrawMode.Dot1Image, DrawMode.Dot2Image, DrawMode.Dot3Image, DrawMode.Dot4Image, DrawMode.Dot5Image, DrawMode.Dot6Image, DrawMode.Dot7Image, DrawMode.Dot8Image], Tooltip = "Colored Dots" },
+                new() { Primary = DrawMode.StackImage, SubModes = [DrawMode.StackImage, DrawMode.SpreadImage, DrawMode.LineStackImage, DrawMode.FlareImage, DrawMode.DonutAoEImage, DrawMode.CircleAoEImage, DrawMode.BossImage, DrawMode.GazeImage, DrawMode.TowerImage, DrawMode.ExasImage, DrawMode.Starburst], Tooltip = "Mechanic Icons" },
+                new() { Primary = DrawMode.TextTool, SubModes = [], Tooltip = "Text Tool" },
+                new() { Primary = DrawMode.Image, SubModes = [], Tooltip = "Image" }
+            ];
+
+            activeSubModeMap = [];
             foreach (var group in toolGroups)
             {
                 activeSubModeMap[group.Primary] = group.Primary;
