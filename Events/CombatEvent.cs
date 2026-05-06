@@ -41,6 +41,7 @@ public record CombatEvent {
 
     public record DamageTaken : CombatEvent {
         public required uint SourceActorId { get; init; }
+        public required uint ActionId { get; init; }
         public required uint Amount { get; init; }
         public required string Action { get; init; }
         public bool Crit { get; init; }

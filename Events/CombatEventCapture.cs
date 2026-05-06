@@ -125,16 +125,23 @@ public class CombatEventCapture : IDisposable
                 var actionTargetId = (uint)(targetEntityIds[i] & uint.MaxValue);
                 if (!plugin.ConditionEvaluator.ShouldCapture(actionTargetId))
                     continue;
+
                 var targetObj = Service.ObjectTable.SearchById(actionTargetId);
+                var targetEffects = effectArray[i];
+
                 if (plugin.PullManager.IsInSession && targetObj is IBattleNpc npc)
                 {
                     for (var k = 0; k < 8; k++)
                     {
-                        ref var eff = ref effectArray[i].Effects[k];
-                        if ((ActionEffectType)eff.Type is ActionEffectType.Damage or ActionEffectType.BlockedDamage or ActionEffectType.ParriedDamage)
+                        ref var eff = ref targetEffects.Effects[k];
+                        var effectType = (ActionEffectType)eff.Type;
+
+                        if (effectType is ActionEffectType.Damage or ActionEffectType.BlockedDamage or ActionEffectType.ParriedDamage)
                         {
                             uint dmg = eff.Value;
                             if ((eff.Param4 & 0x40) == 0x40) dmg += (uint)eff.Param3 << 16;
+
+                            if (dmg == 0) continue;
 
                             var npcName = npc.Name.TextValue;
                             if (!string.IsNullOrEmpty(npcName))
@@ -142,20 +149,39 @@ public class CombatEventCapture : IDisposable
                                 if (!plugin.PullManager.CurrentSession!.DamageByTarget.ContainsKey(npcName))
                                     plugin.PullManager.CurrentSession.DamageByTarget[npcName] = 0;
                                 plugin.PullManager.CurrentSession.DamageByTarget[npcName] += dmg;
+
+                                action ??= Service.DataManager.GetExcelSheet<Action>().GetRowOrDefault(actionId);
+                                plugin.PullManager.CurrentSession.DetailedDamageEvents.Add(new CombatEvent.DamageTaken
+                                {
+                                    Snapshot = new CombatEvent.EventSnapshot { Time = DateTime.Now, CurrentHp = npc.CurrentHp, MaxHp = npc.MaxHp, BarrierPercent = 0 },
+                                    SourceActorId = casterEntityId,
+                                    ActionId = effectHeader->ActionId,
+                                    Amount = dmg,
+                                    Action = action?.ActionCategory.RowId == 1 ? "Auto-attack" : action?.Name.ExtractText() ?? "",
+                                    Icon = action?.Icon,
+                                    Crit = (eff.Param0 & 0x20) == 0x20,
+                                    DirectHit = (eff.Param0 & 0x40) == 0x40,
+                                    DamageType = (DamageType)(eff.Param1 & 0xF),
+                                    Parried = effectType == ActionEffectType.ParriedDamage,
+                                    Blocked = effectType == ActionEffectType.BlockedDamage,
+                                    DisplayType = (ActionType)effectHeader->ActionType
+                                });
                             }
                         }
                     }
                 }
-                if (Service.ObjectTable.SearchById(actionTargetId) is not IPlayerCharacter p)
+
+                if (targetObj is not IPlayerCharacter p)
                     continue;
 
                 RegisterEntityMetadata(actionTargetId, p);
 
                 for (var j = 0; j < 8; j++)
                 {
-                    ref var actionEffect = ref effectArray[i].Effects[j];
+                    ref var actionEffect = ref targetEffects.Effects[j];
                     if (actionEffect.Type == 0)
                         continue;
+
                     uint amount = actionEffect.Value;
                     if ((actionEffect.Param4 & 0x40) == 0x40)
                         amount += (uint)actionEffect.Param3 << 16;
@@ -168,6 +194,9 @@ public class CombatEventCapture : IDisposable
                         case ActionEffectType.Damage:
                         case ActionEffectType.BlockedDamage:
                         case ActionEffectType.ParriedDamage:
+                            if (amount == 0 && (ActionEffectType)actionEffect.Type != ActionEffectType.Miss)
+                                continue;
+
                             if (additionalStatus == null)
                             {
                                 additionalStatus = [];
@@ -197,6 +226,7 @@ public class CombatEventCapture : IDisposable
                                     // 3642 = Candy Cane, BLU Candy Cane
                                     Snapshot = p.Snapshot(true, additionalStatus),
                                     SourceActorId = casterEntityId,
+                                    ActionId = effectHeader->ActionId,
                                     Amount = amount,
                                     Action = action?.ActionCategory.RowId == 1 ? "Auto-attack" : action?.Name.ExtractText() ?? "",
                                     Icon = action?.Icon,
@@ -209,6 +239,7 @@ public class CombatEventCapture : IDisposable
                                 });
                             break;
                         case ActionEffectType.Heal:
+                            if (amount == 0) continue;
                             combatEvents.AddEntry(actionTargetId,
                                 new CombatEvent.Healed
                                 {

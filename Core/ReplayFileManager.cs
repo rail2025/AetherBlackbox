@@ -93,6 +93,7 @@ namespace AetherBlackbox.Core
             public List<ReplayFrame>? Frames { get; set; }
             public List<WaymarkSnapshot>? Waymarks { get; set; }
             public List<Death>? Deaths { get; set; }
+            public List<CombatEvent>? DetailedDamageEvents { get; set; }
         }
 
         public List<ReplayFileHeader> GetSavedReplays()
@@ -179,7 +180,8 @@ namespace AetherBlackbox.Core
                         Frames = body.Frames ?? new List<ReplayFrame>(),
                         Waymarks = body.Waymarks ?? new List<WaymarkSnapshot>()
                     },
-                    Deaths = body.Deaths ?? new List<Death>()
+                    Deaths = body.Deaths ?? new List<Death>(),
+                    DetailedDamageEvents = body.DetailedDamageEvents ?? new List<CombatEvent>()
                 };
 
                 if (session.Deaths != null)
@@ -232,7 +234,12 @@ namespace AetherBlackbox.Core
                 {
                     safeDeaths = session.Deaths.ToList();
                 }
-                var body = new { session.ReplayData.Metadata, session.ReplayData.Frames, session.ReplayData.Waymarks, Deaths = safeDeaths };
+                List<CombatEvent> safeEvents;
+                lock (session.DetailedDamageEvents)
+                {
+                    safeEvents = session.DetailedDamageEvents.ToList();
+                }
+                var body = new { session.ReplayData.Metadata, session.ReplayData.Frames, session.ReplayData.Waymarks, Deaths = safeDeaths, DetailedDamageEvents = safeEvents };
 
                 using (var gzip = new GZipStream(fs, CompressionLevel.Optimal))
                 using (var sw = new StreamWriter(gzip))
