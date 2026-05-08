@@ -69,7 +69,8 @@ namespace AetherBlackbox.Windows
                         var icon = Service.TextureProvider.GetFromGameIcon(sheetStatus.Value.Icon).GetWrapOrDefault();
                         if (icon != null)
                         {
-                            ImGui.Image(icon.Handle, new Vector2(24, 24) * ImGuiHelpers.GlobalScale);
+                            float aspectRatio = (float)icon.Width / icon.Height;
+                            ImGui.Image(icon.Handle, new Vector2(24 * aspectRatio, 24) * ImGuiHelpers.GlobalScale);
                             if (ImGui.IsItemHovered()) ImGui.SetTooltip($"{sheetStatus.Value.Name}\n{status.RemainingDuration:F1}s");
                             ImGui.SameLine();
                         }
@@ -184,31 +185,30 @@ namespace AetherBlackbox.Windows
 
         private List<(uint Id, float RemainingDuration)> GetActiveStatuses(ReplayRecording recording, uint entityId, float currentTime)
         {
-            var activeStatuses = new Dictionary<uint, float>();
-
             for (int i = recording.Frames.Count - 1; i >= 0; i--)
             {
                 var frame = recording.Frames[i];
+
                 if (frame.TimeOffset > currentTime) continue;
                 if (currentTime - frame.TimeOffset > 120f) break;
 
                 int idx = frame.Ids.IndexOf(entityId);
-                if (idx != -1 && frame.Statuses != null && idx < frame.Statuses.Count && frame.Statuses[idx] != null)
-                {
-                    foreach (var status in frame.Statuses[idx])
-                    {
-                        if (!activeStatuses.ContainsKey(status.Id))
-                        {
-                            float timeElapsed = currentTime - frame.TimeOffset;
-                            float remaining = status.Duration - timeElapsed;
 
-                            if (remaining > 0) activeStatuses[status.Id] = remaining;
-                            else activeStatuses[status.Id] = 0f;
-                        }
-                    }
-                }
+                if (idx == -1 || frame.Statuses == null || idx >= frame.Statuses.Count || frame.Statuses[idx] == null)
+                    continue;
+
+                return frame.Statuses[idx]
+                    .Select(status =>
+                    {
+                        float timeElapsed = currentTime - frame.TimeOffset;
+                        return (Id: status.Id, Remaining: status.Duration - timeElapsed);
+                    })
+                    .Where(s => s.Remaining > 0f)
+                    .Select(s => (s.Id, s.Remaining))
+                    .ToList();
             }
-            return activeStatuses.Where(kvp => kvp.Value > 0f).Select(kvp => (kvp.Key, kvp.Value)).ToList();
+
+            return new();
         }
 
         private void DrawActionIconSmall(uint actionId, float alpha)

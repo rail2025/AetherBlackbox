@@ -103,6 +103,7 @@ public class Plugin : IDalamudPlugin
 
         Service.PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
         Service.PluginInterface.UiBuilder.OpenConfigUi += OnOpenConfigUi;
+        Service.PluginInterface.UiBuilder.OpenMainUi += OnOpenMainUi;
 
         Service.CommandManager.AddHandler("/abb", new CommandInfo((_, _) => MainWindow.IsOpen = true) { HelpMessage = "Open Aether Blackbox" });
         Service.CommandManager.AddHandler("/aetherblackbox", new CommandInfo((_, _) => MainWindow.IsOpen = true) { HelpMessage = "Open Aether Blackbox" });
@@ -110,6 +111,7 @@ public class Plugin : IDalamudPlugin
 
     }
     private void OnOpenConfigUi() => RecapConfigWindow.IsOpen = true;
+    private void OnOpenMainUi() => MainWindow.IsOpen = true;
     private void OnConditionChange(ConditionFlag flag, bool value)
     {
         if (flag == ConditionFlag.InCombat)
@@ -138,6 +140,8 @@ public class Plugin : IDalamudPlugin
 
         Service.PluginInterface.UiBuilder.Draw -= WindowSystem.Draw;
         Service.PluginInterface.UiBuilder.OpenConfigUi -= OnOpenConfigUi;
+        Service.PluginInterface.UiBuilder.OpenMainUi -= OnOpenMainUi;
+
         WindowSystem.RemoveAllWindows();
         PositionRecorder.Dispose();
         PullManager.Dispose();
