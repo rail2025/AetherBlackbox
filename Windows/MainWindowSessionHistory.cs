@@ -53,13 +53,16 @@ namespace AetherBlackbox.Windows
                 return;
             }
 
-            var groups = new System.Collections.Generic.List<(string Name, System.Collections.Generic.List<Core.PullSession> Pulls)>();
+            var groups = new System.Collections.Generic.List<(string Name, string Duty, System.Collections.Generic.List<Core.PullSession> Pulls)>();
             foreach (var pull in history)
             {
                 int lastParen = pull.ZoneName.LastIndexOf('(');
                 string baseName = lastParen > 0 ? pull.ZoneName.Substring(0, lastParen).Trim() : pull.ZoneName;
 
-                if (groups.Count == 0 || groups.Last().Name != baseName) groups.Add((baseName, new System.Collections.Generic.List<Core.PullSession>()));
+                int dashIdx = baseName.IndexOf(" - ");
+                string dutyName = dashIdx > 0 ? baseName.Substring(0, dashIdx).Trim() : baseName;
+
+                if (groups.Count == 0 || groups.Last().Duty != dutyName) groups.Add((baseName, dutyName, new System.Collections.Generic.List<Core.PullSession>()));
                 groups.Last().Pulls.Add(pull);
             }
 
@@ -69,7 +72,7 @@ namespace AetherBlackbox.Windows
                 bool containsSelected = selectedPull != null && group.Pulls.Contains(selectedPull);
                 var groupFlags = ImGuiTreeNodeFlags.SpanFullWidth | (containsSelected ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.None);
 
-                if (ImGui.TreeNodeEx($"##Group_{i}", groupFlags, group.Name))
+                if (ImGui.TreeNodeEx($"##Group_{i}", groupFlags, group.Duty))
                 {
                     for (int j = group.Pulls.Count - 1; j >= 0; j--)
                     {
@@ -77,10 +80,15 @@ namespace AetherBlackbox.Windows
                         int lastParen = pull.ZoneName.LastIndexOf('(');
                         string hpStr = lastParen > 0 ? pull.ZoneName.Substring(lastParen).Replace("(", "").Replace(")", "").Replace("%%", "%").Trim() : "??%";
 
+                        int dashIdx = pull.ZoneName.IndexOf(" - ");
+                        string bossName = dashIdx >= 0 && lastParen > dashIdx
+                            ? pull.ZoneName.Substring(dashIdx + 3, lastParen - dashIdx - 3).Trim()
+                            : "";
+
                         var flags = ImGuiTreeNodeFlags.OpenOnArrow | ImGuiTreeNodeFlags.SpanFullWidth;
                         if (selectedPull == pull) flags |= ImGuiTreeNodeFlags.DefaultOpen;
 
-                        var title = $"Pull #{pull.PullNumber} ({pull.StartTime:HH:mm}) | {hpStr} - {pull.Duration:mm\\:ss}" + (pull.IsTruncated ? " [TRUNC]" : "");
+                        var title = $"Pull #{pull.PullNumber}, {hpStr} | {bossName} ({pull.Duration:mm\\:ss})" + (pull.IsTruncated ? " [TRUNC]" : "");
                         bool isOpen = ImGui.TreeNodeEx($"##Pull_{pull.PullNumber}", flags, title);
 
                         ImGui.SameLine();
