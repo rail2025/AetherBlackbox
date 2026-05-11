@@ -4,7 +4,7 @@
 
 See what actually caused your wipe.
 
-Aether Blackbox records your pulls and lets you replay them in a 2D timeline. You can scrub through positioning, damage, and mechanics, or sync it with your own footage to see what happened from your POV.
+Aether Blackbox records your pulls and lets you replay them in a 2D timeline. You can scrub through positioning, damage, and mechanics, or sync it with your own footage at [https://blackbox.aetherdraw.me](https://blackbox.aetherdraw.me) to see what happened from your POV.
 
 ---
 
@@ -20,7 +20,7 @@ Aether Blackbox records your pulls and lets you replay them in a 2D timeline. Yo
 2. Open the replay and scrub back through the fight
 3. Check positioning, damage, buffs, etc leading up to the wipe
 
-If you want more detail or want to share things with your group, you can export it to the web app.
+If you want more detail or want to share things with your console playing friends, you can export it to the web app.
 
 ---
 
@@ -54,12 +54,12 @@ If you want more detail or want to share things with your group, you can export 
 
 ### Save and reuse stuff
 
-* Turn moments into simple slides
-* Build a small library of strats or wipe reviews
+* Turn mechanics into simple slides
+* Build a plan with pixel perfect in-game positions and drawings and export directly into AetherDraw
 
 ---
 
-## Where it runs
+## Plugin vs web differences
 
 ### In-game plugin
 
@@ -69,23 +69,12 @@ If you want more detail or want to share things with your group, you can export 
 
 ### Web app
 
-* VOD sync
-* Better tools for reviewing and sharing
-* Saved replays and plans
-
----
-
-## When this is useful
-
-* "where was I standing"
-* "why did that mechanic hit me"
-* "what actually killed us here"
-
+* adds VOD sync
+* Easier sharing for console
+* Requires just 1 person in live sync mode to have the plugin running (so you can have 7 console players with the page open on a phone or tablet or whatever)
 ---
 
 ## Getting started
-
-<!-- Link to your site / tutorial -->
 
 * Walkthrough: [https://blackbox.aetherdraw.me](https://blackbox.aetherdraw.me)
 * Download / install: [https://github.com/rail2025/AetherBlackbox](https://github.com/rail2025/AetherBlackbox)
@@ -94,7 +83,7 @@ If you want more detail or want to share things with your group, you can export 
 
 ## Notes
 
-* Works best if you already record your gameplay (for VOD sync)
+* Works best if you already record your gameplay (for VOD sync) Use [OBStoABB](https://github.com/rail2025/PulltoOBS) for vod file naming automation and stitching
 * You can still use the replay without any video
 
 ---
