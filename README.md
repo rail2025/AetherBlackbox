@@ -1,6 +1,6 @@
 ---
 
-# Aether Blackbox
+# ![ABB icon](icon.png) Aether Blackbox  
 
 See what actually caused your wipe.
 
