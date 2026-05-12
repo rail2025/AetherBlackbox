@@ -60,7 +60,7 @@ namespace AetherBlackbox.Windows
 
                 if (evt is CombatEvent.StatusEffect status && (status.Id == 148 || status.Id == 1140))
                 {
-                    var resIcon = AetherBlackbox.DrawingLogic.TextureManager.GetTexture($"luminaicon:{status.Id}");
+                    var resIcon = TextureManager.GetTexture($"luminaicon:{status.Id}");
                     if (resIcon != null)
                     {
                         Vector2 iconSize = new Vector2(16, 16) * ImGuiHelpers.GlobalScale;
@@ -160,10 +160,10 @@ namespace AetherBlackbox.Windows
 
                 drawList.AddTriangleFilled(new Vector2(x, cursor.Y - 2), new Vector2(x - 5, cursor.Y - 10), new Vector2(x + 5, cursor.Y - 10), pingColor);
 
-                string iconText = Dalamud.Interface.FontAwesomeIcon.Eye.ToIconString();
+                string iconText = FontAwesomeIcon.Eye.ToIconString();
                 string normalText = $" {syncedCount}/{totalCount}" + (syncTarget == id ? " [Synced]" : "");
 
-                ImGui.PushFont(Dalamud.Interface.UiBuilder.IconFont);
+                ImGui.PushFont(UiBuilder.IconFont);
                 float iconWidth = ImGui.CalcTextSize(iconText).X;
                 ImGui.PopFont();
 
@@ -181,7 +181,7 @@ namespace AetherBlackbox.Windows
                 ImGui.SetCursorScreenPos(new Vector2(x - (totalWidth / 2), cursor.Y - 10 - textHeight));
                 ImGui.PushStyleColor(ImGuiCol.Text, syncTarget == id ? syncedTextColor : 0xFFD9D1C9);
 
-                ImGui.PushFont(Dalamud.Interface.UiBuilder.IconFont);
+                ImGui.PushFont(UiBuilder.IconFont);
                 ImGui.Text(iconText);
                 ImGui.PopFont();
 

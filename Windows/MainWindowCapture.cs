@@ -213,7 +213,7 @@ namespace AetherBlackbox.Windows
             );
         }
 
-        private List<System.Action<IImageProcessingContext, Vector2, float>> PrepareRenderActions(List<BaseDrawable> combinedDrawables, ref System.Drawing.RectangleF bounds, ref bool firstBound)
+        private List<Action<IImageProcessingContext, Vector2, float>> PrepareRenderActions(List<BaseDrawable> combinedDrawables, ref System.Drawing.RectangleF bounds, ref bool firstBound)
         {
             var renderActions = new List<System.Action<IImageProcessingContext, Vector2, float>>();
 

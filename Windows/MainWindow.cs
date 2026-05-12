@@ -1,3 +1,4 @@
+//TODO: finish the class rewrites when the stars align
 using AetherBlackbox.Core;
 using AetherBlackbox.DrawingLogic;
 using AetherBlackbox.Events;
