@@ -26,26 +26,25 @@ namespace AetherBlackbox;
 public class Plugin : IDalamudPlugin
 {
 
-    public static string Name => "Aether Blackbox";    
-    public Configuration Configuration { get; init; }
-    public WindowSystem WindowSystem { get; init; }
+    public static string Name => "Aether Blackbox";
+    public Configuration Configuration { get; private set; }
+    public WindowSystem WindowSystem { get; private set; }
 
-    public PositionRecorder PositionRecorder { get; init; }
-    public PullManager PullManager { get; init; }
+    public PositionRecorder PositionRecorder { get; private set; }
+    public PullManager PullManager { get; private set; }
 
-    public RecapConfigWindow RecapConfigWindow { get; init; }
-    public MainWindow MainWindow { get; init; }
-    public CanvasConfigWindow CanvasConfigWindow { get; init; }
-    public ToolbarWindow ToolbarWindow { get; init; }
-    public PropertiesWindow PropertiesWindow { get; init; }
-    public AboutWindow AboutWindow { get; init; }
-    public LiveSessionWindow LiveSessionWindow { get; init; }
-    public ConditionEvaluator ConditionEvaluator { get; init; }
+    public RecapConfigWindow RecapConfigWindow { get; private set; }
+    public MainWindow MainWindow { get; private set; }
+    public CanvasConfigWindow CanvasConfigWindow { get; private set; }
+    public ToolbarWindow ToolbarWindow { get; private set; }
+    public PropertiesWindow PropertiesWindow { get; private set; }
+    public AboutWindow AboutWindow { get; private set; }
+    public LiveSessionWindow LiveSessionWindow { get; private set; }
+    public ConditionEvaluator ConditionEvaluator { get; private set; }
 
-    public CombatEventCapture Capture { get; init; }
-    public NotificationHandler NotificationHandler { get; init; }
-    public NetworkManager NetworkManager { get; init; }
-
+    public CombatEventCapture Capture { get; private set; }
+    public NotificationHandler NotificationHandler { get; private set; }
+    public NetworkManager NetworkManager { get; private set; }
     public Dictionary<ulong, List<Death>> DeathsPerPlayer { get; } = new();
     public Dictionary<ulong, IPlayerCharacter> Players { get; } = new();
     private Dalamud.Plugin.Ipc.ICallGateProvider<string>? pullMetadataIpcProvider;
@@ -53,14 +52,28 @@ public class Plugin : IDalamudPlugin
     public Plugin(IDalamudPluginInterface pluginInterface)
     {
         Service.Initialize(pluginInterface);
-
         Configuration = Configuration.Get(pluginInterface);
+
+        InitializeReplaySystem();
+        InitializeDrawingSystem();
+
+        Service.PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
+        Service.PluginInterface.UiBuilder.OpenConfigUi += OnOpenConfigUi;
+        Service.PluginInterface.UiBuilder.OpenMainUi += OnOpenMainUi;
+
+        Service.CommandManager.AddHandler("/abb", new CommandInfo((_, _) => MainWindow.IsOpen = true) { HelpMessage = "Open Aether Blackbox" });
+        Service.CommandManager.AddHandler("/aetherblackbox", new CommandInfo((_, _) => MainWindow.IsOpen = true) { HelpMessage = "Open Aether Blackbox" });
+    }
+
+    private void InitializeReplaySystem()
+    {
         ConditionEvaluator = new ConditionEvaluator(this);
         PositionRecorder = new PositionRecorder(this);
         PullManager = new PullManager(this);
         Capture = new CombatEventCapture(this);
         NotificationHandler = new NotificationHandler(this);
         NetworkManager = new NetworkManager();
+
         void BroadcastHeaders()
         {
             var headers = PullManager.GetLastHeadersJson();
@@ -72,6 +85,7 @@ public class Plugin : IDalamudPlugin
         NetworkManager.OnReplayRequested += hash => PullManager.UploadReplayByHash(hash);
         NetworkManager.OnHeadersRequested += BroadcastHeaders;
         Service.Condition.ConditionChange += OnConditionChange;
+
         try
         {
             pullMetadataIpcProvider = Service.PluginInterface.GetIpcProvider<string>("AetherBlackbox.GetLastPullMetadata");
@@ -81,18 +95,20 @@ public class Plugin : IDalamudPlugin
         {
             Service.PluginLog.Error(ex, "Failed to register IPC provider.");
         }
+    }
+
+    private void InitializeDrawingSystem()
+    {
+        WindowSystem = new WindowSystem(Name);
+
         RecapConfigWindow = new RecapConfigWindow(this);
-        
-        // CanvasConfigWindow is for the drawing config
         CanvasConfigWindow = new CanvasConfigWindow(this);
         ToolbarWindow = new ToolbarWindow(this);
         PropertiesWindow = new PropertiesWindow(this);
         AboutWindow = new AboutWindow();
-
         MainWindow = new MainWindow(this);
         LiveSessionWindow = new LiveSessionWindow(this);
 
-        WindowSystem = new WindowSystem(Name);
         WindowSystem.AddWindow(RecapConfigWindow);
         WindowSystem.AddWindow(CanvasConfigWindow);
         WindowSystem.AddWindow(PropertiesWindow);
@@ -100,15 +116,6 @@ public class Plugin : IDalamudPlugin
         WindowSystem.AddWindow(AboutWindow);
         WindowSystem.AddWindow(LiveSessionWindow);
         WindowSystem.AddWindow(NotificationHandler);
-
-        Service.PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
-        Service.PluginInterface.UiBuilder.OpenConfigUi += OnOpenConfigUi;
-        Service.PluginInterface.UiBuilder.OpenMainUi += OnOpenMainUi;
-
-        Service.CommandManager.AddHandler("/abb", new CommandInfo((_, _) => MainWindow.IsOpen = true) { HelpMessage = "Open Aether Blackbox" });
-        Service.CommandManager.AddHandler("/aetherblackbox", new CommandInfo((_, _) => MainWindow.IsOpen = true) { HelpMessage = "Open Aether Blackbox" });
-
-
     }
     private void OnOpenConfigUi() => RecapConfigWindow.IsOpen = true;
     private void OnOpenMainUi() => MainWindow.IsOpen = true;
@@ -168,5 +175,4 @@ public class Plugin : IDalamudPlugin
             return string.Empty;
         }
     }
-
 }
