@@ -123,9 +123,7 @@ public class CombatEventCapture : IDisposable
             for (var i = 0; i < effectHeader->NumTargets; i++)
             {
                 var actionTargetId = (uint)(targetEntityIds[i] & uint.MaxValue);
-                if (!plugin.ConditionEvaluator.ShouldCapture(actionTargetId))
-                    continue;
-
+               
                 var targetObj = Service.ObjectTable.SearchById(actionTargetId);
                 var targetEffects = effectArray[i];
 
@@ -154,6 +152,7 @@ public class CombatEventCapture : IDisposable
                                 plugin.PullManager.CurrentSession.DetailedDamageEvents.Add(new CombatEvent.DamageTaken
                                 {
                                     Snapshot = new CombatEvent.EventSnapshot { Time = DateTime.Now, CurrentHp = npc.CurrentHp, MaxHp = npc.MaxHp, BarrierPercent = 0 },
+                                    TargetActorId = actionTargetId,
                                     SourceActorId = casterEntityId,
                                     ActionId = effectHeader->ActionId,
                                     Amount = dmg,
@@ -170,6 +169,8 @@ public class CombatEventCapture : IDisposable
                         }
                     }
                 }
+                if (!plugin.ConditionEvaluator.ShouldCapture(actionTargetId))
+                    continue;
 
                 if (targetObj is not IPlayerCharacter p)
                     continue;
@@ -225,6 +226,7 @@ public class CombatEventCapture : IDisposable
                                     // 2115 = Conked, BLU Magic Hammer
                                     // 3642 = Candy Cane, BLU Candy Cane
                                     Snapshot = p.Snapshot(true, additionalStatus),
+                                    TargetActorId = actionTargetId,
                                     SourceActorId = casterEntityId,
                                     ActionId = effectHeader->ActionId,
                                     Amount = amount,

@@ -94,11 +94,15 @@ namespace AetherBlackbox.Core
 
                     if (CurrentSession.ReplayData.Frames != null && CurrentSession.ReplayData.Frames.Count > 0)
                     {
-                        var lastFrame = CurrentSession.ReplayData.Frames.Last();
-                        int idx = lastFrame.Ids.IndexOf(bossKvp.Key);
-                        if (idx != -1 && lastFrame.Hp.Count > idx)
+                        for (int i = CurrentSession.ReplayData.Frames.Count - 1; i >= 0; i--)
                         {
-                            bossHp = lastFrame.Hp[idx];
+                            var frame = CurrentSession.ReplayData.Frames[i];
+                            int idx = frame.Ids.IndexOf(bossKvp.Key);
+                            if (idx != -1 && frame.Hp.Count > idx)
+                            {
+                                bossHp = frame.Hp[idx];
+                                break;
+                            }
                         }
                     }
 
@@ -128,7 +132,7 @@ namespace AetherBlackbox.Core
 
             History.Add(CurrentSession);
             var sessionToSave = CurrentSession;
-            Task.Run(() => FileManager.SaveSession(sessionToSave));
+            _ = Task.Run(() => FileManager.SaveSession(sessionToSave));
 
             var headerBroadcast = new[] {
                 new {
@@ -239,7 +243,7 @@ namespace AetherBlackbox.Core
                 Data = replayBinary
             };
 
-            plugin.NetworkManager.SendStateUpdateAsync(payload);
+            _ = plugin.NetworkManager.SendStateUpdateAsync(payload);
             Service.PluginLog.Info($"[PullManager] Finished uploading EncounterSync for {hash}. Size: {replayBinary.Length / 1024} KB");
         }
         public List<ReplayFileManager.ReplayFileHeader> GetSavedReplays()

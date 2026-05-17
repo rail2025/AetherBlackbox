@@ -378,6 +378,40 @@ public partial class MainWindow : Window, IDisposable
                 ImGui.EndPopup();
             }
 
+            float rightAlignOffset = ImGui.GetContentRegionAvail().X - (130f * ImGuiHelpers.GlobalScale);
+            if (rightAlignOffset > 0) ImGui.SameLine(rightAlignOffset);
+            else ImGui.SameLine();
+
+            if (ImGuiComponents.IconButton("##TimeNudgeLeft", FontAwesomeIcon.ChevronLeft))
+            {
+                syncTarget = null;
+                isPlaybackActive = false;
+                replayTimeOffset = Math.Max(timelineMin, replayTimeOffset - 0.1f);
+                BroadcastTimeSync();
+            }
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Nudge Left (-0.1s)");
+
+            ImGui.SameLine();
+            float absTimeInput = currentDeathTime + replayTimeOffset;
+            ImGui.SetNextItemWidth(55f * ImGuiHelpers.GlobalScale);
+            if (ImGui.InputFloat("##ExactTime", ref absTimeInput, 0f, 0f, "%.1f", ImGuiInputTextFlags.EnterReturnsTrue))
+            {
+                syncTarget = null;
+                isPlaybackActive = false;
+                replayTimeOffset = Math.Clamp(absTimeInput - currentDeathTime, timelineMin, 5f);
+                BroadcastTimeSync();
+            }
+
+            ImGui.SameLine();
+            if (ImGuiComponents.IconButton("##TimeNudgeRight", FontAwesomeIcon.ChevronRight))
+            {
+                syncTarget = null;
+                isPlaybackActive = false;
+                replayTimeOffset = Math.Min(5f, replayTimeOffset + 0.1f);
+                BroadcastTimeSync();
+            }
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Nudge Right (+0.1s)");
+
             ImGui.Spacing();
             ImGui.Dummy(new Vector2(0, 15f * ImGuiHelpers.GlobalScale));
             DrawTimeline();

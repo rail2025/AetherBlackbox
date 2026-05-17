@@ -43,6 +43,14 @@ namespace AetherBlackbox.Windows
             }
             if (ImGui.IsItemDeactivated()) BroadcastTimeSync();
 
+            if (ImGui.IsItemHovered() && ImGui.GetIO().MouseWheel != 0f)
+            {
+                syncTarget = null;
+                isPlaybackActive = false;
+                replayTimeOffset = Math.Clamp(replayTimeOffset + (ImGui.GetIO().MouseWheel * 0.1f), minTime, maxTime);
+                BroadcastTimeSync();
+            }
+
             foreach (var evt in ActiveDeathReplay.Events)
             {
                 float relativeTime = (float)(evt.Snapshot.Time - ActiveDeathReplay.TimeOfDeath).TotalSeconds;
