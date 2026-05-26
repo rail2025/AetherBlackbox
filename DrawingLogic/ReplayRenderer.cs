@@ -74,8 +74,18 @@ namespace AetherBlackbox.DrawingLogic
                 }
             }
 
+            bool is755P2 = false;
 
-            DrawMapBackground(drawList, territoryTypeId, view, recording.Waymarks, isM12P2, config);
+            if (territoryTypeId == 755 && recording.Header != null)
+            {
+                bool HasHeartlessAngel(Dictionary<uint, string> manifest) =>
+                    manifest != null && manifest.Values.Any(v => v != null && v.Contains("Heartless Angel", StringComparison.OrdinalIgnoreCase));
+
+                is755P2 = HasHeartlessAngel(recording.Header.AbilityManifest) || HasHeartlessAngel(recording.Header.StatusManifest);
+            }
+
+            DrawMapBackground(drawList, territoryTypeId, view, recording.Waymarks, isM12P2, is755P2, config);
+
             DrawWaymarks(drawList, recording.Waymarks, view);
 
             for (int i = 0; i < frame.Ids.Count; i++)
@@ -306,14 +316,14 @@ namespace AetherBlackbox.DrawingLogic
         private readonly Dictionary<int, byte> _waymarkIconRetries = new();
         private readonly Dictionary<uint, byte> _mapRetries = new();
 
-        private void DrawMapBackground(ImDrawListPtr drawList, uint territoryTypeId, ViewContext view, List<WaymarkSnapshot> waymarks, bool isM12P2, Configuration config)
+        private void DrawMapBackground(ImDrawListPtr drawList, uint territoryTypeId, ViewContext view, List<WaymarkSnapshot> waymarks, bool isM12P2, bool is755P2, Configuration config)
         {
 
             uint cacheKey = isM12P2 ? 132702u : territoryTypeId;
 
             if (!_mapCache.TryGetValue(cacheKey, out var texture) || texture == null || texture.Handle == IntPtr.Zero)
             {
-                var resolved = ResolveMapTexture(territoryTypeId, isM12P2);
+                var resolved = ResolveMapTexture(territoryTypeId, isM12P2, is755P2);
 
                 if (resolved != null)
                 {
@@ -331,7 +341,7 @@ namespace AetherBlackbox.DrawingLogic
                 Vector3 mapAnchorPos = view.CenterWorldPos;
                 float finalMapSize = 512f * ImGuiHelpers.GlobalScale * view.Zoom;
 
-                if (territoryTypeId == 992 || territoryTypeId == 1321 || territoryTypeId == 1323 || territoryTypeId == 1325 || territoryTypeId == 1327)
+                if (territoryTypeId == 992 || territoryTypeId == 1321 || territoryTypeId == 1323 || territoryTypeId == 1325 || territoryTypeId == 1327 || territoryTypeId == 755)
                 {
                     finalMapSize *= config.MapScaleMultiplier;
 
@@ -370,7 +380,7 @@ namespace AetherBlackbox.DrawingLogic
             }
         }
 
-        private IDalamudTextureWrap? ResolveMapTexture(uint territoryTypeId, bool isM12P2)
+        private IDalamudTextureWrap? ResolveMapTexture(uint territoryTypeId, bool isM12P2, bool is755P2)
         {
             var territoryNullable = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.TerritoryType>().GetRowOrDefault(territoryTypeId);
             if (!territoryNullable.HasValue) return null;
@@ -461,6 +471,7 @@ namespace AetherBlackbox.DrawingLogic
                     1323 => "m10.webp",
                     1325 => "m11p1.webp",
                     1327 => isM12P2 ? "m12p2.webp" : "m12p1.webp",
+                    755 => is755P2 ? "p2_fg.webp" : "p1_fg.webp",
                     1238 => "fru.webp",
                     _ => null
                 };

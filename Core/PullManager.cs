@@ -94,14 +94,17 @@ namespace AetherBlackbox.Core
 
                     if (CurrentSession.ReplayData.Frames != null && CurrentSession.ReplayData.Frames.Count > 0)
                     {
-                        for (int i = CurrentSession.ReplayData.Frames.Count - 1; i >= 0; i--)
+                        bossHp = bossMaxHp;
+                        for (int i = 0; i < CurrentSession.ReplayData.Frames.Count; i++)
                         {
                             var frame = CurrentSession.ReplayData.Frames[i];
                             int idx = frame.Ids.IndexOf(bossKvp.Key);
                             if (idx != -1 && frame.Hp.Count > idx)
                             {
-                                bossHp = frame.Hp[idx];
-                                break;
+                                if (frame.Hp[idx] < bossHp)
+                                {
+                                    bossHp = frame.Hp[idx];
+                                }
                             }
                         }
                     }

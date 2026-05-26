@@ -148,6 +148,19 @@ namespace AetherBlackbox.Windows
             if (ActiveDeathReplay.TerritoryTypeId == 1325) return "m11p1";
             if (ActiveDeathReplay.TerritoryTypeId == 1327) return "m12p1";
             if (ActiveDeathReplay.TerritoryTypeId == 1238) return "fru";
+            if (ActiveDeathReplay.TerritoryTypeId == 755)
+            {
+                bool is755P2 = false;
+                var header = ActiveDeathReplay.ReplayData.Header;
+                if (header != null)
+                {
+                    bool HasHeartlessAngel(Dictionary<uint, string> manifest) =>
+                        manifest != null && manifest.Values.Any(v => v != null && v.Contains("Heartless Angel", StringComparison.OrdinalIgnoreCase));
+
+                    is755P2 = HasHeartlessAngel(header.AbilityManifest) || HasHeartlessAngel(header.StatusManifest);
+                }
+                return is755P2 ? "p2_fg" : "p1_fg";
+            }
             if (ActiveDeathReplay.TerritoryTypeId == 1317)
             {
                 var boss = ActiveDeathReplay.ReplayData.Metadata.Values.FirstOrDefault(m => m.Type == EntityType.Boss);
