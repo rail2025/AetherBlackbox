@@ -89,28 +89,33 @@ namespace AetherBlackbox.Core
                 if (bossKvp.Key != 0 && !string.IsNullOrEmpty(bossKvp.Value.Name))
                 {
                     bossName = bossKvp.Value.Name;
-                    uint bossHp = 0;
-                    uint bossMaxHp = bossKvp.Value.MaxHp;
+                    float lowestPct = 100f;
+
+                    var bossIds = CurrentSession.ReplayData.Metadata
+                        .Where(kvp => kvp.Value.Name == bossName && kvp.Value.MaxHp > 0)
+                        .Select(kvp => kvp.Key)
+                        .ToList();
 
                     if (CurrentSession.ReplayData.Frames != null && CurrentSession.ReplayData.Frames.Count > 0)
                     {
-                        bossHp = bossMaxHp;
-                        for (int i = 0; i < CurrentSession.ReplayData.Frames.Count; i++)
+                        foreach (var frame in CurrentSession.ReplayData.Frames)
                         {
-                            var frame = CurrentSession.ReplayData.Frames[i];
-                            int idx = frame.Ids.IndexOf(bossKvp.Key);
-                            if (idx != -1 && frame.Hp.Count > idx)
+                            foreach (var bId in bossIds)
                             {
-                                if (frame.Hp[idx] < bossHp)
+                                int idx = frame.Ids.IndexOf(bId);
+                                if (idx != -1 && frame.Hp.Count > idx)
                                 {
-                                    bossHp = frame.Hp[idx];
+                                    float currentPct = ((float)frame.Hp[idx] / CurrentSession.ReplayData.Metadata[bId].MaxHp) * 100f;
+                                    if (currentPct < lowestPct)
+                                    {
+                                        lowestPct = currentPct;
+                                    }
                                 }
                             }
                         }
                     }
 
-                    if (bossMaxHp > 0)
-                        hpPct = ((float)bossHp / bossMaxHp) * 100f;
+                    hpPct = lowestPct;
                 }
             }
 

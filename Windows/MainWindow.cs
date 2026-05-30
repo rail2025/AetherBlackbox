@@ -375,6 +375,13 @@ public partial class MainWindow : Window, IDisposable
                     configuration.Save();
                 }
 
+                var showStatuses = configuration.ShowReplayStatuses;
+                if (ImGui.Checkbox("Show Statuses", ref showStatuses))
+                {
+                    configuration.ShowReplayStatuses = showStatuses;
+                    configuration.Save();
+                }
+
                 ImGui.EndPopup();
             }
 

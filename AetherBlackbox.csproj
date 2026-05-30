@@ -4,15 +4,15 @@
 		<AssemblyName>AetherBlackbox</AssemblyName>
 		<RootNamespace>AetherBlackbox</RootNamespace>
 		<InternalName>AetherBlackbox</InternalName>
-		<AssemblyVersion>7.50.2.5</AssemblyVersion>
+		<AssemblyVersion>7.50.2.6</AssemblyVersion>
 		<TargetFramework>net10.0-windows</TargetFramework>
 		<Platforms>x64</Platforms>
 		<PlatformTarget>x64</PlatformTarget>
 		<LangVersion>latest</LangVersion>
-		<Description>Visual replay of positions before death</Description>
+		<Description>Visual replay of positions before death. DeathRecap+AetherDraw</Description>
 		<PackageProjectUrl>https://github.com/rail2025/AetherBlackbox/</PackageProjectUrl>
 		<Authors>rail</Authors>
-		<Version>7.50.2.5</Version>
+		<Version>7.50.2.6</Version>
 		<NoWarn>CA1416</NoWarn>
 		<AcceptsFeedback>false</AcceptsFeedback>
 		<PathMap>$(MSBuildProjectDirectory)=AetherBlackbox</PathMap>
