@@ -132,8 +132,4 @@ This repository contains significant modifications and additional functionality,
 
 ## Installation
 
-Add the following repository URL to Dalamud:
-
-```
-https://raw.githubusercontent.com/rail2025/AetherBlackbox/refs/heads/main/repo.json
-```
+Install through Dalamud.
