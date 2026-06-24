@@ -327,17 +327,21 @@ namespace AetherBlackbox.Windows
                 ImGui.Separator();
                 ImGui.Text("Mechanic Definition");
 
+                ImGui.Text("Name");
                 ImGui.SetNextItemWidth(availableWidth);
-                ImGui.InputText("Name##MechName", ref mechanicNameBuffer, 64);
+                ImGui.InputText("##MechName", ref mechanicNameBuffer, 64);
 
+                ImGui.Text("Action ID");
                 ImGui.SetNextItemWidth(availableWidth);
-                ImGui.InputInt("Action ID##MechId", ref mechanicActionIdBuffer);
+                ImGui.InputInt("##MechId", ref mechanicActionIdBuffer);
 
+                ImGui.Text("Source Type");
                 ImGui.SetNextItemWidth(availableWidth);
-                ImGui.Combo("Source Type##MechSource", ref mechanicSourceTypeIndex, mechanicSourceTypes, mechanicSourceTypes.Length);
+                ImGui.Combo("##MechSource", ref mechanicSourceTypeIndex, mechanicSourceTypes, mechanicSourceTypes.Length);
 
                 if (ImGui.Button("Use Last Cast"))
                 {
+                    Service.PluginLog.Debug("[PropertiesWindow] 'Use Last Cast' clicked.");
                     var recording = mainWindow.ActiveDeathReplay?.ReplayData;
                     if (recording != null && recording.Frames != null)
                     {
@@ -351,6 +355,7 @@ namespace AetherBlackbox.Windows
                                 if (i < frame.Actions.Count && frame.Actions[i] != 0)
                                 {
                                     mechanicActionIdBuffer = (int)frame.Actions[i];
+                                    Service.PluginLog.Debug($"[PropertiesWindow] Found Action ID: {mechanicActionIdBuffer} from Entity {frame.Ids[i]} at frame {f}.");
 
                                     var sheet = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>();
                                     var actionRow = sheet?.GetRowOrDefault((uint)mechanicActionIdBuffer);
@@ -376,6 +381,7 @@ namespace AetherBlackbox.Windows
                         SourceType = (Core.Mechanics.MechanicSourceType)mechanicSourceTypeIndex,
                         Color = targetObj.Color,
                         Thickness = targetObj.Thickness,
+                        IsFilled = targetObj.IsFilled,
                         Duration = 3.0f // Default fallback
                     };
 
@@ -407,12 +413,23 @@ namespace AetherBlackbox.Windows
                     }
 
                     uint territoryId = mainWindow.ActiveDeathReplay?.TerritoryTypeId ?? 0;
+                    Service.PluginLog.Debug($"[PropertiesWindow] Attempting save - TerritoryId: {territoryId}, ActionId: {entry.ActionId}");
+
                     if (territoryId != 0 && entry.ActionId != 0)
                     {
+                        Service.PluginLog.Debug("[PropertiesWindow] Loading existing mechanics from database...");
                         var entries = Core.Mechanics.MechanicDatabaseManager.LoadTerritory(territoryId);
+
                         entries.RemoveAll(e => e.ActionId == entry.ActionId);
                         entries.Add(entry);
+
+                        Service.PluginLog.Debug($"[PropertiesWindow] Saving {entries.Count} mechanics to disk...");
                         Core.Mechanics.MechanicDatabaseManager.SaveTerritory(territoryId, entries);
+                        Service.PluginLog.Debug("[PropertiesWindow] Save completed successfully.");
+                    }
+                    else
+                    {
+                        Service.PluginLog.Warning("[PropertiesWindow] Save aborted: TerritoryId or ActionId is 0.");
                     }
                 }
             }

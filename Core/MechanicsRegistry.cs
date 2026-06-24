@@ -12,12 +12,37 @@ namespace AetherBlackbox.Core
 
         public static Dictionary<uint, AoeInfo>? GetMechanics(uint territoryId)
         {
-            if (TerritoryMap.TryGetValue(territoryId, out var mechanics))
+            var result = new Dictionary<uint, AoeInfo>();
+
+            if (TerritoryMap.TryGetValue(territoryId, out var defaultMechanics))
             {
-                return mechanics;
+                foreach (var item in defaultMechanics)
+                {
+                    result[item.Key] = item.Value;
+                }
             }
 
-            return null;
+            var customEntries = MechanicDatabaseManager.LoadTerritory(territoryId);
+            if (customEntries != null)
+            {
+                foreach (var entry in customEntries)
+                {
+                    result[entry.ActionId] = new AoeInfo
+                    {
+                        Shape = entry.Shape,
+                        Radius = entry.Radius,
+                        Width = entry.Width,
+                        InnerRadius = entry.InnerRadius,
+                        Angle = entry.Angle,
+                        Color = entry.Color,
+                        Thickness = entry.Thickness,
+                        IsFilled = entry.IsFilled,
+                        Duration = entry.Duration
+                    };
+                }
+            }
+
+            return result.Count > 0 ? result : null;
         }
     }
 }

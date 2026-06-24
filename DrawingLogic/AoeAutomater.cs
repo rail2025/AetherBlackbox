@@ -23,7 +23,8 @@ namespace AetherBlackbox.DrawingLogic
             if (mechanics == null || recording == null || recording.Frames == null)
                 return activeAoEs;
 
-            float windowStart = currentTime - 0.5f;
+            float maxLookback = 15.0f;
+            float windowStart = currentTime - maxLookback;
 
             for (int f = recording.Frames.Count - 1; f >= 0; f--)
             {
@@ -37,13 +38,19 @@ namespace AetherBlackbox.DrawingLogic
                     uint actionId = frame.Actions[i];
                     if (actionId != 0 && mechanics.TryGetValue(actionId, out var aoeInfo))
                     {
-                        activeAoEs.Add(new ActiveAoe
+                        float duration = aoeInfo.Duration > 0 ? aoeInfo.Duration : 0.5f;
+                        float expTime = frame.TimeOffset + duration;
+
+                        if (currentTime <= expTime)
                         {
-                            Info = aoeInfo,
-                            Origin = new Vector3(frame.X[i], 0, frame.Z[i]),
-                            Rotation = frame.Rot[i],
-                            ExpirationTime = frame.TimeOffset + 0.5f
-                        });
+                            activeAoEs.Add(new ActiveAoe
+                            {
+                                Info = aoeInfo,
+                                Origin = new Vector3(frame.X[i], 0, frame.Z[i]),
+                                Rotation = frame.Rot[i],
+                                ExpirationTime = expTime
+                            });
+                        }
                     }
                 }
             }

@@ -4,24 +4,6 @@ using static AetherBlackbox.Core.Mechanics.AoeShape;
 
 namespace AetherBlackbox.Core.Mechanics
 {
-    public enum AoeShape
-    {
-        Circle,
-        Cone,
-        Rect,
-        Donut
-    }
-
-    public class AoeInfo
-    {
-        public AoeShape Shape { get; set; }
-        public float Radius { get; set; }
-        public float Width { get; set; }
-        public float InnerRadius { get; set; }
-        public float Angle { get; set; }
-        public Vector4 Color { get; set; } = new Vector4(1f, 0.5f, 0f, 0.3f); // change to color for aoes. this is orange
-    }
-
     public static class UMAD
     {
         public static AoeInfo Circle(float radius) => new() { Shape = AoeShape.Circle, Radius = radius };

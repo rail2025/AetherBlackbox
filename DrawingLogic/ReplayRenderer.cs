@@ -164,9 +164,12 @@ namespace AetherBlackbox.DrawingLogic
             Vector2 centerRel = relPos * logicalScale;
             float radiusRel = aoe.Info.Radius * logicalScale;
 
+            bool isFilled = aoe.Info.IsFilled;
+            float thickness = aoe.Info.Thickness;
+
             if (aoe.Info.Shape == AoeShape.Circle)
             {
-                var circle = new DrawableCircle(centerRel, aoe.Info.Color, 0f, true)
+                var circle = new DrawableCircle(centerRel, aoe.Info.Color, thickness, isFilled)
                 {
                     Radius = radiusRel,
                     IsPreview = false
@@ -175,7 +178,7 @@ namespace AetherBlackbox.DrawingLogic
             }
             else if (aoe.Info.Shape == AoeShape.Donut)
             {
-                var donut = new DrawableDonut(centerRel, aoe.Info.Color, 0f, true, radiusRel, aoe.Info.InnerRadius * logicalScale)
+                var donut = new DrawableDonut(centerRel, aoe.Info.Color, thickness, isFilled, radiusRel, aoe.Info.InnerRadius * logicalScale)
                 {
                     IsPreview = false
                 };
@@ -187,7 +190,7 @@ namespace AetherBlackbox.DrawingLogic
                 Vector2 start = centerRel + new Vector2(-rectWidth / 2f, 0);
                 Vector2 end = centerRel + new Vector2(rectWidth / 2f, radiusRel);
 
-                var rect = new DrawableRectangle(start, aoe.Info.Color, 0f, true)
+                var rect = new DrawableRectangle(start, aoe.Info.Color, thickness, isFilled)
                 {
                     EndPointRelative = end,
                     RotationAngle = -aoe.Rotation,
@@ -197,7 +200,7 @@ namespace AetherBlackbox.DrawingLogic
             }
             else if (aoe.Info.Shape == AoeShape.Cone)
             {
-                var pie = new DrawablePie(centerRel, aoe.Info.Color, 0f, true)
+                var pie = new DrawablePie(centerRel, aoe.Info.Color, thickness, isFilled)
                 {
                     Radius = radiusRel,
                     RotationAngle = -aoe.Rotation - ((aoe.Info.Angle * (MathF.PI / 180f)) / 2f) + (MathF.PI / 2f),

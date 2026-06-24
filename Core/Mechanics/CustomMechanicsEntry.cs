@@ -18,6 +18,7 @@ namespace AetherBlackbox.Core.Mechanics
         public float Angle { get; set; }
         public Vector4 Color { get; set; }
         public float Thickness { get; set; }
+        public bool IsFilled { get; set; }
         public float Duration { get; set; }
     }
 }
