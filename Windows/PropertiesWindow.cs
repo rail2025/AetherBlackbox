@@ -17,6 +17,11 @@ namespace AetherBlackbox.Windows
         private Guid? renamingId = null;
         private string renamingBuffer = "";
 
+        private string mechanicNameBuffer = "";
+        private int mechanicActionIdBuffer = 0;
+        private int mechanicSourceTypeIndex = 0;
+        private readonly string[] mechanicSourceTypes = { "Boss", "Player", "Environment" };
+
         // from ToolbarDrawer to ensure consistency in presets
         private static readonly float[] ThicknessPresets = { 1.5f, 4f, 7f, 10f };
         private static readonly Vector4[] ColorPalette = {
@@ -73,7 +78,6 @@ namespace AetherBlackbox.Windows
             if (mode == DrawMode.RoleMelee2Image) return "PluginImages.toolbar.melee_2.png";
             if (mode == DrawMode.RoleRanged1Image) return "PluginImages.toolbar.ranged_dps_1.png";
             if (mode == DrawMode.RoleRanged2Image) return "PluginImages.toolbar.ranged_dps_2.png";
-            // Quick lookup helper - ideally this would be shared from ToolbarDrawer but we can reconstruct the pattern easily
             if (mode == DrawMode.RoleCasterImage) return "PluginImages.toolbar.caster.png";
             // Map the jobs
             string name = mode.ToString().Replace("Job", "").Replace("Image", "").ToLower();
@@ -316,6 +320,100 @@ namespace AetherBlackbox.Windows
                 {
                     mainWindow.CanvasController.UndoManager.RecordAction(mainWindow.PageManager.GetCurrentPageDrawables(), "Edit Text");
                     mainWindow.CanvasController.InteractionHandler.CommitObjectChanges(new List<BaseDrawable>(selected));
+                }
+            }
+            if (selected.Count == 1)
+            {
+                ImGui.Separator();
+                ImGui.Text("Mechanic Definition");
+
+                ImGui.SetNextItemWidth(availableWidth);
+                ImGui.InputText("Name##MechName", ref mechanicNameBuffer, 64);
+
+                ImGui.SetNextItemWidth(availableWidth);
+                ImGui.InputInt("Action ID##MechId", ref mechanicActionIdBuffer);
+
+                ImGui.SetNextItemWidth(availableWidth);
+                ImGui.Combo("Source Type##MechSource", ref mechanicSourceTypeIndex, mechanicSourceTypes, mechanicSourceTypes.Length);
+
+                if (ImGui.Button("Use Last Cast"))
+                {
+                    var recording = mainWindow.ActiveDeathReplay?.ReplayData;
+                    if (recording != null && recording.Frames != null)
+                    {
+                        for (int f = recording.Frames.Count - 1; f >= 0; f--)
+                        {
+                            var frame = recording.Frames[f];
+                            if (frame.Actions == null) continue;
+
+                            for (int i = 0; i < frame.Ids.Count; i++)
+                            {
+                                if (i < frame.Actions.Count && frame.Actions[i] != 0)
+                                {
+                                    mechanicActionIdBuffer = (int)frame.Actions[i];
+
+                                    var sheet = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>();
+                                    var actionRow = sheet?.GetRowOrDefault((uint)mechanicActionIdBuffer);
+                                    mechanicNameBuffer = actionRow?.Name.ToString() ?? $"Action {mechanicActionIdBuffer}";
+
+                                    goto FoundAction;
+                                }
+                            }
+                        }
+                    FoundAction:;
+                    }
+                }
+
+                ImGui.SameLine();
+
+                if (ImGui.Button("Save Definition"))
+                {
+                    var targetObj = selected[0];
+                    var entry = new Core.Mechanics.CustomMechanicEntry
+                    {
+                        Name = mechanicNameBuffer,
+                        ActionId = (uint)mechanicActionIdBuffer,
+                        SourceType = (Core.Mechanics.MechanicSourceType)mechanicSourceTypeIndex,
+                        Color = targetObj.Color,
+                        Thickness = targetObj.Thickness,
+                        Duration = 3.0f // Default fallback
+                    };
+
+                    float unscale(float val) => val / (ReplayRenderer.DefaultPixelsPerYard * ImGuiHelpers.GlobalScale);
+
+                    if (targetObj is DrawableCircle drawableCircle)
+                    {
+                        entry.Shape = Core.Mechanics.AoeShape.Circle;
+                        entry.Radius = unscale(drawableCircle.Radius);
+                    }
+                    else if (targetObj is DrawableDonut drawableDonut)
+                    {
+                        entry.Shape = Core.Mechanics.AoeShape.Donut;
+                        entry.Radius = unscale(drawableDonut.Radius);
+                        entry.InnerRadius = unscale(drawableDonut.InnerRadius);
+                    }
+                    else if (targetObj is DrawableRectangle drawableRect)
+                    {
+                        entry.Shape = Core.Mechanics.AoeShape.Rect;
+                        var geom = drawableRect.GetGeometry();
+                        entry.Width = unscale(geom.halfSize.X * 2f);
+                        entry.Radius = unscale(geom.halfSize.Y * 2f); // Using Radius as Length
+                    }
+                    else if (targetObj is DrawablePie drawablePie)
+                    {
+                        entry.Shape = Core.Mechanics.AoeShape.Cone;
+                        entry.Radius = unscale(drawablePie.Radius);
+                        entry.Angle = drawablePie.SweepAngle * (180f / (float)Math.PI);
+                    }
+
+                    uint territoryId = mainWindow.ActiveDeathReplay?.TerritoryTypeId ?? 0;
+                    if (territoryId != 0 && entry.ActionId != 0)
+                    {
+                        var entries = Core.Mechanics.MechanicDatabaseManager.LoadTerritory(territoryId);
+                        entries.RemoveAll(e => e.ActionId == entry.ActionId);
+                        entries.Add(entry);
+                        Core.Mechanics.MechanicDatabaseManager.SaveTerritory(territoryId, entries);
+                    }
                 }
             }
             ImGui.Separator();

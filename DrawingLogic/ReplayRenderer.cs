@@ -1,4 +1,5 @@
 ﻿using AetherBlackbox.Core;
+using AetherBlackbox.Core.Mechanics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Animation;
 using Dalamud.Interface.Textures.TextureWraps;
@@ -146,8 +147,67 @@ namespace AetherBlackbox.DrawingLogic
                 if (showHp && (isPlayer || isBoss))
                     DrawHpBar(drawList, state, meta, screenPos);                
             }
+
+            var activeAoEs = AoeAutomator.GetActiveAoEs(recording, targetOffset, territoryTypeId);
+            foreach (var aoe in activeAoEs)
+            {
+                DrawAutomatedAoe(drawList, aoe, view);
+            }
         }
-        
+
+        private void DrawAutomatedAoe(ImDrawListPtr drawList, ActiveAoe aoe, ViewContext view)
+        {
+            var canvasCenter = (view.CanvasOrigin + (view.CanvasSize / 2)) + view.PanOffset;
+            float logicalScale = DefaultPixelsPerYard * view.Zoom;
+
+            Vector2 relPos = new Vector2(aoe.Origin.X - view.CenterWorldPos.X, aoe.Origin.Z - view.CenterWorldPos.Z);
+            Vector2 centerRel = relPos * logicalScale;
+            float radiusRel = aoe.Info.Radius * logicalScale;
+
+            if (aoe.Info.Shape == AoeShape.Circle)
+            {
+                var circle = new DrawableCircle(centerRel, aoe.Info.Color, 0f, true)
+                {
+                    Radius = radiusRel,
+                    IsPreview = false
+                };
+                circle.Draw(drawList, canvasCenter);
+            }
+            else if (aoe.Info.Shape == AoeShape.Donut)
+            {
+                var donut = new DrawableDonut(centerRel, aoe.Info.Color, 0f, true, radiusRel, aoe.Info.InnerRadius * logicalScale)
+                {
+                    IsPreview = false
+                };
+                donut.Draw(drawList, canvasCenter);
+            }
+            else if (aoe.Info.Shape == AoeShape.Rect)
+            {
+                float rectWidth = aoe.Info.Width * logicalScale;
+                Vector2 start = centerRel + new Vector2(-rectWidth / 2f, 0);
+                Vector2 end = centerRel + new Vector2(rectWidth / 2f, radiusRel);
+
+                var rect = new DrawableRectangle(start, aoe.Info.Color, 0f, true)
+                {
+                    EndPointRelative = end,
+                    RotationAngle = -aoe.Rotation,
+                    IsPreview = false
+                };
+                rect.Draw(drawList, canvasCenter);
+            }
+            else if (aoe.Info.Shape == AoeShape.Cone)
+            {
+                var pie = new DrawablePie(centerRel, aoe.Info.Color, 0f, true)
+                {
+                    Radius = radiusRel,
+                    RotationAngle = -aoe.Rotation - ((aoe.Info.Angle * (MathF.PI / 180f)) / 2f) + (MathF.PI / 2f),
+                    SweepAngle = aoe.Info.Angle * (MathF.PI / 180f),
+                    IsPreview = false
+                };
+                pie.Draw(drawList, canvasCenter);
+            }
+        }
+
         private static readonly HashSet<uint> IgnoredStatuses = new()
         {
             317,  // Fey Illumination

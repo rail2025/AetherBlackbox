@@ -4,10 +4,12 @@ using FFXIVClientStructs.FFXIV.Client.Game;
 
 namespace AetherBlackbox.Events;
 
-public record CombatEvent {
+public record CombatEvent
+{
     public required EventSnapshot Snapshot { get; init; }
 
-    public record EventSnapshot {
+    public record EventSnapshot
+    {
         public required DateTime Time { get; init; }
         public required uint CurrentHp { get; init; }
         public required uint MaxHp { get; init; }
@@ -15,12 +17,15 @@ public record CombatEvent {
         public uint BarrierPercent { get; init; }
     }
 
-    public record struct StatusEffectSnapshot {
+    public record struct StatusEffectSnapshot
+    {
         public required uint Id;
         public required uint StackCount;
     }
 
-    public record StatusEffect : CombatEvent {
+    public record StatusEffect : CombatEvent
+    {
+        public required uint TargetActorId { get; init; }
         public required uint Id { get; init; }
         public required uint StackCount { get; init; }
         public required uint SourceActorId { get; init; }
@@ -31,15 +36,23 @@ public record CombatEvent {
         public required StatusCategory Category { get; init; }
     }
 
-    public record HoT : CombatEvent {
+    public record HoT : CombatEvent
+    {
+        public required uint TargetActorId { get; init; }
         public required uint Amount { get; init; }
     }
 
-    public record DoT : CombatEvent {
+    public record DoT : CombatEvent
+    {
+        public required uint TargetActorId { get; init; }
+        public required uint SourceActorId { get; init; }
         public required uint Amount { get; init; }
+        public required uint ActionId { get; init; }
+        public required string Action { get; init; }
     }
 
-    public record DamageTaken : CombatEvent {
+    public record DamageTaken : CombatEvent
+    {
         public required uint TargetActorId { get; init; }
         public required uint SourceActorId { get; init; }
         public required uint ActionId { get; init; }
@@ -54,7 +67,9 @@ public record CombatEvent {
         public required ushort? Icon { get; init; }
     }
 
-    public record Healed : CombatEvent {
+    public record Healed : CombatEvent
+    {
+        public required uint TargetActorId { get; init; }
         public required uint SourceActorId { get; init; }
         public required uint Amount { get; init; }
         public required string Action { get; init; }

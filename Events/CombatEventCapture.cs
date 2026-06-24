@@ -123,7 +123,7 @@ public class CombatEventCapture : IDisposable
             for (var i = 0; i < effectHeader->NumTargets; i++)
             {
                 var actionTargetId = (uint)(targetEntityIds[i] & uint.MaxValue);
-               
+
                 var targetObj = Service.ObjectTable.SearchById(actionTargetId);
                 var targetEffects = effectArray[i];
 
@@ -134,39 +134,43 @@ public class CombatEventCapture : IDisposable
                         ref var eff = ref targetEffects.Effects[k];
                         var effectType = (ActionEffectType)eff.Type;
 
-                        if (effectType is ActionEffectType.Damage or ActionEffectType.BlockedDamage or ActionEffectType.ParriedDamage)
+                        if (effectType is not (ActionEffectType.Damage or ActionEffectType.BlockedDamage or ActionEffectType.ParriedDamage))
+                            continue;
+
+                        uint dmg = eff.Value;
+                        if ((eff.Param4 & 0x40) == 0x40)
+                            dmg += (uint)eff.Param3 << 16;
+
+                        if (dmg == 0)
+                            continue;
+
+                        action ??= Service.DataManager.GetExcelSheet<Action>().GetRowOrDefault(actionId);
+
+                        plugin.PullManager.CurrentSession!.DamageByTarget.TryGetValue(npc.Name.TextValue, out var existing);
+                        plugin.PullManager.CurrentSession.DamageByTarget[npc.Name.TextValue] = existing + dmg;
+
+                        plugin.PullManager.CurrentSession.DetailedDamageEvents.Add(new CombatEvent.DamageTaken
                         {
-                            uint dmg = eff.Value;
-                            if ((eff.Param4 & 0x40) == 0x40) dmg += (uint)eff.Param3 << 16;
-
-                            if (dmg == 0) continue;
-
-                            var npcName = npc.Name.TextValue;
-                            if (!string.IsNullOrEmpty(npcName))
+                            Snapshot = new CombatEvent.EventSnapshot
                             {
-                                if (!plugin.PullManager.CurrentSession!.DamageByTarget.ContainsKey(npcName))
-                                    plugin.PullManager.CurrentSession.DamageByTarget[npcName] = 0;
-                                plugin.PullManager.CurrentSession.DamageByTarget[npcName] += dmg;
-
-                                action ??= Service.DataManager.GetExcelSheet<Action>().GetRowOrDefault(actionId);
-                                plugin.PullManager.CurrentSession.DetailedDamageEvents.Add(new CombatEvent.DamageTaken
-                                {
-                                    Snapshot = new CombatEvent.EventSnapshot { Time = DateTime.Now, CurrentHp = npc.CurrentHp, MaxHp = npc.MaxHp, BarrierPercent = 0 },
-                                    TargetActorId = actionTargetId,
-                                    SourceActorId = casterEntityId,
-                                    ActionId = effectHeader->ActionId,
-                                    Amount = dmg,
-                                    Action = action?.ActionCategory.RowId == 1 ? "Auto-attack" : action?.Name.ExtractText() ?? "",
-                                    Icon = action?.Icon,
-                                    Crit = (eff.Param0 & 0x20) == 0x20,
-                                    DirectHit = (eff.Param0 & 0x40) == 0x40,
-                                    DamageType = (DamageType)(eff.Param1 & 0xF),
-                                    Parried = effectType == ActionEffectType.ParriedDamage,
-                                    Blocked = effectType == ActionEffectType.BlockedDamage,
-                                    DisplayType = (ActionType)effectHeader->ActionType
-                                });
-                            }
-                        }
+                                Time = DateTime.Now,
+                                CurrentHp = npc.CurrentHp,
+                                MaxHp = npc.MaxHp,
+                                BarrierPercent = 0
+                            },
+                            TargetActorId = actionTargetId,
+                            SourceActorId = casterEntityId,
+                            ActionId = effectHeader->ActionId,
+                            Amount = dmg,
+                            Action = action?.ActionCategory.RowId == 1 ? "Auto-attack" : action?.Name.ExtractText() ?? "",
+                            Icon = action?.Icon,
+                            Crit = (eff.Param0 & 0x20) == 0x20,
+                            DirectHit = (eff.Param0 & 0x40) == 0x40,
+                            DamageType = (DamageType)(eff.Param1 & 0xF),
+                            Parried = effectType == ActionEffectType.ParriedDamage,
+                            Blocked = effectType == ActionEffectType.BlockedDamage,
+                            DisplayType = (ActionType)effectHeader->ActionType
+                        });
                     }
                 }
                 if (!plugin.ConditionEvaluator.ShouldCapture(actionTargetId))
@@ -246,6 +250,7 @@ public class CombatEventCapture : IDisposable
                                 new CombatEvent.Healed
                                 {
                                     Snapshot = p.Snapshot(true),
+                                    TargetActorId = actionTargetId,
                                     SourceActorId = casterEntityId,
                                     Amount = amount,
                                     Action = action?.Name.ExtractText() ?? "",
@@ -271,17 +276,56 @@ public class CombatEventCapture : IDisposable
 
         try
         {
-            if (!plugin.ConditionEvaluator.ShouldCapture(entityId))
+            if (!plugin.ConditionEvaluator.ShouldCapture(entityId) && (ActorControlCategory)category != ActorControlCategory.DoT)
+                return;
+            var targetObj = Service.ObjectTable.SearchById(entityId);
+            var p = targetObj as IPlayerCharacter;
+            var npc = targetObj as IBattleNpc;
+
+            if (p == null && npc == null)
                 return;
 
-            if (Service.ObjectTable.SearchById(entityId) is not IPlayerCharacter p)
-                return;
-
-            RegisterEntityMetadata(entityId, p);
+            if (p != null)
+                RegisterEntityMetadata(entityId, p);
+            var snapshot = p != null
+                ? p.Snapshot()
+                : new CombatEvent.EventSnapshot { Time = DateTime.Now, CurrentHp = ((IBattleNpc)targetObj).CurrentHp, MaxHp = ((IBattleNpc)targetObj).MaxHp, BarrierPercent = 0 };
 
             switch ((ActorControlCategory)category)
             {
-                case ActorControlCategory.DoT: combatEvents.AddEntry(entityId, new CombatEvent.DoT { Snapshot = p.Snapshot(), Amount = param2 }); break;
+                case ActorControlCategory.DoT:
+                    Service.PluginLog.Info($"DoT packet received for Entity {entityId}, Amount {param2}");
+                    var dotStatus = param1 != 0 ? Service.DataManager.GetExcelSheet<Status>().GetRowOrDefault(param1) : null;
+                    uint sourceId = 0;
+                    if (Service.ObjectTable.SearchById(entityId) is IBattleNpc battleNpc)
+                    {
+                        var status = battleNpc.StatusList.FirstOrDefault(s => s.StatusId == param1);
+                        if (status != null) sourceId = status.SourceId;
+                    }
+                    var dotEvent = new CombatEvent.DoT
+                    {
+                        Snapshot = snapshot,
+                        TargetActorId = entityId,
+                        SourceActorId = sourceId,
+                        Amount = param2,
+                        ActionId = param1,
+                        Action = dotStatus?.Name.ExtractText() ?? ""
+                    };
+                    combatEvents.AddEntry(entityId, new CombatEvent.DoT
+                    {
+                        Snapshot = snapshot,
+                        TargetActorId = entityId,
+                        SourceActorId = sourceId,
+                        Amount = param2,
+                        ActionId = param1,
+                        Action = dotStatus?.Name.ExtractText() ?? ""
+                    });
+                    combatEvents.AddEntry(entityId, dotEvent);
+                    if (plugin.PullManager.IsInSession && plugin.PullManager.CurrentSession != null)
+                    {
+                        plugin.PullManager.CurrentSession.DetailedDamageEvents.Add(dotEvent);
+                    }
+                    break;
                 case ActorControlCategory.HoT:
                     if (param1 != 0)
                     {
@@ -290,6 +334,7 @@ public class CombatEventCapture : IDisposable
                             new CombatEvent.Healed
                             {
                                 Snapshot = p.Snapshot(),
+                                TargetActorId = entityId,
                                 SourceActorId = entityId,
                                 Amount = param2,
                                 Action = status?.Name.ExtractText() ?? "",
@@ -299,7 +344,7 @@ public class CombatEventCapture : IDisposable
                     }
                     else
                     {
-                        combatEvents.AddEntry(entityId, new CombatEvent.HoT { Snapshot = p.Snapshot(), Amount = param2 });
+                        combatEvents.AddEntry(entityId, new CombatEvent.HoT { Snapshot = p.Snapshot(), TargetActorId = entityId, Amount = param2 });
                     }
 
                     break;
@@ -348,13 +393,31 @@ public class CombatEventCapture : IDisposable
         try
         {
             var message = (AddStatusEffect*)actionIntegrityData;
-            if (!plugin.ConditionEvaluator.ShouldCapture(targetId))
+
+            var targetObj = Service.ObjectTable.SearchById(targetId);
+            var p = targetObj as IPlayerCharacter;
+            var npc = targetObj as IBattleNpc;
+
+            if (p == null && npc == null)
                 return;
 
-            if (Service.ObjectTable.SearchById(targetId) is not IPlayerCharacter p)
-                return;
+            if (p != null)
+            {
+                if (!plugin.ConditionEvaluator.ShouldCapture(targetId))
+                    return;
 
-            RegisterEntityMetadata(targetId, p);
+                RegisterEntityMetadata(targetId, p);
+            }
+
+            var snapshot = p != null
+                ? p.Snapshot()
+                : new CombatEvent.EventSnapshot
+                {
+                    Time = DateTime.Now,
+                    CurrentHp = npc!.CurrentHp,
+                    MaxHp = npc!.MaxHp,
+                    BarrierPercent = 0
+                };
 
             var effects = (StatusEffectAddEntry*)message->Effects;
             var effectCount = Math.Min(message->EffectCount, 4u);
@@ -376,7 +439,8 @@ public class CombatEventCapture : IDisposable
                 combatEvents.AddEntry(targetId,
                     new CombatEvent.StatusEffect
                     {
-                        Snapshot = p.Snapshot(),
+                        Snapshot = snapshot,
+                        TargetActorId = targetId,
                         Id = effectId,
                         StackCount = effect.StackCount <= status?.MaxStacks ? effect.StackCount : 0u,
                         Icon = status?.Icon,
