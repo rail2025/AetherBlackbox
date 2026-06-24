@@ -76,8 +76,8 @@ If you want more detail or want to share things with your console playing friend
 
 ## Getting started
 
-* Walkthrough: [https://blackbox.aetherdraw.me](https://blackbox.aetherdraw.me)
-* Download / install: [https://github.com/rail2025/AetherBlackbox](https://github.com/rail2025/AetherBlackbox)
+* Walkthrough/Website version: [https://blackbox.aetherdraw.me](https://blackbox.aetherdraw.me)
+* Download / install: Installed through the main Dalamud plugin UI. search for AetherBlackbox and install
 
 ---
 
@@ -132,8 +132,4 @@ This repository contains significant modifications and additional functionality,
 
 ## Installation
 
-Add the following repository URL to Dalamud:
-
-```
-https://raw.githubusercontent.com/rail2025/AetherBlackbox/refs/heads/main/repo.json
-```
+Install through Dalamud.
