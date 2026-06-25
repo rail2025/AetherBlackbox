@@ -164,7 +164,8 @@ public partial class MainWindow
                 plugin.Configuration.AnonymizeNames,
                 canvasZoom,
                 canvasPanOffset,
-                plugin.Configuration
+                plugin.Configuration,
+                plugin.PresetManager
             );
 
             // Selection Circle

@@ -18,11 +18,22 @@ namespace AetherBlackbox.Core.Mechanics
                 Directory.CreateDirectory(storageDirectory);
             }
         }
+        public List<string> GetAvailableFiles()
+        {
+            if (!Directory.Exists(storageDirectory)) return new List<string>();
+            var files = new List<string>();
+            foreach (var file in Directory.GetFiles(storageDirectory, "*.json"))
+            {
+                files.Add(Path.GetFileNameWithoutExtension(file));
+            }
+            return files;
+        }
 
         public void Save(string filename, List<CustomMechanicEntry> entries)
         {
             string path = Path.Combine(storageDirectory, $"{filename}.json");
-            string json = JsonSerializer.Serialize(entries, new JsonSerializerOptions { WriteIndented = true });
+            var options = new JsonSerializerOptions { WriteIndented = true, IncludeFields = true };
+            string json = JsonSerializer.Serialize(entries, options);
             File.WriteAllText(path, json);
         }
 
@@ -32,7 +43,15 @@ namespace AetherBlackbox.Core.Mechanics
             if (!File.Exists(path)) return new List<CustomMechanicEntry>();
 
             string json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<List<CustomMechanicEntry>>(json) ?? new List<CustomMechanicEntry>();
+            var options = new JsonSerializerOptions { IncludeFields = true };
+            var entries = JsonSerializer.Deserialize<List<CustomMechanicEntry>>(json, options) ?? new List<CustomMechanicEntry>();
+
+            foreach (var entry in entries)
+            {
+                entry.OriginFile = filename;
+            }
+
+            return entries;
         }
 
         public void Delete(string filename)

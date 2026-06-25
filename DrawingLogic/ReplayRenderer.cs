@@ -44,13 +44,13 @@ namespace AetherBlackbox.DrawingLogic
             return new(relX + view.CenterWorldPos.X, view.CenterWorldPos.Y, relZ + view.CenterWorldPos.Z);
         }
 
-        public void Draw(ImDrawListPtr drawList, ReplayRecording recording, ReplayFrame frame, float targetOffset, Vector2 canvasOrigin, Vector2 canvasSize, Vector3 centerWorldPos, uint territoryTypeId, bool showNpcs, bool showHp, bool anonymizeNames, float zoom, Vector2 panOffset, Configuration config)
+        public void Draw(ImDrawListPtr drawList, ReplayRecording recording, ReplayFrame frame, float targetOffset, Vector2 canvasOrigin, Vector2 canvasSize, Vector3 centerWorldPos, uint territoryTypeId, bool showNpcs, bool showHp, bool anonymizeNames, float zoom, Vector2 panOffset, Configuration config, PresetManager presetManager)
         {
             var view = new ViewContext(canvasOrigin, canvasSize, centerWorldPos, zoom, panOffset);
-            DrawInternal(drawList, recording, frame, targetOffset, territoryTypeId, showNpcs, showHp, anonymizeNames, view, config);
+            DrawInternal(drawList, recording, frame, targetOffset, territoryTypeId, showNpcs, showHp, anonymizeNames, view, config, presetManager);
         }
 
-        private void DrawInternal(ImDrawListPtr drawList, ReplayRecording recording, ReplayFrame frame, float targetOffset, uint territoryTypeId, bool showNpcs, bool showHp, bool anonymizeNames, ViewContext view, Configuration config)
+        private void DrawInternal(ImDrawListPtr drawList, ReplayRecording recording, ReplayFrame frame, float targetOffset, uint territoryTypeId, bool showNpcs, bool showHp, bool anonymizeNames, ViewContext view, Configuration config, PresetManager presetManager)
         {
             if (frame == null || frame.Ids.Count == 0) return;
             var canvasCenter = (view.CanvasOrigin + (view.CanvasSize / 2)) + view.PanOffset;
@@ -148,7 +148,7 @@ namespace AetherBlackbox.DrawingLogic
                     DrawHpBar(drawList, state, meta, screenPos);                
             }
 
-            var activeAoEs = AoeAutomator.GetActiveAoEs(recording, targetOffset, territoryTypeId);
+            var activeAoEs = AoeAutomator.GetActiveAoEs(recording, targetOffset, territoryTypeId, presetManager);
             foreach (var aoe in activeAoEs)
             {
                 DrawAutomatedAoe(drawList, aoe, view);
@@ -162,35 +162,35 @@ namespace AetherBlackbox.DrawingLogic
 
             Vector2 relPos = new Vector2(aoe.Origin.X - view.CenterWorldPos.X, aoe.Origin.Z - view.CenterWorldPos.Z);
             Vector2 centerRel = relPos * logicalScale;
-            float radiusRel = aoe.Info.Radius * logicalScale;
+            float radiusRel = aoe.Template.Radius * logicalScale;
 
-            bool isFilled = aoe.Info.IsFilled;
-            float thickness = aoe.Info.Thickness;
+            bool isFilled = aoe.Template.IsFilled;
+            float thickness = aoe.Template.Thickness;
 
-            if (aoe.Info.Shape == AoeShape.Circle)
+            if (aoe.Template.Shape == AoeShape.Circle)
             {
-                var circle = new DrawableCircle(centerRel, aoe.Info.Color, thickness, isFilled)
+                var circle = new DrawableCircle(centerRel, aoe.Template.Color, thickness, isFilled)
                 {
                     Radius = radiusRel,
                     IsPreview = false
                 };
                 circle.Draw(drawList, canvasCenter);
             }
-            else if (aoe.Info.Shape == AoeShape.Donut)
+            else if (aoe.Template.Shape == AoeShape.Donut)
             {
-                var donut = new DrawableDonut(centerRel, aoe.Info.Color, thickness, isFilled, radiusRel, aoe.Info.InnerRadius * logicalScale)
+                var donut = new DrawableDonut(centerRel, aoe.Template.Color, thickness, isFilled, radiusRel, aoe.Template.InnerRadius * logicalScale)
                 {
                     IsPreview = false
                 };
                 donut.Draw(drawList, canvasCenter);
             }
-            else if (aoe.Info.Shape == AoeShape.Rect)
+            else if (aoe.Template.Shape == AoeShape.Rect)
             {
-                float rectWidth = aoe.Info.Width * logicalScale;
+                float rectWidth = aoe.Template.Width * logicalScale;
                 Vector2 start = centerRel + new Vector2(-rectWidth / 2f, 0);
                 Vector2 end = centerRel + new Vector2(rectWidth / 2f, radiusRel);
 
-                var rect = new DrawableRectangle(start, aoe.Info.Color, thickness, isFilled)
+                var rect = new DrawableRectangle(start, aoe.Template.Color, thickness, isFilled)
                 {
                     EndPointRelative = end,
                     RotationAngle = -aoe.Rotation,
@@ -198,13 +198,13 @@ namespace AetherBlackbox.DrawingLogic
                 };
                 rect.Draw(drawList, canvasCenter);
             }
-            else if (aoe.Info.Shape == AoeShape.Cone)
+            else if (aoe.Template.Shape == AoeShape.Cone)
             {
-                var pie = new DrawablePie(centerRel, aoe.Info.Color, thickness, isFilled)
+                var pie = new DrawablePie(centerRel, aoe.Template.Color, thickness, isFilled)
                 {
                     Radius = radiusRel,
-                    RotationAngle = -aoe.Rotation - ((aoe.Info.Angle * (MathF.PI / 180f)) / 2f) + (MathF.PI / 2f),
-                    SweepAngle = aoe.Info.Angle * (MathF.PI / 180f),
+                    RotationAngle = -aoe.Rotation - ((aoe.Template.Angle * (MathF.PI / 180f)) / 2f) + (MathF.PI / 2f),
+                    SweepAngle = aoe.Template.Angle * (MathF.PI / 180f),
                     IsPreview = false
                 };
                 pie.Draw(drawList, canvasCenter);

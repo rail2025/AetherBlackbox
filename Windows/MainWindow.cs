@@ -357,6 +357,17 @@ public partial class MainWindow : Window, IDisposable
             if (ImGuiComponents.IconButton("ReplaySettings", FontAwesomeIcon.Eye))
                 ImGui.OpenPopup("replay_settings_popup");
             if (ImGui.IsItemHovered()) ImGui.SetTooltip("Replay Visibility Settings");
+
+            ImGui.SameLine();
+            if (ImGuiComponents.IconButton("OpenMechanicLibrary", FontAwesomeIcon.Database))
+                plugin.MechanicLibraryWindow.IsOpen = !plugin.MechanicLibraryWindow.IsOpen;
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Open Mechanic Library (Saved Presets)");
+
+            ImGui.SameLine();
+            if (ImGuiComponents.IconButton("OpenSessionMechanics", FontAwesomeIcon.ListUl))
+                plugin.SessionMechanicsWindow.IsOpen = !plugin.SessionMechanicsWindow.IsOpen;
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Open Active Session Mechanics");
+
             if (ImGui.BeginPopup("replay_settings_popup"))
             {
                 ImGui.TextUnformatted("Replay Visualization");

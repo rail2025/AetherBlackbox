@@ -456,23 +456,16 @@ namespace AetherBlackbox.Windows
                     }
 
                     uint territoryId = mainWindow.ActiveDeathReplay?.TerritoryTypeId ?? 0;
-                    Service.PluginLog.Debug($"[PropertiesWindow] Attempting save - TerritoryId: {territoryId}, ActionId: {entry.ActionId}");
+                    entry.ZoneId = territoryId;
 
-                    if (territoryId != 0 && entry.ActionId != 0)
+                    if (entry.ActionId != 0)
                     {
-                        Service.PluginLog.Debug("[PropertiesWindow] Loading existing mechanics from database...");
-                        var entries = Core.Mechanics.MechanicDatabaseManager.LoadTerritory(territoryId);
+                        plugin.PresetManager.AddEntry(entry);
 
-                        entries.RemoveAll(e => e.ActionId == entry.ActionId);
-                        entries.Add(entry);
-
-                        Service.PluginLog.Debug($"[PropertiesWindow] Saving {entries.Count} mechanics to disk...");
-                        Core.Mechanics.MechanicDatabaseManager.SaveTerritory(territoryId, entries);
-                        Service.PluginLog.Debug("[PropertiesWindow] Save completed successfully.");
-                    }
-                    else
-                    {
-                        Service.PluginLog.Warning("[PropertiesWindow] Save aborted: TerritoryId or ActionId is 0.");
+                        var drawables = mainWindow.PageManager.GetCurrentPageDrawables();
+                        drawables.Remove(targetObj);
+                        mainWindow.SelectedDrawables.Remove(targetObj);
+                        mainWindow.CanvasController.UndoManager.RecordAction(drawables, "Convert to Auto-Draw");
                     }
                 }
             }

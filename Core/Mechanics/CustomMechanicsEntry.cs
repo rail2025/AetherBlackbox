@@ -10,9 +10,12 @@ namespace AetherBlackbox.Core.Mechanics
         public int Version { get; set; } = 1;
         public string Name { get; set; } = string.Empty;
         public uint ActionId { get; set; }
+        public uint ZoneId { get; set; }
+        public uint SourceActorId { get; set; }
         public uint TerritoryId { get; set; }
         public MechanicSourceType SourceType { get; set; }
-        public List<string> MetadataTags { get; set; } = new();
+        public List<string> Tags { get; set; } = new();
+        public string OriginFile { get; set; } = string.Empty;
 
         public AoeShape Shape { get; set; }
         public float Radius { get; set; }
