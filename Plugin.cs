@@ -1,5 +1,6 @@
 using AetherBlackbox.Core;
 using AetherBlackbox.Events;
+using AetherBlackbox.Core.Mechanics;
 using AetherBlackbox.Game;
 using AetherBlackbox.UI;
 using AetherBlackbox.Windows;
@@ -41,6 +42,10 @@ public class Plugin : IDalamudPlugin
     public AboutWindow AboutWindow { get; private set; }
     public LiveSessionWindow LiveSessionWindow { get; private set; }
     public ConditionEvaluator ConditionEvaluator { get; private set; }
+    public SessionMechanicsWindow SessionMechanicsWindow { get; private set; }
+    public MechanicLibraryWindow MechanicLibraryWindow { get; private set; }
+    public PresetManager PresetManager { get; private set; }
+    public PresetStorageService StorageService { get; private set; }
 
     public CombatEventCapture Capture { get; private set; }
     public NotificationHandler NotificationHandler { get; private set; }
@@ -73,6 +78,8 @@ public class Plugin : IDalamudPlugin
         Capture = new CombatEventCapture(this);
         NotificationHandler = new NotificationHandler(this);
         NetworkManager = new NetworkManager();
+        PresetManager = new PresetManager();
+        StorageService = new PresetStorageService(Service.PluginInterface.ConfigDirectory.FullName);
 
         void BroadcastHeaders()
         {
@@ -108,6 +115,8 @@ public class Plugin : IDalamudPlugin
         AboutWindow = new AboutWindow();
         MainWindow = new MainWindow(this);
         LiveSessionWindow = new LiveSessionWindow(this);
+        SessionMechanicsWindow = new SessionMechanicsWindow(this);
+        MechanicLibraryWindow = new MechanicLibraryWindow(this);
 
         WindowSystem.AddWindow(RecapConfigWindow);
         WindowSystem.AddWindow(CanvasConfigWindow);
@@ -116,6 +125,8 @@ public class Plugin : IDalamudPlugin
         WindowSystem.AddWindow(AboutWindow);
         WindowSystem.AddWindow(LiveSessionWindow);
         WindowSystem.AddWindow(NotificationHandler);
+        WindowSystem.AddWindow(SessionMechanicsWindow);
+        WindowSystem.AddWindow(MechanicLibraryWindow);
     }
     private void OnOpenConfigUi() => RecapConfigWindow.IsOpen = true;
     private void OnOpenMainUi() => MainWindow.IsOpen = true;
@@ -162,6 +173,8 @@ public class Plugin : IDalamudPlugin
         MainWindow.Dispose();
         LiveSessionWindow.Dispose();
         AboutWindow.Dispose();
+        SessionMechanicsWindow.Dispose();
+        MechanicLibraryWindow.Dispose();
     }
     private string GetPullMetadataPayload()
     {

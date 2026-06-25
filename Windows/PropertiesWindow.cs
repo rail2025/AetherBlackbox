@@ -21,6 +21,9 @@ namespace AetherBlackbox.Windows
         private int mechanicActionIdBuffer = 0;
         private int mechanicSourceTypeIndex = 0;
         private readonly string[] mechanicSourceTypes = { "Boss", "Player", "Environment" };
+        private string[] recentActionNames = System.Array.Empty<string>();
+        private uint[] recentActionIds = System.Array.Empty<uint>();
+        private int recentActionIndex = 0;
 
         // from ToolbarDrawer to ensure consistency in presets
         private static readonly float[] ThicknessPresets = { 1.5f, 4f, 7f, 10f };
@@ -339,37 +342,77 @@ namespace AetherBlackbox.Windows
                 ImGui.SetNextItemWidth(availableWidth);
                 ImGui.Combo("##MechSource", ref mechanicSourceTypeIndex, mechanicSourceTypes, mechanicSourceTypes.Length);
 
-                if (ImGui.Button("Use Last Cast"))
+                if (ImGui.Button("Scan Last 5 Seconds"))
                 {
-                    Service.PluginLog.Debug("[PropertiesWindow] 'Use Last Cast' clicked.");
                     var recording = mainWindow.ActiveDeathReplay?.ReplayData;
                     if (recording != null && recording.Frames != null)
                     {
-                        for (int f = recording.Frames.Count - 1; f >= 0; f--)
+                        float currentTime = mainWindow.CurrentAbsoluteTime;
+                        float startTime = currentTime - 5.0f;
+
+                        var namesList = new List<string>();
+                        var idsList = new List<uint>();
+
+                        foreach (var frame in recording.Frames)
                         {
-                            var frame = recording.Frames[f];
-                            if (frame.Actions == null) continue;
-
-                            for (int i = 0; i < frame.Ids.Count; i++)
+                            if (frame.TimeOffset >= startTime && frame.TimeOffset <= currentTime)
                             {
-                                if (i < frame.Actions.Count && frame.Actions[i] != 0)
+                                for (int i = 0; i < frame.Ids.Count; i++)
                                 {
-                                    mechanicActionIdBuffer = (int)frame.Actions[i];
-                                    Service.PluginLog.Debug($"[PropertiesWindow] Found Action ID: {mechanicActionIdBuffer} from Entity {frame.Ids[i]} at frame {f}.");
+                                    uint entityId = frame.Ids[i];
+                                    string casterName = "Unknown";
 
-                                    var sheet = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>();
-                                    var actionRow = sheet?.GetRowOrDefault((uint)mechanicActionIdBuffer);
-                                    mechanicNameBuffer = actionRow?.Name.ToString() ?? $"Action {mechanicActionIdBuffer}";
+                                    if (recording.Metadata != null && recording.Metadata.TryGetValue(entityId, out var meta))
+                                    {
+                                        casterName = meta.Name;
+                                    }
 
-                                    goto FoundAction;
+                                    if (frame.Actions != null && i < frame.Actions.Count && frame.Actions[i] != 0)
+                                    {
+                                        uint actionId = frame.Actions[i];
+                                        if (!idsList.Contains(actionId))
+                                        {
+                                            var sheet = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>();
+                                            var actionRow = sheet?.GetRowOrDefault(actionId);
+                                            string actName = actionRow?.Name.ToString() ?? $"Action {actionId}";
+
+                                            namesList.Add($"[{casterName}] {actName}");
+                                            idsList.Add(actionId);
+                                        }
+                                    }
+
+                                    if (frame.Casts != null && i < frame.Casts.Count)
+                                    {
+                                        var cast = frame.Casts[i];
+                                        if (cast.ActionId != 0 && !idsList.Contains(cast.ActionId))
+                                        {
+                                            var sheet = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Action>();
+                                            var actionRow = sheet?.GetRowOrDefault(cast.ActionId);
+                                            string actName = actionRow?.Name.ToString() ?? $"Action {cast.ActionId}";
+
+                                            namesList.Add($"[{casterName}] {actName} (Cast)");
+                                            idsList.Add(cast.ActionId);
+                                        }
+                                    }
                                 }
                             }
                         }
-                    FoundAction:;
+                        recentActionNames = namesList.ToArray();
+                        recentActionIds = idsList.ToArray();
+                        recentActionIndex = 0;
                     }
                 }
 
-                ImGui.SameLine();
+                if (recentActionNames.Length > 0)
+                {
+                    ImGui.Text("Recent Actions");
+                    ImGui.SetNextItemWidth(availableWidth);
+                    if (ImGui.Combo("##RecentActions", ref recentActionIndex, recentActionNames, recentActionNames.Length))
+                    {
+                        mechanicActionIdBuffer = (int)recentActionIds[recentActionIndex];
+                        mechanicNameBuffer = recentActionNames[recentActionIndex];
+                    }
+                }
 
                 if (ImGui.Button("Save Definition"))
                 {

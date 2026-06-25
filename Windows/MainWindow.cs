@@ -66,6 +66,7 @@ public partial class MainWindow : Window, IDisposable
     private float replayTimeOffset = 0f;
     private bool isPlaybackActive = false;
     private Vector3? cachedArenaCenter = null;
+    public float CurrentAbsoluteTime => GetDeathTimeOffset() + replayTimeOffset;
 
     // Canvas
     private ulong selectedEntityId = 0;
