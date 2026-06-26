@@ -1,5 +1,6 @@
 ﻿using AetherBlackbox.Core;
 using AetherBlackbox.Core.Mechanics;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -26,6 +27,8 @@ namespace AetherBlackbox.DrawingLogic
             float maxLookback = 15.0f;
             float windowStart = currentTime - maxLookback;
             var activeRules = presetManager.ActiveMemory;
+            var registryMechanics = MechanicRegistry.GetMechanics(territoryId);
+            var processedActions = new HashSet<(uint sourceId, uint actionId)>();
 
             for (int f = recording.Frames.Count - 1; f >= 0; f--)
             {
@@ -46,6 +49,8 @@ namespace AetherBlackbox.DrawingLogic
 
                     if (actionId != 0)
                     {
+                        if (!processedActions.Add((sourceId, actionId)))
+                            continue;
                         // Exact: Action ID + Source Actor + Zone ID
                         var matchedRule = activeRules.FirstOrDefault(r => r.ActionId == actionId && r.SourceActorId == sourceId && r.ZoneId == territoryId);
 
@@ -57,9 +62,32 @@ namespace AetherBlackbox.DrawingLogic
                         if (matchedRule == null)
                             matchedRule = activeRules.FirstOrDefault(r => r.ActionId == actionId && r.ZoneId == 0 && r.SourceActorId == 0);
 
+                        var origin = new Vector3(frame.X[i], 0, frame.Z[i]);
+                        var rotation = frame.Rot[i];
+
+                        var targetId = frame.Targets[i];
+                        if (targetId != 0 && targetId != sourceId && targetId != 0xE0000000)
+                        {
+                            int targetIdx = frame.Ids.IndexOf((uint)targetId);
+                            if (targetIdx != -1)
+                            {
+                                var shape = matchedRule != null ? matchedRule.Shape : (registryMechanics != null && registryMechanics.TryGetValue(actionId, out var info) ? info.Shape : AoeShape.Circle);
+
+                                if (shape == AoeShape.Circle || shape == AoeShape.Donut)
+                                {
+                                    origin = new Vector3(frame.X[targetIdx], 0, frame.Z[targetIdx]);
+                                }
+                                else if (shape == AoeShape.Cone || shape == AoeShape.Rect)
+                                {
+                                    var targetPos = new Vector3(frame.X[targetIdx], 0, frame.Z[targetIdx]);
+                                    rotation = (float)Math.Atan2(targetPos.X - origin.X, targetPos.Z - origin.Z);
+                                }
+                            }
+                        }
+
                         if (matchedRule != null)
                         {
-                            float duration = matchedRule.Duration > 0 ? matchedRule.Duration : 0.5f;
+                            float duration = matchedRule.Duration > 0 ? matchedRule.Duration : 1f;
                             float expTime = frame.TimeOffset + duration;
 
                             if (currentTime <= expTime)
@@ -67,8 +95,36 @@ namespace AetherBlackbox.DrawingLogic
                                 activeAoEs.Add(new ActiveAoe
                                 {
                                     Template = matchedRule,
-                                    Origin = new Vector3(frame.X[i], 0, frame.Z[i]),
-                                    Rotation = frame.Rot[i],
+                                    Origin = origin,
+                                    Rotation = rotation,
+                                    ExpirationTime = expTime
+                                });
+                            }
+                        }
+                        else if (registryMechanics != null && registryMechanics.TryGetValue(actionId, out var aoeInfo))
+                        {
+                            float duration = aoeInfo.Duration > 0 ? aoeInfo.Duration : 1f;
+                            float expTime = frame.TimeOffset + duration;
+
+                            if (currentTime <= expTime)
+                            {
+                                activeAoEs.Add(new ActiveAoe
+                                {
+                                    Template = new CustomMechanicEntry
+                                    {
+                                        ActionId = actionId,
+                                        Shape = aoeInfo.Shape,
+                                        Radius = aoeInfo.Radius,
+                                        Width = aoeInfo.Width,
+                                        InnerRadius = aoeInfo.InnerRadius,
+                                        Angle = aoeInfo.Angle,
+                                        Color = aoeInfo.Color,
+                                        Thickness = aoeInfo.Thickness,
+                                        IsFilled = aoeInfo.IsFilled,
+                                        Duration = aoeInfo.Duration
+                                    },
+                                    Origin = origin,
+                                    Rotation = rotation,
                                     ExpirationTime = expTime
                                 });
                             }

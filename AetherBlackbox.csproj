@@ -20,6 +20,9 @@
 	<ItemGroup>
 	  <EmbeddedResource Include="PluginImages\**\*" />
 	</ItemGroup>
+	<ItemGroup>
+	  <Compile Remove="Windows\PropertiesWindowgodfile.cs" />
+	</ItemGroup>
 
 		
 	<ItemGroup>
