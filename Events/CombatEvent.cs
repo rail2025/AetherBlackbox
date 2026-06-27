@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using System.Numerics;
 
 namespace AetherBlackbox.Events;
 
@@ -15,6 +16,7 @@ public record CombatEvent
         public required uint MaxHp { get; init; }
         public List<StatusEffectSnapshot>? StatusEffects { get; init; }
         public uint BarrierPercent { get; init; }
+        public Vector3 Position { get; init; }
     }
 
     public record struct StatusEffectSnapshot

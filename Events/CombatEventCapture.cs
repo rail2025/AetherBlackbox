@@ -56,35 +56,34 @@ public class CombatEventCapture : IDisposable
         processPacketActorControlHook.Enable();
     }
 
-    private void RegisterEntityMetadata(uint entityId, IPlayerCharacter p)
+    private void RegisterEntityMetadata(uint entityId, IGameObject obj)
     {
         if (!plugin.PullManager.IsInSession || plugin.PullManager.CurrentSession == null) return;
         var session = plugin.PullManager.CurrentSession;
         if (session.Metadata.ContainsKey(entityId)) return;
 
-        var jobAbbr = p.ClassJob.Value.Abbreviation.ExtractText();
-        if (string.IsNullOrEmpty(jobAbbr)) jobAbbr = "UNK";
-        string nameToStore;
+        string nameToStore = obj.Name.TextValue;
+        uint classJobId = obj is ICharacter c ? c.ClassJob.RowId : 0;
 
-        if (plugin.Configuration.AnonymizeNames)
+        if (plugin.Configuration.AnonymizeNames && obj is IPlayerCharacter p)
         {
+            var jobAbbr = p.ClassJob.Value.Abbreviation.ExtractText();
+            if (string.IsNullOrEmpty(jobAbbr)) jobAbbr = "UNK";
             int count = 0;
             foreach (var meta in session.Metadata.Values)
             {
-                if (meta.ClassJobId == p.ClassJob.RowId) count++;
+                if (meta.ClassJobId == classJobId) count++;
             }
             nameToStore = count == 0 ? jobAbbr : $"{jobAbbr} {count + 1}";
-        }
-        else
-        {
-            nameToStore = p.Name.TextValue;
         }
 
         session.Metadata[entityId] = new ReplayMetadata
         {
             EntityId = entityId,
-            ClassJobId = p.ClassJob.RowId,
-            Name = nameToStore
+            ClassJobId = classJobId,
+            Name = nameToStore,
+            OwnerId = obj.OwnerId,
+            Type = (EntityType)obj.ObjectKind
         };
     }
 
@@ -111,10 +110,10 @@ public class CombatEventCapture : IDisposable
                 plugin.PositionRecorder.OnActionUsed(casterEntityId, actionId);
             }
 
-            if (casterPtr != null && casterPtr->GameObject.ObjectKind == ObjectKind.Pc)
+            if (casterPtr != null)
             {
-                if (Service.ObjectTable.SearchById(casterEntityId) is IPlayerCharacter casterPc)
-                    RegisterEntityMetadata(casterEntityId, casterPc);
+                if (Service.ObjectTable.SearchById(casterEntityId) is IGameObject casterObj)
+                    RegisterEntityMetadata(casterEntityId, casterObj);
             }
 
             Action? action = null;
@@ -176,10 +175,12 @@ public class CombatEventCapture : IDisposable
                 if (!plugin.ConditionEvaluator.ShouldCapture(actionTargetId))
                     continue;
 
-                if (targetObj is not IPlayerCharacter p)
+                if (targetObj == null)
                     continue;
 
-                RegisterEntityMetadata(actionTargetId, p);
+                RegisterEntityMetadata(actionTargetId, targetObj);
+                var p = targetObj as IPlayerCharacter;
+                var npcTarget = targetObj as IBattleNpc;
 
                 for (var j = 0; j < 8; j++)
                 {
@@ -219,6 +220,11 @@ public class CombatEventCapture : IDisposable
                                 }
                             }
 
+                            var pos = targetPos != null ? *targetPos : targetObj.Position;
+                            var snapshot = p != null
+                                ? p.Snapshot(true, additionalStatus) with { Position = pos }
+                                : new CombatEvent.EventSnapshot { Time = DateTime.Now, CurrentHp = npcTarget?.CurrentHp ?? 0, MaxHp = npcTarget?.MaxHp ?? 0, BarrierPercent = 0, Position = pos };
+
                             combatEvents.AddEntry(actionTargetId,
                                 new CombatEvent.DamageTaken
                                 {
@@ -229,7 +235,7 @@ public class CombatEventCapture : IDisposable
                                     // 1715 = Malodorous, BLU Bad Breath
                                     // 2115 = Conked, BLU Magic Hammer
                                     // 3642 = Candy Cane, BLU Candy Cane
-                                    Snapshot = p.Snapshot(true, additionalStatus),
+                                    Snapshot = snapshot,
                                     TargetActorId = actionTargetId,
                                     SourceActorId = casterEntityId,
                                     ActionId = effectHeader->ActionId,
