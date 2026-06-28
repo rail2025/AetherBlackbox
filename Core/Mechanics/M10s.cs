@@ -17,6 +17,10 @@ namespace AetherBlackbox.Core.Mechanics
         public static AoeInfo Cone(float radius, float angle) => new() { Shape = AoeShape.Cone, Radius = radius, Angle = angle };
         public static AoeInfo Cone(float radius, float angle, Vector4 color) => new() { Shape = AoeShape.Cone, Radius = radius, Angle = angle, Color = color };
 
+        public static AoeInfo Pie(float radius, float sweepAngle) => new() { Shape = AoeShape.Pie, Radius = radius, SweepAngle = sweepAngle };
+
+        public static AoeInfo Pie(float radius, float sweepAngle, Vector4 color) => new() { Shape = AoeShape.Pie, Radius = radius, SweepAngle = sweepAngle, Color = color };
+
         public static readonly Dictionary<uint, AoeInfo> Abilities = new()
         {
             { 46520, Circle(60f) }, // DiversDareRed // RedHot->self
@@ -28,7 +32,7 @@ namespace AetherBlackbox.Core.Mechanics
             { 46525, Rect(60f, 8f) }, // FlameFloater3 // RedHot->location
             { 46526, Rect(60f, 8f) }, // FlameFloater4 // RedHot->location
             { 46529, Circle(5f) }, // AlleyOopInferno // Helper->player
-            { 46538, Cone(60f, 330f) }, // CutbackBlaze // Helper->self
+            { 46538, Pie(60f, 330f) }, // CutbackBlaze // Helper->self
             { 46531, Circle(6f) }, // PyrotationSpread // Helper->players
             { 46540, Rect(50f, 50f) }, // SickSwellAOE // Helper->self
             { 46542, Rect(50f, 15f) }, // SickestTakeOffAOE // Helper->self
@@ -37,15 +41,17 @@ namespace AetherBlackbox.Core.Mechanics
             { 46551, Circle(5f) }, // AwesomeSplash2 // Helper->player
             { 46552, Circle(6f) }, // AwesomeSlab2 // Helper->players
             { 46558, Cone(60f, 30f) }, // AlleyOopDoubleDipFirst // Helper->self
-            { 46559, Cone(60f, 15f) }, // AlleyOopDoubleDipRepeat // Helper->self
+            { 46560, Cone(60f, 15f) }, // AlleyOopDoubleDipRepeat // Helper->self
+            { 46561, Cone(60f, 30f) }, // ReverseAlleyOopDoubleDipFirst // Helper->self
+            { 46562, Cone(60f, 15f) }, // ReverseAlleyOopDoubleDipRepeat // Helper->self
             { 44486, Circle(6f) }, // DeepImpact // DeepBlue->players
             { 46500, Rect(50f, 40f) }, // XtremeSpectacularProximity // TheXtremes->self
             { 46556, Circle(60f) }, // XtremeSpectacularRepeat // TheXtremes->self
             { 47050, Circle(60f) }, // XtremeSpectacularFinal // TheXtremes->self
-            { 46577, Cone(60f, 45f) }, // BlastingSnapAOE // Helper->self
-            { 46578, Cone(60f, 45f) }, // PlungingSnapAOE // Helper->self
-            { 46585, Circle(6f) }, // VerticalBlastAOE // Helper->players
-            { 46586, Circle(6f) }, // VerticalPlungeAOE // Helper->player
+            { 46575, Cone(60f, 45f) }, // BlastingSnapAOE // Helper->self
+            { 46576, Cone(60f, 45f) }, // PlungingSnapAOE // Helper->self
+            { 46583, Circle(6f) }, // VerticalBlastAOE // Helper->players
+            { 46584, Circle(6f) }, // VerticalPlungeAOE // Helper->player
             { 45953, Circle(60f) }, // Firesnaking // RedHot->self
             { 45954, Circle(60f) }, // Watersnaking // DeepBlue->self
             { 46587, Circle(9f) }, // SteamBurst // XtremeAether->self

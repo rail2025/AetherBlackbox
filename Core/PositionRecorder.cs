@@ -286,10 +286,10 @@ namespace AetherBlackbox.Core
                         Service.PluginLog.Debug($"[ActionTracker] Source: {player.Name}, Action: {actionToLog}");
                     }
                 }
-                else if (obj is IBattleNpc npc && npc.MaxHp > 0 && !string.IsNullOrEmpty(npc.Name.TextValue))
+                else if (obj is IBattleNpc npc && npc.MaxHp > 0 )
                 {
                     bool isDead = npc.IsDead;
-                    bool isActive = npc.IsCasting || actionToLog != 0 || shouldRecordMovement || isNewEntity || npc.IsTargetable;
+                    bool isActive = npc.IsCasting || actionToLog != 0 || shouldRecordMovement || isNewEntity || npc.IsTargetable || npc.MaxHp == 44;
 
                     if (lastRecordedStates.TryGetValue(npc.EntityId, out var state))
                     {
@@ -300,7 +300,7 @@ namespace AetherBlackbox.Core
                         }
                         else
                         {
-                            if ((snapshotTime - state.DeathTime).TotalSeconds > 7.0) continue;
+                            if ((snapshotTime - state.DeathTime).TotalSeconds > 7.0 && npc.MaxHp != 44) continue;
                         }
                     }
                     else

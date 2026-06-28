@@ -10,7 +10,8 @@ namespace AetherBlackbox.Core.Mechanics
         Circle,
         Cone,
         Rect,
-        Donut
+        Donut,
+        Pie
     }
 
     public class AoeInfo
@@ -20,6 +21,7 @@ namespace AetherBlackbox.Core.Mechanics
         public float Width { get; set; }
         public float InnerRadius { get; set; }
         public float Angle { get; set; }
+        public float SweepAngle { get; set; }
         public Vector4 Color { get; set; } = new Vector4(1f, 0.5f, 0f, 0.3f);
         public float Thickness { get; set; } = 2f;
         public bool IsFilled { get; set; } = true;

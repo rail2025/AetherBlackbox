@@ -220,7 +220,7 @@ public class CombatEventCapture : IDisposable
                                 }
                             }
 
-                            var pos = targetPos != null ? *targetPos : targetObj.Position;
+                            var pos = targetObj.Position;
                             var snapshot = p != null
                                 ? p.Snapshot(true, additionalStatus) with { Position = pos }
                                 : new CombatEvent.EventSnapshot { Time = DateTime.Now, CurrentHp = npcTarget?.CurrentHp ?? 0, MaxHp = npcTarget?.MaxHp ?? 0, BarrierPercent = 0, Position = pos };
