@@ -9,7 +9,7 @@ namespace AetherBlackbox.Core
         {
             //{ 1363, UMAD.Abilities },
             //{ 1323, M10s.Abilities },
-            { 1327, M12sP1.Abilities }
+            //{ 1327, M12sP1.Abilities }
         };
 
         public static Dictionary<uint, AoeInfo>? GetMechanics(uint territoryId)
