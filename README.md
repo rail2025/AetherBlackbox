@@ -12,6 +12,10 @@ Aether Blackbox records your pulls and lets you replay them in a 2D timeline. Yo
 
 <img width="1007" height="642" alt="abb main window" src="https://github.com/user-attachments/assets/fab0596c-f07f-4844-bfb7-d10eb01e8bc1" />
 
+<br>
+ <img src="https://github.com/rail2025/AetherBlackbox/blob/main/abbaoeloaderwip.gif" />
+
+
 ---
 
 ## How it works
