@@ -147,7 +147,7 @@ public partial class MainWindow : Window, IDisposable
             this.configuration, this.plugin
         );
 
-        this.SizeConstraints = new WindowSizeConstraints { MinimumSize = new Vector2(1000f * ImGuiHelpers.GlobalScale, 600f * ImGuiHelpers.GlobalScale), MaximumSize = new Vector2(float.MaxValue, float.MaxValue) };
+        this.SizeConstraints = new WindowSizeConstraints { MinimumSize = new Vector2(1000f, 600f), MaximumSize = new Vector2(float.MaxValue, float.MaxValue) };
         this.RespectCloseHotkey = true;
         this.currentBrushColor = new(this.configuration.DefaultBrushColorR, this.configuration.DefaultBrushColorG, this.configuration.DefaultBrushColorB, this.configuration.DefaultBrushColorA);
         float[] initialThicknessPresets = [1.5f, 4f, 7f, 10f];
