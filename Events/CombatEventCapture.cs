@@ -105,10 +105,9 @@ public class CombatEventCapture : IDisposable
                 _ => effectHeader->SpellId
             };
 
-            if (plugin.ConditionEvaluator.ShouldCapture(casterEntityId))
-            {
-                plugin.PositionRecorder.OnActionUsed(casterEntityId, actionId);
-            }
+            Vector3? sourcePos = casterPtr != null ? casterPtr->GameObject.Position : null;
+            float? sourceRot = casterPtr != null ? casterPtr->GameObject.Rotation : null;
+            plugin.PositionRecorder.OnActionUsed(casterEntityId, actionId, sourcePos, sourceRot);
 
             if (casterPtr != null)
             {

@@ -22,9 +22,9 @@ namespace AetherBlackbox.Core.Mechanics
         public float Width { get; set; }
         public float InnerRadius { get; set; }
         public float Angle { get; set; }
-        public Vector4 Color { get; set; } = new(1, 0, 0, 1);
+        public Vector4 Color { get; set; } = new(1f, 0.5f, 0f, 0.4f);
         public float Thickness { get; set; }
-        public bool IsFilled { get; set; }
+        public bool IsFilled { get; set; } = true;
         public float Duration { get; set; }
     }
 }

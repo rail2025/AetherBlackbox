@@ -33,6 +33,10 @@ namespace AetherBlackbox.Windows
         public override void Draw()
         {
             ImGui.Text("Manage Permanent Files");
+            if (ImGui.Button("Refresh Folder"))
+            {
+                RefreshFiles();
+            }
             ImGui.InputText("Filter by Tag", ref tagFilterBuffer, 64);
             ImGui.Separator();
 

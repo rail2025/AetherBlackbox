@@ -24,6 +24,14 @@ namespace AetherBlackbox.Core
         public List<WaymarkSnapshot> WaymarkSnapshots { get; set; } = new();
         public List<string> DeathLog { get; set; } = new();
     }
+    public struct ReplayAoeEvent
+    {
+        public float TimeOffset;
+        public uint ActionId;
+        public uint SourceId;
+        public Vector3 Origin;
+        public float Rotation;
+    }
     public struct EntityPositionSnapshot
     {
         public uint ObjectId;
@@ -48,6 +56,7 @@ namespace AetherBlackbox.Core
         public Dictionary<uint, ReplayMetadata> Metadata { get; set; } = new();
         public List<ReplayFrame> Frames { get; set; } = new();
         public List<WaymarkSnapshot> Waymarks { get; set; } = new();
+        public List<ReplayAoeEvent> AoeEvents { get; set; } = new();
     }
 
     public class ReplayMetadata
@@ -91,6 +100,7 @@ namespace AetherBlackbox.Core
         private readonly Dictionary<uint, ReplayEntityState> lastRecordedStates = new();
 
         private readonly List<(DateTime Time, List<EntityPositionSnapshot> Data)> sessionData = new();
+        private readonly List<ReplayAoeEvent> sessionAoeEvents = new();
         private const int MaxRecordingSeconds = 1200;
 
         private readonly Dictionary<uint, uint> _actionBuffer = new();
@@ -106,9 +116,35 @@ namespace AetherBlackbox.Core
             this.plugin = plugin;
             Service.Framework.Update += OnUpdate;
         }
-        public void OnActionUsed(uint sourceId, uint actionId)
+        public void OnActionUsed(uint sourceId, uint actionId, Vector3? pos = null, float? rot = null)
         {
             if (!IsRecording) return;
+
+            float timeOffset = (float)(DateTime.Now - sessionStartTime).TotalSeconds;
+            var obj = Service.ObjectTable.SearchById(sourceId);
+
+            string sourceName = obj != null ? obj.Name.TextValue : "Invisible Helper";
+            Vector3 origin = pos ?? (obj != null ? obj.Position : Vector3.Zero);
+            float rotation = rot ?? (obj != null ? obj.Rotation : 0f);
+
+            if (pos != null || obj != null)
+            {
+                var aoeEvent = new ReplayAoeEvent
+                {
+                    TimeOffset = timeOffset,
+                    ActionId = actionId,
+                    SourceId = sourceId,
+                    Origin = origin,
+                    Rotation = rotation
+                };
+
+                lock (sessionAoeEvents)
+                {
+                    sessionAoeEvents.Add(aoeEvent);
+                }
+                Service.PluginLog.Debug($"[AoeEventLog] Logged Action {actionId} from {sourceName} at {timeOffset:F2}s");
+            }
+
             lock (_bufferLock)
             {
                 _actionBuffer[sourceId] = actionId;
@@ -118,6 +154,7 @@ namespace AetherBlackbox.Core
         public unsafe void StartRecording()
         {
             lock (sessionData) sessionData.Clear();
+            lock (sessionAoeEvents) sessionAoeEvents.Clear();
             lock (_bufferLock) _actionBuffer.Clear();
             sessionStartTime = DateTime.Now;
             lastCaptureTime = DateTime.MinValue;
@@ -194,7 +231,7 @@ namespace AetherBlackbox.Core
             {
                 uint currentAction = 0;
                 bool isNewEntity = !lastRecordedStates.ContainsKey(obj.EntityId);
-                
+
                 bool shouldRecordMovement = true;
                 bool shouldRecordAttributes = false;
                 if (lastRecordedStates.TryGetValue(obj.EntityId, out var lastState))
@@ -281,12 +318,8 @@ namespace AetherBlackbox.Core
                         ObjectId = 1,
                         StatusHash = sHash
                     };
-                    if (actionToLog != 0)
-                    {
-                        Service.PluginLog.Debug($"[ActionTracker] Source: {player.Name}, Action: {actionToLog}");
-                    }
                 }
-                else if (obj is IBattleNpc npc && npc.MaxHp > 0 )
+                else if (obj is IBattleNpc npc && (npc.MaxHp > 0 || actionToLog != 0 || npc.IsCasting))
                 {
                     bool isDead = npc.IsDead;
                     bool isActive = npc.IsCasting || actionToLog != 0 || shouldRecordMovement || isNewEntity || npc.IsTargetable || npc.MaxHp == 44;
@@ -354,15 +387,10 @@ namespace AetherBlackbox.Core
                         existingState.StatusHash = sHash;
                         lastRecordedStates[npc.EntityId] = existingState;
                     }
-
-                    if (actionToLog != 0)
-                    {
-                        Service.PluginLog.Debug($"[ActionTracker] Source: {npc.Name}, Action: {actionToLog}");
-                    }
                 }
             }
 
-                lock (sessionData)
+            lock (sessionData)
             {
                 sessionData.Add((snapshotTime, frameData));
             }
@@ -394,6 +422,12 @@ namespace AetherBlackbox.Core
 
                 if (sessionData.Count == 0) return recording;
                 var startTime = sessionData[0].Time;
+
+                lock (sessionAoeEvents)
+                {
+                    recording.AoeEvents.AddRange(sessionAoeEvents);
+                }
+
                 foreach (var (time, snapshots) in sessionData)
                 {
                     var frame = new ReplayFrame
@@ -459,7 +493,7 @@ namespace AetherBlackbox.Core
                     }
                     recording.Frames.Add(frame);
                 }
-                Service.PluginLog.Debug($"[SchemaCheck] Replay Ready. Abilities: {recording.Header.AbilityManifest.Count}, Statuses: {recording.Header.StatusManifest.Count}, Metadata: {recording.Metadata.Count}");
+                Service.PluginLog.Debug($"[SchemaCheck] Replay Ready. Abilities: {recording.Header.AbilityManifest.Count}, Events: {recording.AoeEvents.Count}, Frames: {recording.Frames.Count}");
 
                 return recording;
             }

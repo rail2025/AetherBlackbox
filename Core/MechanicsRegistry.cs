@@ -7,8 +7,8 @@ namespace AetherBlackbox.Core
     {
         public static readonly Dictionary<uint, Dictionary<uint, AoeInfo>> TerritoryMap = new()
         {
-            { 1363, UMAD.Abilities },
-            { 1323, M10s.Abilities },
+            //{ 1363, UMAD.Abilities },
+            //{ 1323, M10s.Abilities },
             { 1327, M12sP1.Abilities }
         };
 

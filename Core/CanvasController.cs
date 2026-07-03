@@ -1,3 +1,4 @@
+using AetherBlackbox.Core.Mechanics;
 using AetherBlackbox.DrawingLogic;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
@@ -85,6 +86,48 @@ public class CanvasController
     }
 
     public BaseDrawable? GetCurrentPreview() => currentDrawing;
+
+    public BaseDrawable? GetSingleSelectedItem() => selectedItems.Count == 1 ? selectedItems[0] : null;
+
+    public void SpawnMechanicPreview(CustomMechanicEntry entry, Vector2 centerPos)
+    {
+        var drawables = pageManager.GetCurrentPageDrawables();
+        if (drawables == null) return;
+
+        DrawMode mode = entry.Shape switch
+        {
+            Mechanics.AoeShape.Circle => DrawMode.Circle,
+            Mechanics.AoeShape.Cone => DrawMode.Cone,
+            Mechanics.AoeShape.Rect => DrawMode.Rectangle,
+            Mechanics.AoeShape.Donut => DrawMode.Donut,
+            Mechanics.AoeShape.Pie => DrawMode.Pie,
+            _ => DrawMode.Circle
+        };
+
+        var shape = CreateNewDrawingObject(mode, centerPos, entry.Color, entry.Thickness > 0 ? entry.Thickness : 2f, entry.IsFilled, 0f);
+        if (shape != null)
+        {
+            var type = shape.GetType();
+            type.GetProperty("Radius")?.SetValue(shape, entry.Radius);
+            type.GetProperty("OuterRadius")?.SetValue(shape, entry.Radius);
+            type.GetProperty("InnerRadius")?.SetValue(shape, entry.InnerRadius);
+            type.GetProperty("Width")?.SetValue(shape, entry.Width);
+            type.GetProperty("Height")?.SetValue(shape, entry.Radius);
+            type.GetProperty("Angle")?.SetValue(shape, entry.Angle);
+            type.GetProperty("SweepAngle")?.SetValue(shape, entry.Angle);
+
+            undoManager.RecordAction(drawables, "Spawn Mechanic Preview");
+            drawables.Add(shape);
+
+            foreach (var sel in selectedItems) sel.IsSelected = false;
+            selectedItems.Clear();
+
+            shape.IsSelected = true;
+            selectedItems.Add(shape);
+            setHovered(shape);
+            setDrawMode(DrawMode.Select);
+        }
+    }
 
     public void Undo()
     {

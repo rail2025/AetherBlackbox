@@ -62,6 +62,21 @@ namespace AetherBlackbox.Windows
         }
         public void Dispose() { }
 
+        public void SetActiveTool(DrawMode mode)
+        {
+            activeMode = mode;
+            foreach (var group in toolGroups)
+            {
+                if (group.Primary == mode || group.SubModes.Contains(mode))
+                {
+                    activeSubModeMap[group.Primary] = mode;
+                    break;
+                }
+            }
+            plugin.MainWindow.CurrentDrawMode = mode;
+            plugin.MainWindow.IsDrawingMode = true;
+        }
+
         public void Draw()
         {
             float buttonSize = 45 * ImGuiHelpers.GlobalScale;

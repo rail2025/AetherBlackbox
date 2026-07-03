@@ -21,6 +21,8 @@
 	  <EmbeddedResource Include="PluginImages\**\*" />
 	</ItemGroup>
 	<ItemGroup>
+	  <Compile Remove="Core\Mechanics\M10s.cs" />
+	  <Compile Remove="Core\Mechanics\M12sP1.cs" />
 	  <Compile Remove="Windows\PropertiesWindowgodfile.cs" />
 	</ItemGroup>
 

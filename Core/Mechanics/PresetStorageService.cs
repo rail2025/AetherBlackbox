@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace AetherBlackbox.Core.Mechanics
 {
@@ -33,6 +34,7 @@ namespace AetherBlackbox.Core.Mechanics
         {
             string path = Path.Combine(storageDirectory, $"{filename}.json");
             var options = new JsonSerializerOptions { WriteIndented = true, IncludeFields = true };
+            options.Converters.Add(new JsonStringEnumConverter());
             string json = JsonSerializer.Serialize(entries, options);
             File.WriteAllText(path, json);
         }
@@ -44,6 +46,7 @@ namespace AetherBlackbox.Core.Mechanics
 
             string json = File.ReadAllText(path);
             var options = new JsonSerializerOptions { IncludeFields = true };
+            options.Converters.Add(new JsonStringEnumConverter());
             var entries = JsonSerializer.Deserialize<List<CustomMechanicEntry>>(json, options) ?? new List<CustomMechanicEntry>();
 
             foreach (var entry in entries)
@@ -61,6 +64,19 @@ namespace AetherBlackbox.Core.Mechanics
             {
                 File.Delete(path);
             }
+        }
+        public void UpdateEntry(CustomMechanicEntry updatedEntry)
+        {
+            if (string.IsNullOrEmpty(updatedEntry.OriginFile)) return;
+            var entries = Load(updatedEntry.OriginFile);
+
+            var index = entries.FindIndex(e => e.ActionId == updatedEntry.ActionId);
+            if (index >= 0)
+                entries[index] = updatedEntry;
+            else
+                entries.Add(updatedEntry);
+
+            Save(updatedEntry.OriginFile, entries);
         }
     }
 }
