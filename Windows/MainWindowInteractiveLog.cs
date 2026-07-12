@@ -114,6 +114,10 @@ namespace AetherBlackbox.Windows
                     ImGui.TableNextRow();
 
                     float relativeSeconds = (float)(evt.Snapshot.Time - ActiveDeathReplay.TimeOfDeath).TotalSeconds;
+                    if (replayTimeOffset >= relativeSeconds && replayTimeOffset <= relativeSeconds + 1.5f)
+                    {
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, ImGui.GetColorU32(new Vector4(1.0f, 1.0f, 0.8f, 0.2f)));
+                    }
                     float deathOffset = GetDeathTimeOffset();
                     float absoluteSeconds = deathOffset + relativeSeconds;
 

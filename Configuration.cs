@@ -29,6 +29,7 @@ public class Configuration : IPluginConfiguration
     public bool ShowReplayNpcs { get; set; } = false;
     public bool ShowReplayHp { get; set; } = true;
     public bool ShowReplayStatuses { get; set; } = true;
+    public bool EnableDeathReplayLoop { get; set; } = true;
     public bool ShowCanvasStatusIcons { get; set; } = true;
     public List<uint> AllowedPlayerStatuses { get; set; } = new();
 
@@ -55,7 +56,7 @@ public class Configuration : IPluginConfiguration
     public float MapScaleMultiplier { get; set; } = 1.0f;
     public bool IsMapLocked { get; set; } = true;
     public InteractiveLogConfig InteractiveLog { get; set; } = new();
-    public int Version { get; set; } = 2;
+    public int Version { get; set; } = 3;
 
     [JsonExtensionData]
     public IDictionary<string, JToken> AdditionalData { get; set; } = new Dictionary<string, JToken>();
@@ -99,6 +100,13 @@ public class Configuration : IPluginConfiguration
                 ChatType = XivChatType.SystemMessage;
             }
             Version = 2;
+            Save();
+        }
+
+        if (Version == 2)
+        {
+            EnableDeathReplayLoop = true;
+            Version = 3;
             Save();
         }
     }

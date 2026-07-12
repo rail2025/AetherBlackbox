@@ -49,6 +49,8 @@ namespace AetherBlackbox.DrawingLogic
         public readonly uint handleColorDefault, handleColorHover, handleColorRotation, handleColorRotationHover, handleColorResize, handleColorResizeHover, handleColorSpecial, handleColorSpecialHover;
         #endregion
 
+        private ReplayRenderer.ViewContext? currentViewContext;
+
         public ShapeInteractionHandler(Plugin plugin, UndoManager undoManagerInstance, PageManager pageManagerInstance, Action<Guid> onObjectUpdateSent, Action<List<BaseDrawable>> onObjectsCommittedCallback)
         {
             this.plugin = plugin;
@@ -70,24 +72,35 @@ namespace AetherBlackbox.DrawingLogic
         public void ProcessInteractions(
             BaseDrawable? singleSelectedItem, List<BaseDrawable> selectedDrawables, List<BaseDrawable> allDrawablesOnPage,
             Func<DrawMode, int> getLayerPriorityFunc, ref BaseDrawable? hoveredDrawable,
-            Vector2 mousePosLogical, Vector2 mousePosScreen, Vector2 canvasOriginScreen,
+            Vector2 mousePosLogical, Vector2 mousePosScreen, Vector2 canvasOriginScreen, ReplayRenderer.ViewContext? viewContext, Core.ReplayFrame? currentFrame,
             bool isLMBClicked, bool isLMBDown, bool isLMBReleased, ImDrawListPtr drawList)
         {
             if (currentDragType == ActiveDragType.None)
                 ResetHoverStates(allDrawablesOnPage);
 
-            bool mouseOverAnyHandle = ProcessHandles(singleSelectedItem, mousePosLogical, canvasOriginScreen, drawList);
+            if (singleSelectedItem == null && selectedDrawables.Count == 1)
+                singleSelectedItem = selectedDrawables[0];
+
+            Vector2 activeOrigin = canvasOriginScreen;
+            if (singleSelectedItem != null && viewContext != null)
+            {
+                activeOrigin = singleSelectedItem.GetProjectedOrigin(viewContext, currentFrame);
+            }
+
+            Vector2 shapeMousePosLogical = (mousePosScreen - activeOrigin) / ImGuiHelpers.GlobalScale;
+
+            bool mouseOverAnyHandle = ProcessHandles(singleSelectedItem, shapeMousePosLogical, activeOrigin, drawList);
 
             if (currentDragType == ActiveDragType.None && !mouseOverAnyHandle)
-                UpdateHoveredObject(allDrawablesOnPage, getLayerPriorityFunc, ref hoveredDrawable, mousePosLogical);
+                UpdateHoveredObject(allDrawablesOnPage, getLayerPriorityFunc, ref hoveredDrawable, mousePosScreen, canvasOriginScreen, viewContext, currentFrame);
 
             if (isLMBClicked)
-                InitiateDrag(singleSelectedItem, selectedDrawables, hoveredDrawable, mouseOverAnyHandle, mousePosLogical);
+                InitiateDrag(singleSelectedItem, selectedDrawables, hoveredDrawable, mouseOverAnyHandle, mousePosLogical, shapeMousePosLogical);
 
             if (isLMBDown)
             {
                 if (currentDragType != ActiveDragType.None && currentDragType != ActiveDragType.MarqueeSelection)
-                    UpdateDrag(singleSelectedItem, selectedDrawables, mousePosLogical);
+                    UpdateDrag(singleSelectedItem, selectedDrawables, mousePosLogical, shapeMousePosLogical);
 
                 if (currentDragType == ActiveDragType.MarqueeSelection)
                     DrawMarqueeVisuals(mousePosLogical, mousePosScreen, canvasOriginScreen, drawList);
@@ -229,33 +242,40 @@ namespace AetherBlackbox.DrawingLogic
             draggedHandleIndex = -1;
         }
 
-        private bool ProcessHandles(BaseDrawable? item, Vector2 mousePos, Vector2 canvasOrigin, ImDrawListPtr drawList)
+        private bool ProcessHandles(BaseDrawable? item, Vector2 mousePos, Vector2 shapeOrigin, ImDrawListPtr drawList)
         {
             if (item == null) return false;
             bool mouseOverAny = false;
             switch (item)
             {
-                case DrawableImage dImg: InteractionHandlerHelpers.ProcessImageHandles(dImg, mousePos, canvasOrigin, drawList, this, ref mouseOverAny); break;
-                case DrawableRectangle dRect: InteractionHandlerHelpers.ProcessRectangleHandles(dRect, mousePos, canvasOrigin, drawList, this, ref mouseOverAny); break;
-                case DrawableTriangle dTri: InteractionHandlerHelpers.ProcessTriangleHandles(dTri, mousePos, canvasOrigin, drawList, this, ref mouseOverAny); break;
-                case DrawableText dText: InteractionHandlerHelpers.ProcessTextHandles(dText, mousePos, canvasOrigin, drawList, this, ref mouseOverAny); break;
-                case DrawableArrow dArrow: InteractionHandlerHelpers.ProcessArrowHandles(dArrow, mousePos, canvasOrigin, drawList, this, ref mouseOverAny); break;
-                case DrawableCone dCone: InteractionHandlerHelpers.ProcessConeHandles(dCone, mousePos, canvasOrigin, drawList, this, ref mouseOverAny); break;
-                case DrawablePie dPie: InteractionHandlerHelpers.ProcessPieHandles(dPie, mousePos, canvasOrigin, drawList, this, ref mouseOverAny); break;
-                case DrawableDonut dDonut: ProcessDonutHandles(dDonut, mousePos, canvasOrigin, drawList, ref mouseOverAny); break;
-                case DrawableStarburst dStar: ProcessStarburstHandles(dStar, mousePos, canvasOrigin, drawList, ref mouseOverAny); break;
+                case DrawableImage dImg: InteractionHandlerHelpers.ProcessImageHandles(dImg, mousePos, shapeOrigin, drawList, this, ref mouseOverAny); break;
+                case DrawableRectangle dRect: InteractionHandlerHelpers.ProcessRectangleHandles(dRect, mousePos, shapeOrigin, drawList, this, ref mouseOverAny); break;
+                case DrawableTriangle dTri: InteractionHandlerHelpers.ProcessTriangleHandles(dTri, mousePos, shapeOrigin, drawList, this, ref mouseOverAny); break;
+                case DrawableText dText: InteractionHandlerHelpers.ProcessTextHandles(dText, mousePos, shapeOrigin, drawList, this, ref mouseOverAny); break;
+                case DrawableArrow dArrow: InteractionHandlerHelpers.ProcessArrowHandles(dArrow, mousePos, shapeOrigin, drawList, this, ref mouseOverAny); break;
+                case DrawableCone dCone: InteractionHandlerHelpers.ProcessConeHandles(dCone, mousePos, shapeOrigin, drawList, this, ref mouseOverAny); break;
+                case DrawablePie dPie: InteractionHandlerHelpers.ProcessPieHandles(dPie, mousePos, shapeOrigin, drawList, this, ref mouseOverAny); break;
+                case DrawableDonut dDonut: ProcessDonutHandles(dDonut, mousePos, shapeOrigin, drawList, ref mouseOverAny); break;
+                case DrawableStarburst dStar: ProcessStarburstHandles(dStar, mousePos, shapeOrigin, drawList, ref mouseOverAny); break;
             }
             return mouseOverAny;
         }
 
-        private void UpdateHoveredObject(List<BaseDrawable> allDrawables, Func<DrawMode, int> layerPriority, ref BaseDrawable? hovered, Vector2 mousePos)
+        private void UpdateHoveredObject(List<BaseDrawable> allDrawables, Func<DrawMode, int> layerPriority, ref BaseDrawable? hovered, Vector2 mousePosScreen, Vector2 canvasOriginScreen, ReplayRenderer.ViewContext? viewContext, Core.ReplayFrame? currentFrame)
         {
             hovered = null;
             // Layers modifies this list, iterating it directly allows manual overrides to work, last item in the list (visually on top) is checked first.
             for (int i = allDrawables.Count - 1; i >= 0; i--)
             {
                 var drawable = allDrawables[i];
-                if (drawable.IsHit(mousePos, LogicalHandleInteractionRadius * 0.8f))
+                Vector2 activeOrigin = canvasOriginScreen;
+                if (viewContext != null)
+                {
+                    activeOrigin = drawable.GetProjectedOrigin(viewContext, currentFrame);
+                }
+                Vector2 localMousePos = (mousePosScreen - activeOrigin) / ImGuiHelpers.GlobalScale;
+
+                if (drawable.IsHit(localMousePos, LogicalHandleInteractionRadius * 0.8f))
                 {
                     hovered = drawable;
                     drawable.IsHovered = true;
@@ -264,11 +284,11 @@ namespace AetherBlackbox.DrawingLogic
             }
         }
 
-        private void InitiateDrag(BaseDrawable? singleSelectedItem, List<BaseDrawable> selectedList, BaseDrawable? hovered, bool onHandle, Vector2 mousePos)
+        private void InitiateDrag(BaseDrawable? singleSelectedItem, List<BaseDrawable> selectedList, BaseDrawable? hovered, bool onHandle, Vector2 globalMousePos, Vector2 shapeMousePos)
         {
             if (onHandle && singleSelectedItem != null && !singleSelectedItem.IsLocked)
             {
-                StartHandleDrag(singleSelectedItem, mousePos);
+                StartHandleDrag(singleSelectedItem, shapeMousePos);
             }
             else if (hovered != null)
             {
@@ -291,12 +311,12 @@ namespace AetherBlackbox.DrawingLogic
 
                 if (selectedList.Count > 0)
                 {
-                    StartDrag(ActiveDragType.GeneralSelection, mousePos);
+                    StartDrag(ActiveDragType.GeneralSelection, globalMousePos);
                 }
             }
             else
             {
-                StartDrag(ActiveDragType.MarqueeSelection, mousePos);
+                StartDrag(ActiveDragType.MarqueeSelection, globalMousePos);
             }
         }
 
@@ -366,13 +386,13 @@ namespace AetherBlackbox.DrawingLogic
             }
         }
 
-        private void UpdateDrag(BaseDrawable? singleSelectedItem, List<BaseDrawable> selectedList, Vector2 mousePos)
+        private void UpdateDrag(BaseDrawable? singleSelectedItem, List<BaseDrawable> selectedList, Vector2 globalMousePos, Vector2 shapeMousePos)
         {
             if (currentDragType == ActiveDragType.GeneralSelection)
             {
                 if (selectedList.Any())
                 {
-                    Vector2 dragDelta = mousePos - dragStartMousePosLogical;
+                    Vector2 dragDelta = globalMousePos - dragStartMousePosLogical;
                     if (dragDelta.LengthSquared() > 0)
                     {
                         foreach (var selected in selectedList)
@@ -381,7 +401,7 @@ namespace AetherBlackbox.DrawingLogic
                             if (!selected.IsLocked) selected.Translate(dragDelta);
                         }
                         // This update is crucial for incremental dragging
-                        dragStartMousePosLogical = mousePos;
+                        dragStartMousePosLogical = globalMousePos;
                     }
                 }
             }
@@ -390,28 +410,28 @@ namespace AetherBlackbox.DrawingLogic
                 // For resize/rotate, the transformation is absolute based on the start of the drag
                 switch (currentDragType)
                 {
-                    case ActiveDragType.ImageResize: InteractionHandlerHelpers.UpdateImageDrag((DrawableImage)singleSelectedItem, mousePos, this); break;
-                    case ActiveDragType.ImageRotate: InteractionHandlerHelpers.UpdateRotationDrag(singleSelectedItem, mousePos, this); break;
-                    case ActiveDragType.RectResize: InteractionHandlerHelpers.UpdateRectangleDrag((DrawableRectangle)singleSelectedItem, mousePos, this); break;
-                    case ActiveDragType.RectRotate: InteractionHandlerHelpers.UpdateRotationDrag(singleSelectedItem, mousePos, this); break;
-                    case ActiveDragType.TriangleResize: InteractionHandlerHelpers.UpdateTriangleResizeDrag((DrawableTriangle)singleSelectedItem, mousePos, this); break;
-                    case ActiveDragType.TextResize: InteractionHandlerHelpers.UpdateTextResizeDrag((DrawableText)singleSelectedItem, mousePos, this); break;
-                    case ActiveDragType.ArrowStartPoint: InteractionHandlerHelpers.UpdateArrowStartDrag((DrawableArrow)singleSelectedItem, mousePos, this); break;
-                    case ActiveDragType.ArrowEndPoint: InteractionHandlerHelpers.UpdateArrowEndDrag((DrawableArrow)singleSelectedItem, mousePos); break;
-                    case ActiveDragType.ArrowRotate: InteractionHandlerHelpers.UpdateRotationDrag(singleSelectedItem, mousePos, this); break;
-                    case ActiveDragType.ArrowThickness: InteractionHandlerHelpers.UpdateArrowThicknessDrag((DrawableArrow)singleSelectedItem, mousePos, this); break;
-                    case ActiveDragType.ConeApex: InteractionHandlerHelpers.UpdateConeApexDrag((DrawableCone)singleSelectedItem, mousePos, this); break;
-                    case ActiveDragType.ConeBase: InteractionHandlerHelpers.UpdateConeBaseDrag((DrawableCone)singleSelectedItem, mousePos); break;
-                    case ActiveDragType.ConeRotate: InteractionHandlerHelpers.UpdateRotationDrag(singleSelectedItem, mousePos, this); break;
-                    case ActiveDragType.PieCenter: InteractionHandlerHelpers.UpdatePieCenterDrag((DrawablePie)singleSelectedItem, mousePos, this); break;
-                    case ActiveDragType.PieRadius: InteractionHandlerHelpers.UpdatePieRadiusDrag((DrawablePie)singleSelectedItem, mousePos, this); break;
-                    case ActiveDragType.PieStart: InteractionHandlerHelpers.UpdatePieStartDrag((DrawablePie)singleSelectedItem, mousePos, this); break;
-                    case ActiveDragType.PieEnd: InteractionHandlerHelpers.UpdatePieEndDrag((DrawablePie)singleSelectedItem, mousePos, this); break;
-                    case ActiveDragType.DonutRadius: UpdateDonutRadiusDrag((DrawableDonut)singleSelectedItem, mousePos); break;
-                    case ActiveDragType.DonutHole: UpdateDonutHoleDrag((DrawableDonut)singleSelectedItem, mousePos); break;
-                    case ActiveDragType.StarburstRadius: UpdateStarburstRadiusDrag((DrawableStarburst)singleSelectedItem, mousePos); break;
-                    case ActiveDragType.StarburstRotate: UpdateStarburstRotateDrag((DrawableStarburst)singleSelectedItem, mousePos); break;
-                    case ActiveDragType.StarburstWidth: UpdateStarburstWidthDrag((DrawableStarburst)singleSelectedItem, mousePos); break;
+                    case ActiveDragType.ImageResize: InteractionHandlerHelpers.UpdateImageDrag((DrawableImage)singleSelectedItem, shapeMousePos, this); break;
+                    case ActiveDragType.ImageRotate: InteractionHandlerHelpers.UpdateRotationDrag(singleSelectedItem, shapeMousePos, this); break;
+                    case ActiveDragType.RectResize: InteractionHandlerHelpers.UpdateRectangleDrag((DrawableRectangle)singleSelectedItem, shapeMousePos, this); break;
+                    case ActiveDragType.RectRotate: InteractionHandlerHelpers.UpdateRotationDrag(singleSelectedItem, shapeMousePos, this); break;
+                    case ActiveDragType.TriangleResize: InteractionHandlerHelpers.UpdateTriangleResizeDrag((DrawableTriangle)singleSelectedItem, shapeMousePos, this); break;
+                    case ActiveDragType.TextResize: InteractionHandlerHelpers.UpdateTextResizeDrag((DrawableText)singleSelectedItem, shapeMousePos, this); break;
+                    case ActiveDragType.ArrowStartPoint: InteractionHandlerHelpers.UpdateArrowStartDrag((DrawableArrow)singleSelectedItem, shapeMousePos, this); break;
+                    case ActiveDragType.ArrowEndPoint: InteractionHandlerHelpers.UpdateArrowEndDrag((DrawableArrow)singleSelectedItem, shapeMousePos); break;
+                    case ActiveDragType.ArrowRotate: InteractionHandlerHelpers.UpdateRotationDrag(singleSelectedItem, shapeMousePos, this); break;
+                    case ActiveDragType.ArrowThickness: InteractionHandlerHelpers.UpdateArrowThicknessDrag((DrawableArrow)singleSelectedItem, shapeMousePos, this); break;
+                    case ActiveDragType.ConeApex: InteractionHandlerHelpers.UpdateConeApexDrag((DrawableCone)singleSelectedItem, shapeMousePos, this); break;
+                    case ActiveDragType.ConeBase: InteractionHandlerHelpers.UpdateConeBaseDrag((DrawableCone)singleSelectedItem, shapeMousePos); break;
+                    case ActiveDragType.ConeRotate: InteractionHandlerHelpers.UpdateRotationDrag(singleSelectedItem, shapeMousePos, this); break;
+                    case ActiveDragType.PieCenter: InteractionHandlerHelpers.UpdatePieCenterDrag((DrawablePie)singleSelectedItem, shapeMousePos, this); break;
+                    case ActiveDragType.PieRadius: InteractionHandlerHelpers.UpdatePieRadiusDrag((DrawablePie)singleSelectedItem, shapeMousePos, this); break;
+                    case ActiveDragType.PieStart: InteractionHandlerHelpers.UpdatePieStartDrag((DrawablePie)singleSelectedItem, shapeMousePos, this); break;
+                    case ActiveDragType.PieEnd: InteractionHandlerHelpers.UpdatePieEndDrag((DrawablePie)singleSelectedItem, shapeMousePos, this); break;
+                    case ActiveDragType.DonutRadius: UpdateDonutRadiusDrag((DrawableDonut)singleSelectedItem, shapeMousePos); break;
+                    case ActiveDragType.DonutHole: UpdateDonutHoleDrag((DrawableDonut)singleSelectedItem, shapeMousePos); break;
+                    case ActiveDragType.StarburstRadius: UpdateStarburstRadiusDrag((DrawableStarburst)singleSelectedItem, shapeMousePos); break;
+                    case ActiveDragType.StarburstRotate: UpdateStarburstRotateDrag((DrawableStarburst)singleSelectedItem, shapeMousePos); break;
+                    case ActiveDragType.StarburstWidth: UpdateStarburstWidthDrag((DrawableStarburst)singleSelectedItem, shapeMousePos); break;
                 }
             }
         }

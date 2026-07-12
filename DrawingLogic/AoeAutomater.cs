@@ -13,6 +13,9 @@ namespace AetherBlackbox.DrawingLogic
         public Vector3 Origin { get; set; }
         public float Rotation { get; set; }
         public float ExpirationTime { get; set; }
+        public string StableId { get; set; } = string.Empty;
+        public uint SourceEntityId { get; set; }
+        public Vector3 OffsetFromEntity { get; set; }
     }
 
     public static class AoeAutomator
@@ -62,6 +65,7 @@ namespace AetherBlackbox.DrawingLogic
                         if (matchedRule == null)
                             matchedRule = activeRules.FirstOrDefault(r => r.ActionId == actionId && r.ZoneId == 0 && r.SourceActorId == 0);
 
+                        var basePos = new Vector3(frame.X[i], 0, frame.Z[i]); 
                         var origin = new Vector3(frame.X[i], 0, frame.Z[i]);
                         var rotation = frame.Rot[i];
 
@@ -97,7 +101,10 @@ namespace AetherBlackbox.DrawingLogic
                                     Template = matchedRule,
                                     Origin = origin,
                                     Rotation = rotation,
-                                    ExpirationTime = expTime
+                                    ExpirationTime = expTime,
+                                    StableId = $"{sourceId}_{actionId}_{frame.TimeOffset:F2}",
+                                    SourceEntityId = sourceId,
+                                    OffsetFromEntity = origin - basePos
                                 });
                             }
                         }
@@ -125,7 +132,10 @@ namespace AetherBlackbox.DrawingLogic
                                     },
                                     Origin = origin,
                                     Rotation = rotation,
-                                    ExpirationTime = expTime
+                                    ExpirationTime = expTime,
+                                    StableId = $"{sourceId}_{actionId}_{frame.TimeOffset:F2}",
+                                    SourceEntityId = sourceId,
+                                    OffsetFromEntity = origin - basePos
                                 });
                             }
                         }

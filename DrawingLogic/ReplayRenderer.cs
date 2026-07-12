@@ -148,68 +148,9 @@ namespace AetherBlackbox.DrawingLogic
                     DrawHpBar(drawList, state, meta, screenPos);                
             }
 
-            var activeAoEs = AoeAutomator.GetActiveAoEs(recording, targetOffset, territoryTypeId, presetManager);
-            foreach (var aoe in activeAoEs)
-            {
-                DrawAutomatedAoe(drawList, aoe, view);
-            }
         }
 
-        private void DrawAutomatedAoe(ImDrawListPtr drawList, ActiveAoe aoe, ViewContext view)
-        {
-            var canvasCenter = (view.CanvasOrigin + (view.CanvasSize / 2)) + view.PanOffset;
-            float logicalScale = DefaultPixelsPerYard * view.Zoom;
-
-            Vector2 relPos = new Vector2(aoe.Origin.X - view.CenterWorldPos.X, aoe.Origin.Z - view.CenterWorldPos.Z);
-            Vector2 centerRel = relPos * logicalScale;
-            float radiusRel = aoe.Template.Radius * logicalScale;
-
-            bool isFilled = aoe.Template.IsFilled;
-            float thickness = aoe.Template.Thickness;
-
-            if (aoe.Template.Shape == AoeShape.Circle)
-            {
-                var circle = new DrawableCircle(centerRel, aoe.Template.Color, thickness, isFilled)
-                {
-                    Radius = radiusRel,
-                    IsPreview = false
-                };
-                circle.Draw(drawList, canvasCenter);
-            }
-            else if (aoe.Template.Shape == AoeShape.Donut)
-            {
-                var donut = new DrawableDonut(centerRel, aoe.Template.Color, thickness, isFilled, radiusRel, aoe.Template.InnerRadius * logicalScale)
-                {
-                    IsPreview = false
-                };
-                donut.Draw(drawList, canvasCenter);
-            }
-            else if (aoe.Template.Shape == AoeShape.Rect)
-            {
-                float rectWidth = aoe.Template.Width * logicalScale;
-                Vector2 start = centerRel + new Vector2(-rectWidth / 2f, 0);
-                Vector2 end = centerRel + new Vector2(rectWidth / 2f, radiusRel);
-
-                var rect = new DrawableRectangle(start, aoe.Template.Color, thickness, isFilled)
-                {
-                    EndPointRelative = end,
-                    RotationAngle = -aoe.Rotation,
-                    IsPreview = false
-                };
-                rect.Draw(drawList, canvasCenter);
-            }
-            else if (aoe.Template.Shape == AoeShape.Cone)
-            {
-                var pie = new DrawablePie(centerRel, aoe.Template.Color, thickness, isFilled)
-                {
-                    Radius = radiusRel,
-                    RotationAngle = -aoe.Rotation - ((aoe.Template.Angle * (MathF.PI / 180f)) / 2f) + (MathF.PI / 2f),
-                    SweepAngle = aoe.Template.Angle * (MathF.PI / 180f),
-                    IsPreview = false
-                };
-                pie.Draw(drawList, canvasCenter);
-            }
-        }
+        
 
         private static readonly HashSet<uint> IgnoredStatuses = new()
         {

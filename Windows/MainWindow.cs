@@ -65,6 +65,8 @@ public partial class MainWindow : Window, IDisposable
     private bool isReplayMode = false;
     private float replayTimeOffset = 0f;
     private bool isPlaybackActive = false;
+    private bool isAutoLooping = false;
+    private int autoLoopCount = 0;
     private Vector3? cachedArenaCenter = null;
     public float CurrentAbsoluteTime => GetDeathTimeOffset() + replayTimeOffset;
 
@@ -112,7 +114,7 @@ public partial class MainWindow : Window, IDisposable
     }
 
     private PullSession? selectedPull;
-    private const float SidebarWidth = 350f;
+    private float SidebarWidth = 350f;
     private const ulong EmptyTargetID = 0xE0000000;
 
     public interface IPlanAction
@@ -232,10 +234,22 @@ public partial class MainWindow : Window, IDisposable
         selectedPull = plugin.PullManager.History.FirstOrDefault(p => p.Deaths.Contains(death));
         ActiveDeathReplay = death;
         isReplayMode = true;
-        replayTimeOffset = 0f;
+        selectedEntityId = death.PlayerId;
+        if (configuration.EnableDeathReplayLoop)
+        {
+            replayTimeOffset = -6.0f;
+            isPlaybackActive = true;
+            isAutoLooping = true;
+            autoLoopCount = 0;
+        }
+        else
+        {
+            replayTimeOffset = 0f;
+            isPlaybackActive = false;
+            isAutoLooping = false;
+        }
         activePings.Clear();
         syncTarget = null;
-        isPlaybackActive = false;
         cachedArenaCenter = null;
         IsOpen = true;
 
@@ -260,20 +274,30 @@ public partial class MainWindow : Window, IDisposable
 
         ImGui.BeginGroup();
         {
-            if (ImGui.BeginChild("SessionHistoryPane", new Vector2(SidebarWidth * ImGuiHelpers.GlobalScale, contentRegion.Y * 0.5f), true))
+            using (var historyPane = ImRaii.Child("SessionHistoryPane", new Vector2(SidebarWidth * ImGuiHelpers.GlobalScale, contentRegion.Y * 0.5f), true))
             {
-                DrawSessionHistory();
+                if (historyPane)
+                {
+                    DrawSessionHistory();
+                }
             }
-            ImGui.EndChild();
 
             float remainingHeight = ImGui.GetContentRegionAvail().Y;
-            if (ImGui.BeginChild("InteractiveLogPane", new Vector2(SidebarWidth * ImGuiHelpers.GlobalScale, remainingHeight), true))
+            using (var logPane = ImRaii.Child("InteractiveLogPane", new Vector2(SidebarWidth * ImGuiHelpers.GlobalScale, remainingHeight), true))
             {
-                DrawInteractiveLog();
+                if (logPane)
+                {
+                    DrawInteractiveLog();
+                }
             }
-            ImGui.EndChild();
         }
         ImGui.EndGroup();
+
+        ImGui.SameLine();
+
+        ImGui.Button("##Splitter", new Vector2(4f * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().Y));
+        if (ImGui.IsItemHovered()) ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeEw);
+        if (ImGui.IsItemActive()) SidebarWidth = Math.Clamp(SidebarWidth + (ImGui.GetIO().MouseDelta.X / ImGuiHelpers.GlobalScale), 100f, 800f);
 
         ImGui.SameLine();
 
@@ -309,6 +333,7 @@ public partial class MainWindow : Window, IDisposable
             {
                 syncTarget = null;
                 isPlaybackActive = !isPlaybackActive;
+                isAutoLooping = false;
                 if (isPlaybackActive && replayTimeOffset >= 5f) replayTimeOffset = timelineMin;
             }
             ImGui.SameLine();
@@ -394,6 +419,13 @@ public partial class MainWindow : Window, IDisposable
                     configuration.Save();
                 }
 
+                var enableLoop = configuration.EnableDeathReplayLoop;
+                if (ImGui.Checkbox("Auto-Loop on Select", ref enableLoop))
+                {
+                    configuration.EnableDeathReplayLoop = enableLoop;
+                    configuration.Save();
+                }
+
                 ImGui.EndPopup();
             }
 
@@ -405,6 +437,7 @@ public partial class MainWindow : Window, IDisposable
             {
                 syncTarget = null;
                 isPlaybackActive = false;
+                isAutoLooping = false;
                 replayTimeOffset = Math.Max(timelineMin, replayTimeOffset - 0.1f);
                 BroadcastTimeSync();
             }
@@ -417,6 +450,7 @@ public partial class MainWindow : Window, IDisposable
             {
                 syncTarget = null;
                 isPlaybackActive = false;
+                isAutoLooping = false;
                 replayTimeOffset = Math.Clamp(absTimeInput - currentDeathTime, timelineMin, 5f);
                 BroadcastTimeSync();
             }
@@ -426,6 +460,7 @@ public partial class MainWindow : Window, IDisposable
             {
                 syncTarget = null;
                 isPlaybackActive = false;
+                isAutoLooping = false;
                 replayTimeOffset = Math.Min(5f, replayTimeOffset + 0.1f);
                 BroadcastTimeSync();
             }
@@ -445,8 +480,24 @@ public partial class MainWindow : Window, IDisposable
             }
             else if (isPlaybackActive)
             {
-                replayTimeOffset += ImGui.GetIO().DeltaTime;
-                if (replayTimeOffset >= 5f)
+                float speedMultiplier = isAutoLooping ? 2.0f : 1.0f;
+                replayTimeOffset += ImGui.GetIO().DeltaTime * speedMultiplier;
+
+                if (isAutoLooping && replayTimeOffset >= 1.0f)
+                {
+                    autoLoopCount++;
+                    if (autoLoopCount >= 3)
+                    {
+                        isAutoLooping = false;
+                        isPlaybackActive = false;
+                        replayTimeOffset = 1.0f;
+                    }
+                    else
+                    {
+                        replayTimeOffset = -6.0f;
+                    }
+                }
+                else if (replayTimeOffset >= 5f)
                 {
                     replayTimeOffset = 5f;
                     isPlaybackActive = false;
@@ -461,84 +512,92 @@ public partial class MainWindow : Window, IDisposable
             DrawMapCalibrationPanel();                
         }
 
-        if (ImGui.BeginChild("CanvasDrawingArea", new Vector2(0, 0), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
+        using (var canvasArea = ImRaii.Child("CanvasDrawingArea", new Vector2(0, 0), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
         {
-            var canvasStartPos = ImGui.GetCursorPos();
-            currentCanvasDrawSize = ImGui.GetContentRegionAvail();
-            if (currentCanvasDrawSize.X > 0 && currentCanvasDrawSize.Y > 0)
+            if (canvasArea)
             {
-                DrawCanvas();
-
-                ImGui.SetCursorPos(canvasStartPos + new Vector2(10 * ImGuiHelpers.GlobalScale, 10 * ImGuiHelpers.GlobalScale));
-
-                bool isToolbarVisible = configuration.IsToolbarVisible;
-                bool isSelectionVisible = selectedEntityId != 0 && ActiveDeathReplay != null;
-
-                float bottomPadding = isSelectionVisible ? 150f * ImGuiHelpers.GlobalScale : 20f * ImGuiHelpers.GlobalScale;
-                float childHeight = isToolbarVisible ? (currentCanvasDrawSize.Y - bottomPadding) : (35 * ImGuiHelpers.GlobalScale);
-
-                float childWidth = 115f * ImGuiHelpers.GlobalScale;
-                if (isToolbarVisible)
-                    childWidth += ImGui.GetStyle().ScrollbarSize;
-
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, isToolbarVisible ? new Vector4(0.12f, 0.12f, 0.14f, 0.95f) : new Vector4(0, 0, 0, 0));
-
-                if (ImGui.BeginChild("ToolbarContainer", new Vector2(childWidth, childHeight), isToolbarVisible, ImGuiWindowFlags.None))
+                var canvasStartPos = ImGui.GetCursorPos();
+                currentCanvasDrawSize = ImGui.GetContentRegionAvail();
+                if (currentCanvasDrawSize.X > 0 && currentCanvasDrawSize.Y > 0)
                 {
-                    if (ImGui.Button(isToolbarVisible ? "<< Close" : "Draw >>", new Vector2(-1, 0)))
-                    {
-                        configuration.IsToolbarVisible = !isToolbarVisible;
-                        configuration.Save();
+                    DrawCanvas();
 
-                        if (!configuration.IsToolbarVisible)
+                    ImGui.SetCursorPos(canvasStartPos + new Vector2(10 * ImGuiHelpers.GlobalScale, 10 * ImGuiHelpers.GlobalScale));
+
+                    bool isToolbarVisible = configuration.IsToolbarVisible;
+                    bool isSelectionVisible = selectedEntityId != 0 && ActiveDeathReplay != null;
+
+                    float bottomPadding = isSelectionVisible ? 150f * ImGuiHelpers.GlobalScale : 20f * ImGuiHelpers.GlobalScale;
+                    float childHeight = isToolbarVisible ? (currentCanvasDrawSize.Y - bottomPadding) : (35 * ImGuiHelpers.GlobalScale);
+
+                    float childWidth = 115f * ImGuiHelpers.GlobalScale;
+                    if (isToolbarVisible)
+                        childWidth += ImGui.GetStyle().ScrollbarSize;
+
+                    ImGui.PushStyleColor(ImGuiCol.ChildBg, isToolbarVisible ? new Vector4(0.12f, 0.12f, 0.14f, 0.95f) : new Vector4(0, 0, 0, 0));
+
+                    using (var toolbarContainer = ImRaii.Child("ToolbarContainer", new Vector2(childWidth, childHeight), isToolbarVisible, ImGuiWindowFlags.None))
+                    {
+                        if (toolbarContainer)
                         {
-                            IsDrawingMode = false;
+                            if (ImGui.Button(isToolbarVisible ? "<< Close" : "Draw >>", new Vector2(-1, 0)))
+                            {
+                                configuration.IsToolbarVisible = !isToolbarVisible;
+                                configuration.Save();
+
+                                if (!configuration.IsToolbarVisible)
+                                {
+                                    IsDrawingMode = false;
+                                }
+                            }
+
+                            if (isToolbarVisible)
+                            {
+                                ImGui.Dummy(new Vector2(0, 5 * ImGuiHelpers.GlobalScale));
+                                plugin.ToolbarWindow.Draw();
+                            }
                         }
                     }
-
-                    if (isToolbarVisible)
-                    {
-                        ImGui.Dummy(new Vector2(0, 5 * ImGuiHelpers.GlobalScale));
-                        plugin.ToolbarWindow.Draw();
-                    }
-                }
-                ImGui.EndChild();
-                ImGui.PopStyleColor();
-
-                ImGui.SetCursorPos(canvasStartPos + new Vector2(currentCanvasDrawSize.X - 310 * ImGuiHelpers.GlobalScale, 10 * ImGuiHelpers.GlobalScale));
-                ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.12f, 0.12f, 0.14f, 0.95f));
-                if (ImGui.BeginChild("ExportContainer", new Vector2(300 * ImGuiHelpers.GlobalScale, isExportPreviewOpen ? 400 * ImGuiHelpers.GlobalScale : 35 * ImGuiHelpers.GlobalScale), true, ImGuiWindowFlags.NoScrollbar))
-                {
-                    if (ImGuiComponents.IconButton(FontAwesomeIcon.Camera)) CaptureCurrentState();
-                    if (ImGui.IsItemHovered()) ImGui.SetTooltip("Capture current state as a slide");
-                    ImGui.SameLine();
-                    if (ImGui.Button($"Export Plan ({ExportManager.StagedSlides.Count})", new Vector2(-1, 0))) isExportPreviewOpen = !isExportPreviewOpen;
-
-                    if (isExportPreviewOpen)
-                    {
-                        ImGui.Dummy(new Vector2(0, 5 * ImGuiHelpers.GlobalScale));
-                        DrawExportPreviewUI();
-                    }
-                }
-                ImGui.EndChild();
-                ImGui.PopStyleColor();
-                if (selectedEntityId != 0 && ActiveDeathReplay != null)
-                {
-                    ImGui.SetCursorPos(canvasStartPos + new Vector2(0, currentCanvasDrawSize.Y - (140f * ImGuiHelpers.GlobalScale)));
-                    ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.12f, 0.12f, 0.14f, 0.95f));
-                    if (ImGui.BeginChild("SelectionInfoArea", new Vector2(0, 140f * ImGuiHelpers.GlobalScale), true, ImGuiWindowFlags.NoScrollbar))
-                    {
-                        DrawSelectionInfo();
-                    }
-                    ImGui.EndChild();
                     ImGui.PopStyleColor();
-                }
-                if (configuration.ShowPartyMemberList)
-                {
-                    DrawPartyMembersPanel(canvasStartPos);
+
+                    ImGui.SetCursorPos(canvasStartPos + new Vector2(currentCanvasDrawSize.X - 310 * ImGuiHelpers.GlobalScale, 10 * ImGuiHelpers.GlobalScale));
+                    ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.12f, 0.12f, 0.14f, 0.95f));
+                    using (var exportContainer = ImRaii.Child("ExportContainer", new Vector2(300 * ImGuiHelpers.GlobalScale, isExportPreviewOpen ? 400 * ImGuiHelpers.GlobalScale : 35 * ImGuiHelpers.GlobalScale), true, ImGuiWindowFlags.NoScrollbar))
+                    {
+                        if (exportContainer)
+                        {
+                            if (ImGuiComponents.IconButton(FontAwesomeIcon.Camera)) CaptureCurrentState();
+                            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Capture current state as a slide");
+                            ImGui.SameLine();
+                            if (ImGui.Button($"Export Plan ({ExportManager.StagedSlides.Count})", new Vector2(-1, 0))) isExportPreviewOpen = !isExportPreviewOpen;
+
+                            if (isExportPreviewOpen)
+                            {
+                                ImGui.Dummy(new Vector2(0, 5 * ImGuiHelpers.GlobalScale));
+                                DrawExportPreviewUI();
+                            }
+                        }
+                    }
+                    ImGui.PopStyleColor();
+                    if (selectedEntityId != 0 && ActiveDeathReplay != null)
+                    {
+                        ImGui.SetCursorPos(canvasStartPos + new Vector2(0, currentCanvasDrawSize.Y - (140f * ImGuiHelpers.GlobalScale)));
+                        ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.12f, 0.12f, 0.14f, 0.95f));
+                        using (var selectionInfoArea = ImRaii.Child("SelectionInfoArea", new Vector2(0, 140f * ImGuiHelpers.GlobalScale), true, ImGuiWindowFlags.NoScrollbar))
+                        {
+                            if (selectionInfoArea)
+                            {
+                                DrawSelectionInfo();
+                            }
+                        }
+                        ImGui.PopStyleColor();
+                    }
+                    if (configuration.ShowPartyMemberList)
+                    {
+                        DrawPartyMembersPanel(canvasStartPos);
+                    }
                 }
             }
-            ImGui.EndChild();
         }
     }
 

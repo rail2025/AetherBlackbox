@@ -54,11 +54,31 @@ public partial class MainWindow
             if (wheel != 0) canvasZoom = Math.Clamp(canvasZoom + (wheel * 0.1f), 0.1f, 5.0f);
         }
 
-        bool isLMBDown = ImGui.IsMouseDown(ImGuiMouseButton.Left);
-        bool isLMBClicked = ImGui.IsMouseClicked(ImGuiMouseButton.Left);
-        bool isLMBReleased = ImGui.IsMouseReleased(ImGuiMouseButton.Left);
-        bool isLMBDoubleClicked = ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left);
-        bool isRMBDragging = ImGui.IsMouseDragging(ImGuiMouseButton.Right);
+        bool isLMBDown = (hovered || active) && ImGui.IsMouseDown(ImGuiMouseButton.Left);
+        bool isLMBClicked = hovered && ImGui.IsMouseClicked(ImGuiMouseButton.Left);
+        bool isLMBReleased = (hovered || active) && ImGui.IsMouseReleased(ImGuiMouseButton.Left);
+        bool isLMBDoubleClicked = hovered && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left);
+        bool isRMBDragging = (hovered || active) && ImGui.IsMouseDragging(ImGuiMouseButton.Right);
+
+        if (IsDrawingMode)
+        {
+            var viewContext = new ReplayRenderer.ViewContext(canvasOriginScreen, currentCanvasDrawSize, centerPos, canvasZoom, canvasPanOffset);
+            var mousePosScreen = ImGui.GetMousePos();
+            var mousePosLogical = (mousePosScreen - canvasOriginScreen - canvasPanOffset) / ImGuiHelpers.GlobalScale;
+
+            if (configuration.SnapToGrid && configuration.IsGridVisible && configuration.GridSize > 0)
+            {
+                float scaledGridSize = configuration.GridSize * ImGuiHelpers.GlobalScale;
+                mousePosLogical.X = (float)Math.Round(mousePosLogical.X / scaledGridSize) * scaledGridSize;
+                mousePosLogical.Y = (float)Math.Round(mousePosLogical.Y / scaledGridSize) * scaledGridSize;
+                mousePosScreen = canvasOriginScreen + mousePosLogical;
+            }
+
+            canvasController.ProcessCanvasInteraction(
+                mousePosLogical, mousePosScreen, canvasOriginScreen, drawList,
+                isLMBDown, isLMBClicked, isLMBReleased, isLMBDoubleClicked,
+                viewContext, targetOffset, closestFrame);
+        }
 
         if (hovered || active || isLMBReleased)
         {
@@ -67,29 +87,7 @@ public partial class MainWindow
                 canvasPanOffset += ImGui.GetIO().MouseDelta;
             }
 
-            if (IsDrawingMode)
-            {
-                var viewContext = new ReplayRenderer.ViewContext(canvasOriginScreen, currentCanvasDrawSize, centerPos, canvasZoom, canvasPanOffset);
-                var mousePosScreen = ImGui.GetMousePos();
-                var mousePosLogical = (mousePosScreen - canvasOriginScreen - canvasPanOffset) / ImGuiHelpers.GlobalScale;
-
-                if (configuration.SnapToGrid && configuration.IsGridVisible && configuration.GridSize > 0)
-                {
-                    float scaledGridSize = configuration.GridSize * ImGuiHelpers.GlobalScale;
-                    mousePosLogical.X = (float)Math.Round(mousePosLogical.X / scaledGridSize) * scaledGridSize;
-                    mousePosLogical.Y = (float)Math.Round(mousePosLogical.Y / scaledGridSize) * scaledGridSize;
-                    mousePosScreen = canvasOriginScreen + mousePosLogical;
-                }
-
-                if (active || isLMBReleased)
-                {
-                    canvasController.ProcessCanvasInteraction(
-                        mousePosLogical, mousePosScreen, canvasOriginScreen, drawList,
-                        isLMBDown, isLMBClicked, isLMBReleased, isLMBDoubleClicked,
-                        viewContext, targetOffset, closestFrame);
-                }
-            }
-            else if (active && !isRMBDragging)
+            if (!IsDrawingMode && active && !isRMBDragging)
             {
                 // Pan (Drag)
                 if (ImGui.IsMouseDragging(ImGuiMouseButton.Left))
@@ -167,6 +165,9 @@ public partial class MainWindow
                 plugin.Configuration,
                 plugin.PresetManager
             );
+
+            var activeAoEs = AoeAutomator.GetActiveAoEs(recording, targetOffset, ActiveDeathReplay.TerritoryTypeId, plugin.PresetManager);
+            new AoeBridge().SyncActiveAoEs(activeAoEs, pageManager);
 
             // Selection Circle
             if (selectedEntityId != 0)

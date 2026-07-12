@@ -192,7 +192,10 @@ namespace AetherBlackbox.Windows.Properties
             if (entry.ActionId == 0)
                 return;
 
+            entry.OriginFile = "CustomMechanics";
             plugin.PresetManager.AddEntry(entry);
+            plugin.StorageService.UpdateEntry(entry);
+            plugin.MechanicLibraryWindow.RefreshFiles();
 
             var drawables = mainWindow.PageManager.GetCurrentPageDrawables();
             drawables.Remove(target);

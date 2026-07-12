@@ -50,7 +50,7 @@ namespace AetherBlackbox.DrawingLogic
         {
             if (Vertices.Length < 3) return;
 
-            var displayColorVec = IsSelected ? new Vector4(1, 1, 0, 1) : (IsHovered ? new Vector4(0, 1, 1, 1) : Color);
+            var displayColorVec = IsHovered ? new Vector4(0, 1, 1, 1) : Color;
             uint displayColor = ImGui.GetColorU32(displayColorVec);
 
             var screenVertices = Vertices.Select(v => (v * ImGuiHelpers.GlobalScale) + canvasOriginScreen).ToArray();

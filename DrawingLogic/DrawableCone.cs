@@ -35,7 +35,7 @@ namespace AetherBlackbox.DrawingLogic
         }
         public override void Draw(ImDrawListPtr drawList, Vector2 canvasOriginScreen)
         {
-            var displayColorVec = IsSelected ? new Vector4(1, 1, 0, 1) : (IsHovered ? new Vector4(0, 1, 1, 1) : Color);
+            var displayColorVec = IsHovered ? new Vector4(0, 1, 1, 1) : Color;
             uint displayColor = ImGui.GetColorU32(displayColorVec);
             float scaledThickness = Math.Max(1f, Thickness * ImGuiHelpers.GlobalScale);
             if (IsSelected || IsHovered) scaledThickness += 2f * ImGuiHelpers.GlobalScale;

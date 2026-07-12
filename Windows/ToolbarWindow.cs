@@ -202,9 +202,15 @@ namespace AetherBlackbox.Windows
             ImGui.Separator();
 
             float btnWidthHalf = (iconButtonSize.X * 2 + style.ItemSpacing.X) / 2f;
-            if (ImGui.Button("Select", new Vector2(btnWidthHalf, 0))) { plugin.MainWindow.CurrentDrawMode = DrawMode.Select; plugin.MainWindow.IsDrawingMode = true; }
+            using (plugin.MainWindow.CurrentDrawMode == DrawMode.Select ? ImRaii.PushColor(ImGuiCol.Button, ImGui.GetStyle().Colors[(int)ImGuiCol.ButtonActive]) : null)
+            {
+                if (ImGui.Button("Select", new Vector2(btnWidthHalf, 0))) { plugin.MainWindow.CurrentDrawMode = DrawMode.Select; plugin.MainWindow.IsDrawingMode = true; }
+            }
             ImGui.SameLine();
-            if (ImGui.Button("Eraser", new Vector2(btnWidthHalf, 0))) { plugin.MainWindow.CurrentDrawMode = DrawMode.Eraser; plugin.MainWindow.IsDrawingMode = true; }
+            using (plugin.MainWindow.CurrentDrawMode == DrawMode.Eraser ? ImRaii.PushColor(ImGuiCol.Button, ImGui.GetStyle().Colors[(int)ImGuiCol.ButtonActive]) : null)
+            {
+                if (ImGui.Button("Eraser", new Vector2(btnWidthHalf, 0))) { plugin.MainWindow.CurrentDrawMode = DrawMode.Eraser; plugin.MainWindow.IsDrawingMode = true; }
+            }
 
             if (ImGui.Button("Undo", new Vector2(iconButtonSize.X * 2 + style.ItemSpacing.X, 0))) plugin.MainWindow.PerformUndo();
             if (ImGui.Button("Props", new Vector2(iconButtonSize.X * 2 + style.ItemSpacing.X, 0))) plugin.PropertiesWindow.IsOpen = !plugin.PropertiesWindow.IsOpen;

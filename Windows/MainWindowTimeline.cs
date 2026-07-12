@@ -32,6 +32,7 @@ namespace AetherBlackbox.Windows
             {
                 syncTarget = null;
                 isPlaybackActive = false;
+                isAutoLooping = false;
                 float mouseRatio = Math.Clamp((ImGui.GetMousePos().X - cursor.X) / width, 0f, 1f);
                 replayTimeOffset = minTime + (mouseRatio * totalRange);
                 lastTimeSyncBroadcast += ImGui.GetIO().DeltaTime;
@@ -47,6 +48,7 @@ namespace AetherBlackbox.Windows
             {
                 syncTarget = null;
                 isPlaybackActive = false;
+                isAutoLooping = false;
                 replayTimeOffset = Math.Clamp(replayTimeOffset + (ImGui.GetIO().MouseWheel * 0.1f), minTime, maxTime);
                 BroadcastTimeSync();
             }
@@ -182,6 +184,7 @@ namespace AetherBlackbox.Windows
                 if (ImGui.InvisibleButton($"##ping_{id}", new Vector2(Math.Max(20, totalWidth), textHeight + 10)))
                 {
                     syncTarget = id;
+                    isAutoLooping = false;
                     replayTimeOffset = pingAbsTime - deathTimeOffset;
                     BroadcastTimeSync();
                 }

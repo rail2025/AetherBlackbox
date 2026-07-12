@@ -17,6 +17,8 @@ public abstract class BaseDrawable
     public bool IsPreview { get; set; }
     public bool IsSelected { get; set; } = false;
     public bool IsHovered { get; set; } = false;
+    public string? AutoId { get; set; }
+    public bool IsUserEdited { get; set; } = false;
 
     public float ReplayTime { get; set; } = 0f;
     public float StartTime { get; set; } = 0f;
@@ -33,11 +35,8 @@ public abstract class BaseDrawable
     public string? Name { get; set; }
 
     public abstract void Draw(ImDrawListPtr drawList, Vector2 canvasOriginScreen);
-    public virtual void DrawProjected(ImDrawListPtr drawList, ReplayRenderer.ViewContext viewContext, Core.ReplayFrame? currentFrame, float currentReplayTime)
+    public Vector2 GetProjectedOrigin(ReplayRenderer.ViewContext viewContext, Core.ReplayFrame? currentFrame)
     {
-        if (!IsPreview && (currentReplayTime < StartTime || currentReplayTime > EndTime))
-            return;
-
         Vector2 origin = viewContext.CanvasOrigin;
 
         if (this.IsEntityTracked && currentFrame != null)
@@ -47,18 +46,28 @@ public abstract class BaseDrawable
             {
                 Vector3 entityPos = new Vector3(currentFrame.X[index], 0f, currentFrame.Z[index]);
                 Vector3 currentWorldPos = entityPos + this.OffsetFromEntity;
-                //Service.PluginLog?.Debug($"[ReplayTracker] ID:{this.UniqueId} | EntityPos:{entityPos} | Offset:{this.OffsetFromEntity} | TargetWorld:{currentWorldPos}");
                 Vector2 targetScreen = ReplayRenderer.WorldToScreen(currentWorldPos, viewContext);
                 Vector2 initialScreenOffset = this.InitialLogicalPos * Dalamud.Interface.Utility.ImGuiHelpers.GlobalScale;
-                origin = targetScreen - initialScreenOffset;
+                return targetScreen - initialScreenOffset;
             }
-            else return;
-        }
-        else
-        {
-            origin += viewContext.PanOffset;
+            return origin;
         }
 
+        if (this.InitialWorldPos != Vector3.Zero || this.InitialLogicalPos != Vector2.Zero)
+        {
+            Vector2 targetScreen = ReplayRenderer.WorldToScreen(this.InitialWorldPos, viewContext);
+            Vector2 initialScreenOffset = this.InitialLogicalPos * Dalamud.Interface.Utility.ImGuiHelpers.GlobalScale;
+            return targetScreen - initialScreenOffset;
+        }
+
+        return origin + viewContext.PanOffset;
+    }
+    public virtual void DrawProjected(ImDrawListPtr drawList, ReplayRenderer.ViewContext viewContext, Core.ReplayFrame? currentFrame, float currentReplayTime)
+    {
+        if (!IsPreview && (currentReplayTime < StartTime || currentReplayTime > EndTime))
+            return;
+
+        Vector2 origin = GetProjectedOrigin(viewContext, currentFrame);
         Draw(drawList, origin);
     }
 
@@ -82,6 +91,8 @@ public abstract class BaseDrawable
         target.IsPreview = false; // Cloned objects are generally not previews by default
         target.IsSelected = false;
         target.IsHovered = false;
+        target.AutoId = this.AutoId;
+        target.IsUserEdited = this.IsUserEdited;
         target.ReplayTime = this.ReplayTime;
 
         target.StartTime = this.StartTime;

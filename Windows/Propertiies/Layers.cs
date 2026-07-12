@@ -1,8 +1,9 @@
-﻿using System;
+﻿using AetherBlackbox.DrawingLogic;
+using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Utility.Raii;
+using System;
 using System.Collections.Generic;
 using System.Numerics;
-using Dalamud.Bindings.ImGui;
-using AetherBlackbox.DrawingLogic;
 
 namespace AetherBlackbox.Windows.Properties
 {
@@ -18,7 +19,8 @@ namespace AetherBlackbox.Windows.Properties
 
             var drawables = mainWindow.PageManager.GetCurrentPageDrawables();
 
-            if (!ImGui.BeginChild("##Layers", new Vector2(0, 0), true))
+            using var layerChild = ImRaii.Child("##Layers", new Vector2(0, 0), true);
+            if (!layerChild)
                 return;
 
             for (int i = drawables.Count - 1; i >= 0; i--)
@@ -108,7 +110,6 @@ namespace AetherBlackbox.Windows.Properties
 
                                 ImGui.EndDragDropTarget();
                                 ImGui.PopID();
-                                ImGui.EndChild();
                                 return;
                             }
                         }
@@ -119,8 +120,6 @@ namespace AetherBlackbox.Windows.Properties
 
                 ImGui.PopID();
             }
-
-            ImGui.EndChild();
         }
     }
 }

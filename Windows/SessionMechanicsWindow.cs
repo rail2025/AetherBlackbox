@@ -109,6 +109,8 @@ namespace AetherBlackbox.Windows
                         var filledProp = type.GetProperty("IsFilled");
                         if (filledProp != null) selectedEntry.IsFilled = (bool)filledProp.GetValue(selectedObj)!;
 
+                        float unscale(float val) => val / 8f;
+
                         var radiusProp = type.GetProperty("Radius") ?? type.GetProperty("OuterRadius") ?? type.GetProperty("Height");
                         if (radiusProp != null) selectedEntry.Radius = (float)radiusProp.GetValue(selectedObj)!;
 

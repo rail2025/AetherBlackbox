@@ -41,11 +41,11 @@ namespace AetherBlackbox.DrawingLogic
         {
             if (this.Radius < 0.5f && this.IsPreview) return;
 
-            var displayColorVec = this.IsSelected ? new Vector4(1, 1, 0, 1) : (this.IsHovered ? new Vector4(0, 1, 1, 1) : this.Color);
+            var displayColorVec = this.IsHovered ? new Vector4(0, 1, 1, 1) : this.Color;
             uint displayColor = ImGui.GetColorU32(displayColorVec);
 
             float baseScaledThickness = this.Thickness * ImGuiHelpers.GlobalScale;
-            float highlightThicknessAddition = this.IsSelected || this.IsHovered ? (2f * ImGuiHelpers.GlobalScale) : 0f;
+            float highlightThicknessAddition = this.IsHovered ? (2f * ImGuiHelpers.GlobalScale) : 0f;
             float displayScaledThickness = MathF.Max(1f * ImGuiHelpers.GlobalScale, baseScaledThickness + highlightThicknessAddition);
 
             Vector2 screenCenter = (this.CenterRelative * ImGuiHelpers.GlobalScale) + canvasOriginScreen;

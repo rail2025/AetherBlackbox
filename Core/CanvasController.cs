@@ -185,7 +185,7 @@ public class CanvasController
 
         if (mode == DrawMode.Select || mode == DrawMode.Eraser)
         {
-            HandleSelectionOrEraser(mode, drawables, mouseLogical, mouseScreen, canvasOrigin, lmbClicked, lmbDown, lmbReleased, drawList);
+            HandleSelectionOrEraser(mode, drawables, mouseLogical, mouseScreen, canvasOrigin, viewContext, currentFrame, lmbClicked, lmbDown, lmbReleased, drawList);
             return;
         }
 
@@ -228,6 +228,8 @@ public class CanvasController
         Vector2 mouseLogical,
         Vector2 mouseScreen,
         Vector2 canvasOrigin,
+        ReplayRenderer.ViewContext? viewContext,
+        ReplayFrame? currentFrame,
         bool lmbClicked,
         bool lmbDown,
         bool lmbReleased,
@@ -239,7 +241,7 @@ public class CanvasController
         shapeInteractionHandler.ProcessInteractions(
             singleSelection, selectedItems, drawables,
             modeValue => 1, ref hovered,
-            mouseLogical, mouseScreen, canvasOrigin,
+            mouseLogical, mouseScreen, canvasOrigin, viewContext, currentFrame,
             lmbClicked, lmbDown, lmbReleased, drawList);
 
         setHovered(hovered);
