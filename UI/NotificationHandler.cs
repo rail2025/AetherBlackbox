@@ -19,6 +19,7 @@ public class NotificationHandler : Window {
     private Death? popupDeath;
     private bool windowWasMoved;
     private readonly Vector2 initialPos;
+    private Dalamud.Interface.Textures.ISharedImmediateTexture? pluginIconNode;
 
     public NotificationHandler(Plugin plugin) : base("###AetherBlackboxPopup",
         ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoFocusOnAppearing) {
@@ -56,6 +57,12 @@ public class NotificationHandler : Window {
     }
 
     public override void Draw() {
+
+        if (pluginIconNode == null)
+        {
+            pluginIconNode = Service.TextureProvider.GetFromManifestResource(typeof(Plugin).Assembly, "AetherBlackbox.PluginImages.icon.png");
+        }
+        var pluginIcon = pluginIconNode.GetWrapOrDefault();
         windowWasMoved = ImGui.GetWindowPos() != initialPos;
 
         WindowName = windowWasMoved ? "###AetherBlackboxPopup" : "(Drag me somewhere)###AetherBlackboxPopup";
@@ -63,14 +70,39 @@ public class NotificationHandler : Window {
         var elapsed = (DateTime.Now - popupDeath?.TimeOfDeath)?.TotalSeconds;
         if (!plugin.MainWindow.IsOpen && elapsed < 30)
         {
-            var label = $"Show Aether Blackbox ({30 - elapsed:N0}s)";
-            if (popupDeath != null)
+            var labelTop = $"Show Aether Blackbox ({30 - elapsed:N0}s)";
+            var playerName = popupDeath != null ? GetDeathPlayerName(popupDeath) : "";
+
+            var cursorPos = ImGui.GetCursorScreenPos();
+            bool buttonClicked = ImGui.Button("###AetherBlackboxButton", new Vector2(-1, -1));
+            var buttonSize = ImGui.GetItemRectSize();
+            var drawList = ImGui.GetWindowDrawList();
+
+            var textTopSize = ImGui.CalcTextSize(labelTop);
+            var iconSize = pluginIcon != null ? new Vector2(24 * ImGuiHelpers.GlobalScale, 24 * ImGuiHelpers.GlobalScale) : Vector2.Zero;
+            var textNameSize = ImGui.CalcTextSize(playerName);
+            var padding = pluginIcon != null && !string.IsNullOrEmpty(playerName) ? 5f * ImGuiHelpers.GlobalScale : 0f;
+
+            var totalBottomWidth = iconSize.X + padding + textNameSize.X;
+            var topTextY = cursorPos.Y + (buttonSize.Y - (textTopSize.Y + iconSize.Y + 5 * ImGuiHelpers.GlobalScale)) / 2;
+            var bottomY = topTextY + textTopSize.Y + 5 * ImGuiHelpers.GlobalScale;
+
+            var topTextPos = new Vector2(cursorPos.X + (buttonSize.X - textTopSize.X) / 2, topTextY);
+            drawList.AddText(topTextPos, ImGui.GetColorU32(ImGuiCol.Text), labelTop);
+
+            if (!string.IsNullOrEmpty(playerName))
             {
-                var playerName = GetDeathPlayerName(popupDeath);
-                label = AppendCenteredPlayerName(label, playerName);
+                var startX = cursorPos.X + (buttonSize.X - totalBottomWidth) / 2;
+                if (pluginIcon != null)
+                {
+                    drawList.AddImage(pluginIcon.Handle, new Vector2(startX, bottomY), new Vector2(startX + iconSize.X, bottomY + iconSize.Y));
+                    startX += iconSize.X + padding;
+                }
+                var textNamePos = new Vector2(startX, bottomY + (iconSize.Y - textNameSize.Y) / 2);
+                drawList.AddText(textNamePos, ImGui.GetColorU32(ImGuiCol.Text), playerName);
             }
 
-            if (ImGui.Button(label, new Vector2(-1, -1)))
+            if (buttonClicked)
             {
                 if (popupDeath != null)
                 {

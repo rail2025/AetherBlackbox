@@ -61,6 +61,7 @@ namespace AetherBlackbox.Windows
                 var activeStatuses = GetActiveStatuses(recording, (uint)selectedEntityId, targetOffset);
                 if (activeStatuses.Count > 0)
                 {
+                    int buffCount = 0;
                     foreach (var status in activeStatuses)
                     {
                         var sheetStatus = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Status>().GetRowOrDefault(status.Id);
@@ -72,10 +73,13 @@ namespace AetherBlackbox.Windows
                             float aspectRatio = (float)icon.Width / icon.Height;
                             ImGui.Image(icon.Handle, new Vector2(24 * aspectRatio, 24) * ImGuiHelpers.GlobalScale);
                             if (ImGui.IsItemHovered()) ImGui.SetTooltip($"{sheetStatus.Value.Name}\n{status.RemainingDuration:F1}s");
-                            ImGui.SameLine();
+
+                            buffCount++;
+                            if (buffCount % 10 != 0 && buffCount < activeStatuses.Count)
+                                ImGui.SameLine();
                         }
                     }
-                    ImGui.NewLine();
+                    if (buffCount % 10 != 0) ImGui.NewLine();
                 }
 
                 bool isCasting = false;
@@ -123,6 +127,30 @@ namespace AetherBlackbox.Windows
 
                             float targetHpPct = (closestFrame.Hp != null && targetIdx < closestFrame.Hp.Count) ? (float)closestFrame.Hp[targetIdx] / targetMeta.MaxHp : 0f;
                             ImGui.ProgressBar(targetHpPct, new Vector2(ImGui.GetContentRegionAvail().X, 15 * ImGuiHelpers.GlobalScale), $"{targetHpPct * 100:F1}%");
+
+                            var targetStatuses = GetActiveStatuses(recording, (uint)targetId, targetOffset);
+                            if (targetStatuses.Count > 0)
+                            {
+                                int targetBuffCount = 0;
+                                foreach (var status in targetStatuses)
+                                {
+                                    var sheetStatus = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Status>().GetRowOrDefault(status.Id);
+                                    if (sheetStatus == null) continue;
+
+                                    var icon = Service.TextureProvider.GetFromGameIcon(sheetStatus.Value.Icon).GetWrapOrDefault();
+                                    if (icon != null)
+                                    {
+                                        float aspectRatio = (float)icon.Width / icon.Height;
+                                        ImGui.Image(icon.Handle, new Vector2(24 * aspectRatio, 24) * ImGuiHelpers.GlobalScale);
+                                        if (ImGui.IsItemHovered()) ImGui.SetTooltip($"{sheetStatus.Value.Name}\n{status.RemainingDuration:F1}s");
+
+                                        targetBuffCount++;
+                                        if (targetBuffCount % 10 != 0 && targetBuffCount < targetStatuses.Count)
+                                            ImGui.SameLine();
+                                    }
+                                }
+                                if (targetBuffCount % 10 != 0) ImGui.NewLine();
+                            }
                         }
                         else
                         {
