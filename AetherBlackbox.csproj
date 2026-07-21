@@ -23,6 +23,13 @@
 	<ItemGroup>
 	  <Compile Remove="Windows\PropertiesWindowgodfile.cs" />
 	</ItemGroup>
+	<ItemGroup>
+	  <EmbeddedResource Include="Core\Mechanics\Presets\M10s.json" />
+	  <EmbeddedResource Include="Core\Mechanics\Presets\M11s.json" />
+	  <EmbeddedResource Include="Core\Mechanics\Presets\M12sP1.json" />
+	  <EmbeddedResource Include="Core\Mechanics\Presets\M12sP2.json" />
+	  <EmbeddedResource Include="Core\Mechanics\Presets\UMAD.json" />
+	</ItemGroup>
 
 		
 	<ItemGroup>

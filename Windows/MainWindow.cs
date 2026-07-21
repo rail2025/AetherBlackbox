@@ -253,6 +253,10 @@ public partial class MainWindow : Window, IDisposable
         syncTarget = null;
         cachedArenaCenter = null;
         IsOpen = true;
+        configuration.ShowReplayAoEs = true;
+        configuration.Save();
+
+        plugin.PresetManager.AutoLoadTerritoryPresets(death.TerritoryTypeId);
 
         if (plugin.NetworkManager.IsConnected && IsNetworkHost && selectedPull != null)
         {
@@ -480,9 +484,26 @@ public partial class MainWindow : Window, IDisposable
             if (ImGui.IsItemHovered()) ImGui.SetTooltip("Replay Visibility Settings");
 
             ImGui.SameLine();
-            if (ImGuiComponents.IconButton("OpenMechanicLibrary", FontAwesomeIcon.Database))
-                plugin.MechanicLibraryWindow.IsOpen = !plugin.MechanicLibraryWindow.IsOpen;
-            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Open Mechanic Library (Saved Presets)");
+            var mechanicIcon = TextureManager.GetTexture("PluginImages/aoes/donut.JPG");
+            if (mechanicIcon != null && mechanicIcon.Handle != IntPtr.Zero)
+            {
+                float iconSize = ImGui.GetTextLineHeight();
+                Vector2 buttonSize = new Vector2(ImGui.GetFrameHeight());
+                Vector2 padding = (buttonSize - new Vector2(iconSize)) / 2.0f;
+
+                ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, padding);
+                ImGui.PushID("OpenMechanicLibrary");
+                if (ImGui.ImageButton(mechanicIcon.Handle, new Vector2(iconSize)))
+                    plugin.MechanicLibraryWindow.IsOpen = !plugin.MechanicLibraryWindow.IsOpen;
+                ImGui.PopID();
+                ImGui.PopStyleVar();
+            }
+            else
+            {
+                // Fallback if the SVG fails to load
+                if (ImGuiComponents.IconButton("OpenMechanicLibrary", FontAwesomeIcon.Database))
+                    plugin.MechanicLibraryWindow.IsOpen = !plugin.MechanicLibraryWindow.IsOpen;
+            }
 
             ImGui.SameLine();
             if (ImGuiComponents.IconButton("OpenSessionMechanics", FontAwesomeIcon.ListUl))
@@ -490,7 +511,13 @@ public partial class MainWindow : Window, IDisposable
             if (ImGui.IsItemHovered()) ImGui.SetTooltip("Open Active Session Mechanics");
 
             ImGui.SameLine();
-            if (ImGui.Button("Mock 24-Man")) GenerateMockAllianceReplay();
+            if (ImGui.Button("Party/Alliance Preview"))
+            {
+                GenerateMockAllianceReplay();
+                configuration.ShowPartyMemberList = true;
+                configuration.Save();
+            }
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Preview and adjust the Party/Alliance overlay layout");
 
             if (ImGui.BeginPopup("replay_settings_popup"))
             {
@@ -515,6 +542,13 @@ public partial class MainWindow : Window, IDisposable
                 if (ImGui.Checkbox("Show Statuses", ref showStatuses))
                 {
                     configuration.ShowReplayStatuses = showStatuses;
+                    configuration.Save();
+                }
+
+                var showAoes = configuration.ShowReplayAoEs;
+                if (ImGui.Checkbox("Show AoEs", ref showAoes))
+                {
+                    configuration.ShowReplayAoEs = showAoes;
                     configuration.Save();
                 }
 

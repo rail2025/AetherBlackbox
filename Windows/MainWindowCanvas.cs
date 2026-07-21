@@ -167,6 +167,10 @@ public partial class MainWindow
             );
 
             var activeAoEs = AoeAutomator.GetActiveAoEs(recording, targetOffset, ActiveDeathReplay.TerritoryTypeId, plugin.PresetManager);
+            if (!plugin.Configuration.ShowReplayAoEs)
+            {
+                activeAoEs.Clear();
+            }
             new AoeBridge().SyncActiveAoEs(activeAoEs, pageManager);
 
             // Selection Circle

@@ -108,19 +108,15 @@ namespace AetherBlackbox.Windows
 
                     ImGui.SetCursorScreenPos(rowStart + new Vector2(padding, 1f * scale));
 
-                    uint phId = GetActivePhantomJobIconId(member.EntityId, targetOffset);
-                    if (phId != 0)
+                    uint phIconId = GetActivePhantomJobIconId(member.EntityId, targetOffset);
+                    if (phIconId != 0)
                     {
-                        var sheetStatus = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Status>().GetRowOrDefault(phId);
-                        if (sheetStatus.HasValue && sheetStatus.Value.Icon != 0)
+                        var icon = Service.TextureProvider.GetFromGameIcon(phIconId).GetWrapOrDefault();
+                        if (icon != null)
                         {
-                            var icon = Service.TextureProvider.GetFromGameIcon(sheetStatus.Value.Icon).GetWrapOrDefault();
-                            if (icon != null)
-                            {
-                                float iconSize = 14f * scale;
-                                ImGui.Image(icon.Handle, new Vector2(iconSize, iconSize));
-                                ImGui.SameLine(0, 2f * scale);
-                            }
+                            float iconSize = 14f * scale;
+                            ImGui.Image(icon.Handle, new Vector2(iconSize, iconSize));
+                            ImGui.SameLine(0, 2f * scale);
                         }
                     }
 
@@ -149,8 +145,15 @@ namespace AetherBlackbox.Windows
 
         private void HandleAlliancePanelDrag(Vector2 panelScreenPos, Vector2 panelScreenEnd, float padding, float panelWidth, float panelHeight)
         {
-            if (ImGui.IsMouseHoveringRect(panelScreenPos, panelScreenEnd, true) && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
-                isDraggingAlliancePanel = true;
+            bool hoveredPanel = ImGui.IsMouseHoveringRect(panelScreenPos, panelScreenEnd, true);
+            if (hoveredPanel)
+            {
+                ImGui.SetTooltip("Right click and drag to move this overlay");
+                if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+                {
+                    isDraggingAlliancePanel = true;
+                }
+            }
 
             if (isDraggingAlliancePanel)
             {

@@ -72,6 +72,9 @@ namespace AetherBlackbox.Windows
                     {
                         plugin.PresetManager.AddEntry(entry);
                     }
+
+                    plugin.Configuration.ShowReplayAoEs = true;
+                    plugin.Configuration.Save();
                 }
             }
 

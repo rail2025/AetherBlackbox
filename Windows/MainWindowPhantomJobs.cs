@@ -22,14 +22,14 @@ namespace AetherBlackbox.Windows
                 return 0;
 
             var statuses = GetActiveStatuses(ActiveDeathReplay.ReplayData, (uint)entityId, timeOffset);
-
+            /*
             if (timeOffset >= 10.0f && timeOffset <= 13.0f)
             {
                 foreach (var status in statuses)
                 {
                     Service.PluginLog.Debug($"[Diagnostic] Entity {entityId} at {timeOffset:F2}s has Status ID: {status.Id}");
                 }
-            }
+            }*/
 
             foreach (var status in statuses)
             {

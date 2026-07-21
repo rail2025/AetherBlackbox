@@ -29,6 +29,7 @@ public class Configuration : IPluginConfiguration
     public bool ShowReplayNpcs { get; set; } = false;
     public bool ShowReplayHp { get; set; } = true;
     public bool ShowReplayStatuses { get; set; } = true;
+    public bool ShowReplayAoEs { get; set; } = true;
     public bool EnableDeathReplayLoop { get; set; } = true;
     public bool ShowCanvasStatusIcons { get; set; } = true;
     public List<uint> AllowedPlayerStatuses { get; set; } = new();

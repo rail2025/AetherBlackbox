@@ -295,9 +295,13 @@ namespace AetherBlackbox.Windows
         private void HandlePartyPanelDrag(Vector2 panelScreenPos, Vector2 panelScreenEnd, float padding, float maxX, float maxY)
         {
             bool hoveredPanel = ImGui.IsMouseHoveringRect(panelScreenPos, panelScreenEnd, true);
-            if (hoveredPanel && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+            if (hoveredPanel)
             {
-                isDraggingPartyPanel = true;
+                ImGui.SetTooltip("Right click and drag to move this overlay");
+                if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+                {
+                    isDraggingPartyPanel = true;
+                }
             }
 
             if (!isDraggingPartyPanel) return;

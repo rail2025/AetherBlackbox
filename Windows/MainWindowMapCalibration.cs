@@ -55,18 +55,46 @@ namespace AetherBlackbox.Windows
 
             ImGui.EndDisabled();
 
+
             ImGui.SameLine();
 
             bool isSelect = !IsDrawingMode;
-            if (isSelect) ImGui.PushStyleColor(ImGuiCol.Button, ImGui.GetColorU32(ImGuiCol.ButtonActive));
+            if (isSelect)
+            {
+                ImGui.PushStyleColor(ImGuiCol.Button, ImGui.GetColorU32(ImGuiCol.ButtonActive));
+                ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1.0f * ImGuiHelpers.GlobalScale);
+                ImGui.PushStyleColor(ImGuiCol.Border, ImGui.GetColorU32(new Vector4(0.2f, 0.6f, 1.0f, 1.0f)));
+            }
             if (ImGui.Button("Select")) IsDrawingMode = false;
-            if (isSelect) ImGui.PopStyleColor();
+            if (isSelect)
+            {
+                ImGui.PopStyleColor(2);
+                ImGui.PopStyleVar();
+            }
 
             ImGui.SameLine();
             bool isLaser = IsDrawingMode && currentDrawMode == DrawMode.Laser;
-            if (isLaser) ImGui.PushStyleColor(ImGuiCol.Button, ImGui.GetColorU32(ImGuiCol.ButtonActive));
+
+            ImGui.PushStyleColor(ImGuiCol.Button, ImGui.GetColorU32(isLaser ? new Vector4(0.0f, 0.7f, 0.0f, 1.0f) : new Vector4(0.0f, 1.0f, 0.0f, 1.0f)));
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, ImGui.GetColorU32(new Vector4(0.3f, 1.0f, 0.3f, 1.0f)));
+            ImGui.PushStyleColor(ImGuiCol.ButtonActive, ImGui.GetColorU32(new Vector4(0.0f, 0.6f, 0.0f, 1.0f)));
+            ImGui.PushStyleColor(ImGuiCol.Text, ImGui.GetColorU32(new Vector4(0.0f, 0.0f, 0.0f, 1.0f)));
+
+            if (isLaser)
+            {
+                ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1.0f * ImGuiHelpers.GlobalScale);
+                ImGui.PushStyleColor(ImGuiCol.Border, ImGui.GetColorU32(new Vector4(0.2f, 0.6f, 1.0f, 1.0f)));
+            }
+
             if (ImGui.Button("Laser")) { IsDrawingMode = true; currentDrawMode = DrawMode.Laser; }
-            if (isLaser) ImGui.PopStyleColor();
+
+            if (isLaser)
+            {
+                ImGui.PopStyleColor();
+                ImGui.PopStyleVar();
+            }
+
+            ImGui.PopStyleColor(4);
 
             ImGui.SameLine();
 
@@ -84,9 +112,22 @@ namespace AetherBlackbox.Windows
             }
             else
             {
+                bool isLive = plugin.LiveSessionWindow.IsOpen;
+                if (isLive)
+                {
+                    ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1.0f * ImGuiHelpers.GlobalScale);
+                    ImGui.PushStyleColor(ImGuiCol.Border, ImGui.GetColorU32(new Vector4(0.2f, 0.6f, 1.0f, 1.0f)));
+                }
+
                 if (ImGui.Button("Live"))
                 {
                     plugin.LiveSessionWindow.IsOpen = !plugin.LiveSessionWindow.IsOpen;
+                }
+
+                if (isLive)
+                {
+                    ImGui.PopStyleColor();
+                    ImGui.PopStyleVar();
                 }
             }
         }

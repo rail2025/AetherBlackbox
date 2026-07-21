@@ -86,7 +86,7 @@ namespace AetherBlackbox.DrawingLogic
                             bool match = phase.TriggerNames.Any(name => actionName.Contains(name, StringComparison.OrdinalIgnoreCase));
                             if (match)
                             {
-                                Service.PluginLog.Debug($"[ABB Timeline] MATCH FOUND: Phase {phase.PhaseId} triggered by {actionName} at {f.TimeOffset:F2}s");
+                                //Service.PluginLog.Debug($"[ABB Timeline] MATCH FOUND: Phase {phase.PhaseId} triggered by {actionName} at {f.TimeOffset:F2}s");
                                 recording.ArenaTimeline.AddTransition(f.TimeOffset, phase.PhaseId);
                                 transitionCount++;
                             }
