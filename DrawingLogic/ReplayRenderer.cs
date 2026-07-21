@@ -50,42 +50,85 @@ namespace AetherBlackbox.DrawingLogic
             DrawInternal(drawList, recording, frame, targetOffset, territoryTypeId, showNpcs, showHp, anonymizeNames, view, config, presetManager);
         }
 
+        private ReplayRecording? _lastRecording = null;
+
+        private void BuildTimeline(ReplayRecording recording, uint territoryTypeId)
+        {
+            Service.PluginLog.Debug($"[ABB Timeline] Manifest size: {recording.Header?.AbilityManifest?.Count ?? -1}");
+            recording.ArenaTimeline = new ArenaTimeline();
+            var arenaDef = ArenaDatabase.Get(territoryTypeId);
+            Service.PluginLog.Debug($"[ABB Timeline] Building for Territory {territoryTypeId}. ArenaDef found: {arenaDef != null}");
+            if (arenaDef == null) return;
+
+            recording.ArenaTimeline.AddTransition(0f, "P1");
+
+#if DEBUG
+            var loggedActionIds = new HashSet<uint>();
+            var loggedTransitions = new HashSet<(string PhaseId, uint ActionId)>();
+#endif
+            int transitionCount = 0;
+            foreach (var f in recording.Frames)
+            {
+                foreach (var actionId in f.Actions.Concat(f.Casts.Select(c => c.ActionId)))
+                {
+#if DEBUG
+                    if (actionId != 0 && loggedActionIds.Add(actionId))
+                    {
+                        Service.PluginLog.Debug(
+                            $"[ABB Timeline] id={actionId} found={recording.Header.AbilityManifest.ContainsKey(actionId)}");
+                    }
+#endif
+
+                    if (actionId != 0 && recording.Header.AbilityManifest.TryGetValue(actionId, out var actionName))
+                    {
+                        foreach (var phase in arenaDef.Phases)
+                        {
+                            bool match = phase.TriggerNames.Any(name => actionName.Contains(name, StringComparison.OrdinalIgnoreCase));
+                            if (match)
+                            {
+                                Service.PluginLog.Debug($"[ABB Timeline] MATCH FOUND: Phase {phase.PhaseId} triggered by {actionName} at {f.TimeOffset:F2}s");
+                                recording.ArenaTimeline.AddTransition(f.TimeOffset, phase.PhaseId);
+                                transitionCount++;
+                            }
+
+
+                            if (phase.TriggerType == TriggerType.Ability &&
+                                phase.TriggerNames.Any(name => actionName.Contains(name, StringComparison.OrdinalIgnoreCase)))
+                            {
+                                recording.ArenaTimeline.AddTransition(f.TimeOffset, phase.PhaseId);
+
+#if DEBUG
+                                if (loggedTransitions.Add((phase.PhaseId, actionId)))
+                                {
+                                    Service.PluginLog.Debug(
+                                        $"[ABB Timeline] {phase.PhaseId} via {actionName} at {f.TimeOffset:F2}s");
+                                }
+#endif
+                            }
+                        }
+                    }
+                }
+            }
+            Service.PluginLog.Debug($"[ABB Timeline] Finished. Total Transitions Created: {transitionCount}");
+        }
+
         private void DrawInternal(ImDrawListPtr drawList, ReplayRecording recording, ReplayFrame frame, float targetOffset, uint territoryTypeId, bool showNpcs, bool showHp, bool anonymizeNames, ViewContext view, Configuration config, PresetManager presetManager)
         {
             if (frame == null || frame.Ids.Count == 0) return;
             var canvasCenter = (view.CanvasOrigin + (view.CanvasSize / 2)) + view.PanOffset;
             float scale = DefaultPixelsPerYard * ImGuiHelpers.GlobalScale * view.Zoom;
 
-            bool isM12P2 = false;
-
-            if (territoryTypeId == 1327)
+            if (_lastRecording != recording)
             {
-                var boss = recording.Metadata.Values.FirstOrDefault(m => m.Type == EntityType.Boss && m.MaxHp > 0);
-
-                if (boss != null)
-                {
-                    isM12P2 = boss.MaxHp > 105000000;
-                }
-
-                if (!isM12P2 && recording.Header != null)
-                {
-                    bool HasAflame(Dictionary<uint, string> manifest) => manifest != null && manifest.Values.Any(v => v != null && v.Contains("Aflame", StringComparison.OrdinalIgnoreCase));
-
-                    isM12P2 = HasAflame(recording.Header.AbilityManifest) || HasAflame(recording.Header.StatusManifest);
-                }
+                _lastRecording = recording;
+                BuildTimeline(recording, territoryTypeId);
             }
 
-            bool is755P2 = false;
+            var activePhaseId = recording.ArenaTimeline?.Resolve(targetOffset) ?? "P1";
+            var arenaDef = AetherBlackbox.Core.Mechanics.ArenaDatabase.Get(territoryTypeId);
+            var activeVisual = arenaDef?.Visuals.GetValueOrDefault(activePhaseId);
 
-            if (territoryTypeId == 755 && recording.Header != null)
-            {
-                bool HasHeartlessAngel(Dictionary<uint, string> manifest) =>
-                    manifest != null && manifest.Values.Any(v => v != null && v.Contains("Heartless Angel", StringComparison.OrdinalIgnoreCase));
-
-                is755P2 = HasHeartlessAngel(recording.Header.AbilityManifest) || HasHeartlessAngel(recording.Header.StatusManifest);
-            }
-
-            DrawMapBackground(drawList, territoryTypeId, view, recording.Waymarks, isM12P2, is755P2, config);
+            DrawMapBackground(drawList, territoryTypeId, activeVisual, view, recording.Waymarks, config);
 
             DrawWaymarks(drawList, recording.Waymarks, view);
 
@@ -318,47 +361,79 @@ namespace AetherBlackbox.DrawingLogic
         private readonly Dictionary<uint, IDalamudTextureWrap?> _mapCache = new();
         private readonly Dictionary<uint, byte> _jobIconRetries = new();
         private readonly Dictionary<int, byte> _waymarkIconRetries = new();
-        private readonly Dictionary<uint, byte> _mapRetries = new();
+        private string _lastLoggedTexturePath = string.Empty;
 
-        private void DrawMapBackground(ImDrawListPtr drawList, uint territoryTypeId, ViewContext view, List<WaymarkSnapshot> waymarks, bool isM12P2, bool is755P2, Configuration config)
+        private void DrawMapBackground(ImDrawListPtr drawList, uint territoryTypeId, ArenaVisual? visual, ViewContext view, List<WaymarkSnapshot> waymarks, Configuration config)
         {
+            var canvasCenter = (view.CanvasOrigin + (view.CanvasSize / 2)) + view.PanOffset;
+            IDalamudTextureWrap? currentTexture = null;
+            float finalMapSize = 0f;
+            Vector3 mapAnchorPos = view.CenterWorldPos;
+            bool isFromDatabase = false;
 
-            uint cacheKey = isM12P2 ? 132702u : territoryTypeId;
-
-            if (!_mapCache.TryGetValue(cacheKey, out var texture) || texture == null || texture.Handle == IntPtr.Zero)
+            bool shouldLog = false;
+            string logKey = visual != null ? visual.TexturePath : territoryTypeId.ToString();
+            if (_lastLoggedTexturePath != logKey)
             {
-                var resolved = ResolveMapTexture(territoryTypeId, isM12P2, is755P2);
+                _lastLoggedTexturePath = logKey;
+                shouldLog = true;
+            }
 
-                if (resolved != null)
+            if (visual != null && !string.IsNullOrEmpty(visual.TexturePath))
+            {
+                if (shouldLog) Service.PluginLog.Debug($"[ABB] Requesting database texture: {visual.TexturePath}");
+                currentTexture = TextureManager.GetTexture(visual.TexturePath);
+                isFromDatabase = true;
+
+                if (shouldLog)
                 {
-                    _mapCache[cacheKey] = resolved;
-                    texture = resolved;
+                    if (currentTexture == null) Service.PluginLog.Debug($"[ABB] TextureManager returned null for {visual.TexturePath}");
+                    else if (currentTexture.Handle == IntPtr.Zero) Service.PluginLog.Debug($"[ABB] TextureManager returned IntPtr.Zero for {visual.TexturePath}");
+                    else Service.PluginLog.Debug($"[ABB] Successfully retrieved handle for {visual.TexturePath}");
                 }
             }
 
+            if (currentTexture == null || currentTexture.Handle == IntPtr.Zero)
+            {
+                if (shouldLog) Service.PluginLog.Debug($"[ABB] Falling back to ResolveMapTexture for Territory {territoryTypeId}");
+                if (!_mapCache.TryGetValue(territoryTypeId, out currentTexture) || currentTexture == null || currentTexture.Handle == IntPtr.Zero)
+                {
+                    currentTexture = ResolveMapTexture(territoryTypeId);
+                    if (currentTexture != null) _mapCache[territoryTypeId] = currentTexture;
+                }
+                isFromDatabase = false;
+            }
 
-            var canvasCenter = (view.CanvasOrigin + (view.CanvasSize / 2)) + view.PanOffset;
-
-            if (texture != null)
+            if (currentTexture != null && currentTexture.Handle != IntPtr.Zero)
             {
                 float scale = DefaultPixelsPerYard * ImGuiHelpers.GlobalScale * view.Zoom;
-                Vector3 mapAnchorPos = view.CenterWorldPos;
-                float finalMapSize = 512f * ImGuiHelpers.GlobalScale * view.Zoom;
 
-                if (territoryTypeId == 992 || territoryTypeId == 1321 || territoryTypeId == 1323 || territoryTypeId == 1325 || territoryTypeId == 1327 || territoryTypeId == 755)
+                if (isFromDatabase && visual != null)
                 {
-                    finalMapSize *= config.MapScaleMultiplier;
+                    finalMapSize = 512f * ImGuiHelpers.GlobalScale * view.Zoom * visual.Scale;
 
-                    var activeWaymarks = waymarks?.Where(w => w.Active).ToList();
-                    if (activeWaymarks != null && activeWaymarks.Count > 0)
+                    if (territoryTypeId == 992 || territoryTypeId == 1321 || territoryTypeId == 1323 || territoryTypeId == 1325 || territoryTypeId == 1327 || territoryTypeId == 755)
                     {
-                        float avgX = activeWaymarks.Average(w => w.X);
-                        float avgZ = activeWaymarks.Average(w => w.Z);
-                        mapAnchorPos = new Vector3(avgX, 0, avgZ);
+                        finalMapSize *= config.MapScaleMultiplier;
                     }
 
-                    mapAnchorPos.X += config.MapOffsetX;
-                    mapAnchorPos.Z += config.MapOffsetZ;
+                    if (visual.AnchorToWaymarks)
+                    {
+                        var activeWaymarks = waymarks?.Where(w => w.Active).ToList();
+                        if (activeWaymarks != null && activeWaymarks.Count > 0)
+                        {
+                            float avgX = activeWaymarks.Average(w => w.X);
+                            float avgZ = activeWaymarks.Average(w => w.Z);
+                            mapAnchorPos = new Vector3(avgX, 0, avgZ);
+                        }
+                    }
+
+                    mapAnchorPos.X += visual.Offset.X + config.MapOffsetX;
+                    mapAnchorPos.Z += visual.Offset.Y + config.MapOffsetZ;
+                }
+                else
+                {
+                    finalMapSize = 512f * ImGuiHelpers.GlobalScale * view.Zoom;
                 }
 
                 var relPos = mapAnchorPos - view.CenterWorldPos;
@@ -368,7 +443,7 @@ namespace AetherBlackbox.DrawingLogic
                 Vector2 mapBottomRight = mapScreenCenter + new Vector2(finalMapSize / 2);
 
                 drawList.PushClipRect(view.CanvasOrigin, view.CanvasOrigin + view.CanvasSize, true);
-                drawList.AddImage(texture.Handle, mapTopLeft, mapBottomRight);
+                drawList.AddImage(currentTexture.Handle, mapTopLeft, mapBottomRight);
                 drawList.PopClipRect();
             }
             else
@@ -384,7 +459,7 @@ namespace AetherBlackbox.DrawingLogic
             }
         }
 
-        private IDalamudTextureWrap? ResolveMapTexture(uint territoryTypeId, bool isM12P2, bool is755P2)
+        private IDalamudTextureWrap? ResolveMapTexture(uint territoryTypeId)
         {
             var territoryNullable = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.TerritoryType>().GetRowOrDefault(territoryTypeId);
             if (!territoryNullable.HasValue) return null;
@@ -415,10 +490,8 @@ namespace AetherBlackbox.DrawingLogic
                     {
                         $"{folderPath}/bgpart/floor_a.tex",
                         $"{folderPath}/bgpart/arena_a.tex",
-
                         $"{folderPath}/bgpart/{assetName}_floor_a.tex",
                         $"{folderPath}/bgpart/{assetName}_arena_a.tex",
-
                         $"{folderPath}/bgpart/{assetName}/floor_a.tex",
                         $"{folderPath}/bgpart/{assetName}/arena_a.tex",
                     };
@@ -431,23 +504,13 @@ namespace AetherBlackbox.DrawingLogic
                             texture = asset.GetWrapOrDefault();
                             if (texture != null)
                             {
-                                if (shouldLog)
-                                    Service.PluginLog.Debug($"[ABB] Found texture at: {path}");
+                                if (shouldLog) Service.PluginLog.Debug($"[ABB] Found texture at: {path}");
                                 break;
                             }
-                            else if (shouldLog)
-                            {
-                                Service.PluginLog.Debug($"[ABB] Asset loaded but wrap is null: {path}");
-                            }
-                        }
-                        else if (shouldLog)
-                        {
-                            Service.PluginLog.Debug($"[ABB] Not found: {path}");
                         }
                     }
                 }
             }
-
 
             if (texture == null)
             {
@@ -461,27 +524,9 @@ namespace AetherBlackbox.DrawingLogic
                     {
                         string mapTexPath = $"ui/map/{mapIdStr}/{split[0]}_{split[1]}_m.tex";
                         var mapAsset = Service.TextureProvider.GetFromGame(mapTexPath);
-                        if (mapAsset != null)
-                            texture = mapAsset.GetWrapOrDefault();
+                        if (mapAsset != null) texture = mapAsset.GetWrapOrDefault();
                     }
                 }
-            }
-
-            if (texture == null)
-            {
-                string? fallbackImage = territoryTypeId switch
-                {
-                    992 or 1321 => "m9.webp",
-                    1323 => "m10.webp",
-                    1325 => "m11p1.webp",
-                    1327 => isM12P2 ? "m12p2.webp" : "m12p1.webp",
-                    755 => is755P2 ? "p2_fg.webp" : "p1_fg.webp",
-                    1238 => "fru.webp",
-                    _ => null
-                };
-
-                if (fallbackImage != null)
-                    texture = TextureManager.GetTexture($"PluginImages/arenas/{fallbackImage}");
             }
 
             if (texture == null && shouldLog)
@@ -489,6 +534,8 @@ namespace AetherBlackbox.DrawingLogic
 
             return texture;
         }
+
+        
 
         public void Dispose()
         {

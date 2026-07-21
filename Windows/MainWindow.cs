@@ -231,6 +231,7 @@ public partial class MainWindow : Window, IDisposable
 
     public void OpenReplay(Death death)
     {
+        _loggedPhantomMembers.Clear();
         selectedPull = plugin.PullManager.History.FirstOrDefault(p => p.Deaths.Contains(death));
         ActiveDeathReplay = death;
         isReplayMode = true;
@@ -268,6 +269,7 @@ public partial class MainWindow : Window, IDisposable
 
     public override void Draw()
     {
+
         TextureManager.DoMainThreadWork();
 
         var contentRegion = ImGui.GetContentRegionAvail();
@@ -306,10 +308,104 @@ public partial class MainWindow : Window, IDisposable
             if (rightPaneRaii)
             {
                 DrawOriginalRightPane();
+
+                using (var canvasArea = ImRaii.Child("CanvasDrawingArea", Vector2.Zero, false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
+                {
+                    if (canvasArea)
+                    {
+                        {
+                            if (canvasArea)
+                            {
+                                var canvasStartPos = ImGui.GetCursorPos();
+                                currentCanvasDrawSize = ImGui.GetContentRegionAvail();
+                                if (currentCanvasDrawSize.X > 0 && currentCanvasDrawSize.Y > 0)
+                                {
+                                    DrawCanvas();
+
+                                    ImGui.SetCursorPos(canvasStartPos + new Vector2(10 * ImGuiHelpers.GlobalScale, 10 * ImGuiHelpers.GlobalScale));
+
+                                    bool isToolbarVisible = configuration.IsToolbarVisible;
+                                    bool isSelectionVisible = selectedEntityId != 0 && ActiveDeathReplay != null;
+
+                                    float bottomPadding = isSelectionVisible ? 150f * ImGuiHelpers.GlobalScale : 20f * ImGuiHelpers.GlobalScale;
+                                    float childHeight = isToolbarVisible ? (currentCanvasDrawSize.Y - bottomPadding) : (35 * ImGuiHelpers.GlobalScale);
+
+                                    float childWidth = 115f * ImGuiHelpers.GlobalScale;
+                                    if (isToolbarVisible)
+                                        childWidth += ImGui.GetStyle().ScrollbarSize;
+
+                                    ImGui.PushStyleColor(ImGuiCol.ChildBg, isToolbarVisible ? new Vector4(0.12f, 0.12f, 0.14f, 0.95f) : new Vector4(0, 0, 0, 0));
+
+                                    using (var toolbarContainer = ImRaii.Child("ToolbarContainer", new Vector2(childWidth, childHeight), isToolbarVisible, ImGuiWindowFlags.None))
+                                    {
+                                        if (toolbarContainer)
+                                        {
+                                            if (ImGui.Button(isToolbarVisible ? "<< Close" : "Draw >>", new Vector2(-1, 0)))
+                                            {
+                                                configuration.IsToolbarVisible = !isToolbarVisible;
+                                                configuration.Save();
+
+                                                if (!configuration.IsToolbarVisible)
+                                                {
+                                                    IsDrawingMode = false;
+                                                }
+                                            }
+
+                                            if (isToolbarVisible)
+                                            {
+                                                ImGui.Dummy(new Vector2(0, 5 * ImGuiHelpers.GlobalScale));
+                                                plugin.ToolbarWindow.Draw();
+                                            }
+                                        }
+                                    }
+                                    ImGui.PopStyleColor();
+
+                                    ImGui.SetCursorPos(canvasStartPos + new Vector2(currentCanvasDrawSize.X - 310 * ImGuiHelpers.GlobalScale, 10 * ImGuiHelpers.GlobalScale));
+                                    ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.12f, 0.12f, 0.14f, 0.95f));
+                                    using (var exportContainer = ImRaii.Child("ExportContainer", new Vector2(300 * ImGuiHelpers.GlobalScale, isExportPreviewOpen ? 400 * ImGuiHelpers.GlobalScale : 35 * ImGuiHelpers.GlobalScale), true, ImGuiWindowFlags.NoScrollbar))
+                                    {
+                                        if (exportContainer)
+                                        {
+                                            if (ImGuiComponents.IconButton(FontAwesomeIcon.Camera)) CaptureCurrentState();
+                                            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Capture current state as a slide");
+                                            ImGui.SameLine();
+                                            if (ImGui.Button($"Export Plan ({ExportManager.StagedSlides.Count})", new Vector2(-1, 0))) isExportPreviewOpen = !isExportPreviewOpen;
+
+                                            if (isExportPreviewOpen)
+                                            {
+                                                ImGui.Dummy(new Vector2(0, 5 * ImGuiHelpers.GlobalScale));
+                                                DrawExportPreviewUI();
+                                            }
+                                        }
+                                    }
+                                    ImGui.PopStyleColor();
+                                    if (selectedEntityId != 0 && ActiveDeathReplay != null)
+                                    {
+                                        ImGui.SetCursorPos(canvasStartPos + new Vector2(0, currentCanvasDrawSize.Y - (140f * ImGuiHelpers.GlobalScale)));
+                                        ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.12f, 0.12f, 0.14f, 0.95f));
+                                        using (var selectionInfoArea = ImRaii.Child("SelectionInfoArea", new Vector2(0, 140f * ImGuiHelpers.GlobalScale), true, ImGuiWindowFlags.NoScrollbar))
+                                        {
+                                            if (selectionInfoArea)
+                                            {
+                                                DrawSelectionInfo();
+                                            }
+                                        }
+                                        ImGui.PopStyleColor();
+                                    }
+                                    if (configuration.ShowPartyMemberList)
+                                    {
+                                        DrawPartyMembersPanel(canvasStartPos);
+                                        DrawAllianceOverlay(canvasStartPos);
+                                    }
+                                }
+                            }
+                        }
+
+                        this.previousSelectionCount = this.selectedDrawables.Count;
+                    }
+                }
             }
         }
-
-        this.previousSelectionCount = this.selectedDrawables.Count;
     }
 
     private void DrawOriginalRightPane()
@@ -392,6 +488,9 @@ public partial class MainWindow : Window, IDisposable
             if (ImGuiComponents.IconButton("OpenSessionMechanics", FontAwesomeIcon.ListUl))
                 plugin.SessionMechanicsWindow.IsOpen = !plugin.SessionMechanicsWindow.IsOpen;
             if (ImGui.IsItemHovered()) ImGui.SetTooltip("Open Active Session Mechanics");
+
+            ImGui.SameLine();
+            if (ImGui.Button("Mock 24-Man")) GenerateMockAllianceReplay();
 
             if (ImGui.BeginPopup("replay_settings_popup"))
             {
@@ -509,99 +608,53 @@ public partial class MainWindow : Window, IDisposable
                     lastTimeSyncBroadcast = 0f;
                 }
             }
-            DrawMapCalibrationPanel();                
-        }
-
-        using (var canvasArea = ImRaii.Child("CanvasDrawingArea", new Vector2(0, 0), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
-        {
-            if (canvasArea)
-            {
-                var canvasStartPos = ImGui.GetCursorPos();
-                currentCanvasDrawSize = ImGui.GetContentRegionAvail();
-                if (currentCanvasDrawSize.X > 0 && currentCanvasDrawSize.Y > 0)
-                {
-                    DrawCanvas();
-
-                    ImGui.SetCursorPos(canvasStartPos + new Vector2(10 * ImGuiHelpers.GlobalScale, 10 * ImGuiHelpers.GlobalScale));
-
-                    bool isToolbarVisible = configuration.IsToolbarVisible;
-                    bool isSelectionVisible = selectedEntityId != 0 && ActiveDeathReplay != null;
-
-                    float bottomPadding = isSelectionVisible ? 150f * ImGuiHelpers.GlobalScale : 20f * ImGuiHelpers.GlobalScale;
-                    float childHeight = isToolbarVisible ? (currentCanvasDrawSize.Y - bottomPadding) : (35 * ImGuiHelpers.GlobalScale);
-
-                    float childWidth = 115f * ImGuiHelpers.GlobalScale;
-                    if (isToolbarVisible)
-                        childWidth += ImGui.GetStyle().ScrollbarSize;
-
-                    ImGui.PushStyleColor(ImGuiCol.ChildBg, isToolbarVisible ? new Vector4(0.12f, 0.12f, 0.14f, 0.95f) : new Vector4(0, 0, 0, 0));
-
-                    using (var toolbarContainer = ImRaii.Child("ToolbarContainer", new Vector2(childWidth, childHeight), isToolbarVisible, ImGuiWindowFlags.None))
-                    {
-                        if (toolbarContainer)
-                        {
-                            if (ImGui.Button(isToolbarVisible ? "<< Close" : "Draw >>", new Vector2(-1, 0)))
-                            {
-                                configuration.IsToolbarVisible = !isToolbarVisible;
-                                configuration.Save();
-
-                                if (!configuration.IsToolbarVisible)
-                                {
-                                    IsDrawingMode = false;
-                                }
-                            }
-
-                            if (isToolbarVisible)
-                            {
-                                ImGui.Dummy(new Vector2(0, 5 * ImGuiHelpers.GlobalScale));
-                                plugin.ToolbarWindow.Draw();
-                            }
-                        }
-                    }
-                    ImGui.PopStyleColor();
-
-                    ImGui.SetCursorPos(canvasStartPos + new Vector2(currentCanvasDrawSize.X - 310 * ImGuiHelpers.GlobalScale, 10 * ImGuiHelpers.GlobalScale));
-                    ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.12f, 0.12f, 0.14f, 0.95f));
-                    using (var exportContainer = ImRaii.Child("ExportContainer", new Vector2(300 * ImGuiHelpers.GlobalScale, isExportPreviewOpen ? 400 * ImGuiHelpers.GlobalScale : 35 * ImGuiHelpers.GlobalScale), true, ImGuiWindowFlags.NoScrollbar))
-                    {
-                        if (exportContainer)
-                        {
-                            if (ImGuiComponents.IconButton(FontAwesomeIcon.Camera)) CaptureCurrentState();
-                            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Capture current state as a slide");
-                            ImGui.SameLine();
-                            if (ImGui.Button($"Export Plan ({ExportManager.StagedSlides.Count})", new Vector2(-1, 0))) isExportPreviewOpen = !isExportPreviewOpen;
-
-                            if (isExportPreviewOpen)
-                            {
-                                ImGui.Dummy(new Vector2(0, 5 * ImGuiHelpers.GlobalScale));
-                                DrawExportPreviewUI();
-                            }
-                        }
-                    }
-                    ImGui.PopStyleColor();
-                    if (selectedEntityId != 0 && ActiveDeathReplay != null)
-                    {
-                        ImGui.SetCursorPos(canvasStartPos + new Vector2(0, currentCanvasDrawSize.Y - (140f * ImGuiHelpers.GlobalScale)));
-                        ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.12f, 0.12f, 0.14f, 0.95f));
-                        using (var selectionInfoArea = ImRaii.Child("SelectionInfoArea", new Vector2(0, 140f * ImGuiHelpers.GlobalScale), true, ImGuiWindowFlags.NoScrollbar))
-                        {
-                            if (selectionInfoArea)
-                            {
-                                DrawSelectionInfo();
-                            }
-                        }
-                        ImGui.PopStyleColor();
-                    }
-                    if (configuration.ShowPartyMemberList)
-                    {
-                        DrawPartyMembersPanel(canvasStartPos);
-                    }
-                }
-            }
+            DrawMapCalibrationPanel();
         }
     }
+        private void GenerateMockAllianceReplay()
+    {
+        var recording = new ReplayRecording();
+        var frame = new ReplayFrame { TimeOffset = 0f };
+        recording.Frames.Add(frame);
 
+        uint idCounter = 1;
+        string[] alliances = { "Party", "Alliance A", "Alliance B", "Alliance C" };
 
+        foreach (var tag in alliances)
+        {
+            uint[] validJobs = { 19, 21, 24, 28, 20, 22, 23, 25 };
+            for (int i = 0; i < 8; i++)
+            {
+                uint id = idCounter++;
+                recording.Metadata[id] = new ReplayMetadata
+                {
+                    EntityId = id,
+                    Name = $"Mock {tag} {i + 1}",
+                    TeamTag = tag,
+                    MaxHp = 100000,
+                    ClassJobId = validJobs[i],
+                    Type = EntityType.Player
+                };
+                frame.Ids.Add(id);
+                frame.Hp.Add(100000 - (uint)(i * 10000)); // Varied HP
+                frame.X.Add(100f);
+                frame.Z.Add(100f);
+                frame.Rot.Add(0f);
+            }
+        }
+
+        var mockDeath = new Death
+        {
+            PlayerId = 1,
+            TimeOfDeath = DateTime.Now,
+            ReplayData = recording,
+            Events = new List<CombatEvent>(),
+            TerritoryTypeId = 992
+        };
+
+        OpenReplay(mockDeath);
+    }
+    
     // might use this again 
     private Vector3 CalculateCenterFromWaymarks(ReplayRecording recording)
     {

@@ -12,11 +12,14 @@ namespace AetherBlackbox.Windows
 {
     public partial class MainWindow
     {
+        private readonly HashSet<ulong> _loggedPhantomMembers = new();
+
         // Row data for a single party member in the overlay
         private sealed class PartyMemberRowData
         {
             public required ulong EntityId { get; init; }
             public required string DisplayName { get; init; }
+            public string TeamTag { get; init; } = string.Empty;
             public required uint MaxHp { get; init; }
             public required uint CurrentHp { get; init; }
             public required uint ClassJobId { get; init; }
@@ -30,7 +33,12 @@ namespace AetherBlackbox.Windows
             float padding = 10f * scale;
             float iconSize = 17.5f * scale;
 
-            var members = BuildPartyMemberRows();
+            var allMembers = BuildPartyMemberRows();
+            var members = allMembers.Where(m => m.TeamTag == "Party").ToList();
+            if (members.Count == 0)
+            {
+                members = allMembers.Take(8).ToList();
+            }
             if (members.Count == 0) return;
 
             int targetRows = Math.Max(members.Count, 8);
@@ -54,7 +62,10 @@ namespace AetherBlackbox.Windows
 
             if (ImGui.BeginChild("PartyMembersContainer", new Vector2(panelWidth, layout.PanelHeight), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoBackground))
             {
-                DrawPartyMemberRows(members, layout.RowHeight, layout.BarHeight, iconSize, scale);
+                // Calculate targetOffset needed for the rendering loop below
+                float deathTimeOffset = selectedPull != null ? (float)(ActiveDeathReplay.TimeOfDeath - selectedPull.StartTime).TotalSeconds : ActiveDeathReplay.ReplayData.Frames.Last().TimeOffset;
+                float targetOffset = deathTimeOffset + replayTimeOffset;
+                DrawPartyMemberRows(members, layout.RowHeight, layout.BarHeight, iconSize, scale, targetOffset);
             }
 
             ImGui.EndChild();
@@ -95,7 +106,9 @@ namespace AetherBlackbox.Windows
                         currentHp = closestFrame.Hp[idx];
                 }
 
-                var debuffs = GetActiveStatuses(recording, kvp.Key, targetOffset)
+                var allActiveStatuses = GetActiveStatuses(recording, kvp.Key, targetOffset);
+
+                var debuffs = allActiveStatuses
                     .Where(s =>
                     {
                         var row = statusSheet.GetRowOrDefault(s.Id);
@@ -116,6 +129,7 @@ namespace AetherBlackbox.Windows
                 {
                     EntityId = kvp.Key,
                     DisplayName = displayName,
+                    TeamTag = kvp.Value.TeamTag,
                     MaxHp = kvp.Value.MaxHp,
                     CurrentHp = currentHp,
                     ClassJobId = kvp.Value.ClassJobId,
@@ -179,7 +193,7 @@ namespace AetherBlackbox.Windows
         }
 
         // Renders each party member as its own "card": Name, up to 5 debuff icons, and a color-coded HP bar
-        private void DrawPartyMemberRows(List<PartyMemberRowData> members, float rowHeight, float barHeight, float iconSize, float scale)
+        private void DrawPartyMemberRows(List<PartyMemberRowData> members, float rowHeight, float barHeight, float iconSize, float scale, float targetOffset)
         {
             var statusSheet = Service.DataManager.GetExcelSheet<Status>();
 
@@ -198,7 +212,30 @@ namespace AetherBlackbox.Windows
                     {
                         selectedEntityId = member.EntityId;
                     }
+
                     ImGui.AlignTextToFramePadding();
+
+                    uint phIconId = GetActivePhantomJobIconId(member.EntityId, targetOffset);
+
+                    if (_loggedPhantomMembers.Add(member.EntityId))
+                    {
+                        Service.PluginLog.Debug($"Member {member.DisplayName} (ID: {(uint)member.EntityId}) active statuses at {targetOffset:F2}s: {GetActiveStatuses(ActiveDeathReplay.ReplayData, (uint)member.EntityId, targetOffset).Count}");
+                        Service.PluginLog.Debug($"Phantom Icon ID for {member.DisplayName}: {phIconId}");
+                    }
+
+                    if (phIconId != 0)
+                    {
+                        var icon = Service.TextureProvider.GetFromGameIcon(phIconId).GetWrapOrDefault();
+                        if (icon != null)
+                        {
+                            if (icon != null)
+                            {
+                                ImGui.Image(icon.Handle, new Vector2(iconSize, iconSize));
+                                ImGui.SameLine(0, 2f * scale);
+                            }
+                        }
+                    }
+
                     ImGui.TextUnformatted(member.DisplayName);
 
                     int shownDebuffs = 0;

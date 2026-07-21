@@ -1,13 +1,14 @@
-﻿using Dalamud.Game.ClientState.Objects.SubKinds;
+﻿using Dalamud.Game.ClientState;
+using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using static FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentWKSMission;
-using FFXIVClientStructs.FFXIV.Client.Game.UI;
-using Dalamud.Game.ClientState;
 
 namespace AetherBlackbox.Core
 {
@@ -36,6 +37,7 @@ namespace AetherBlackbox.Core
     {
         public uint ObjectId;
         public string Name;
+        public string TeamTag;
         public Vector3 Position;
         public float Rotation;
         public uint CurrentHp;
@@ -53,6 +55,7 @@ namespace AetherBlackbox.Core
     public class ReplayRecording
     {
         public SearchHeader Header { get; set; } = new();
+        public AetherBlackbox.Core.Mechanics.ArenaTimeline ArenaTimeline { get; set; } = new();
         public Dictionary<uint, ReplayMetadata> Metadata { get; set; } = new();
         public List<ReplayFrame> Frames { get; set; } = new();
         public List<WaymarkSnapshot> Waymarks { get; set; } = new();
@@ -63,6 +66,7 @@ namespace AetherBlackbox.Core
     {
         public uint EntityId { get; set; }
         public string Name { get; set; } = string.Empty;
+        public string TeamTag { get; set; } = string.Empty;
         public uint MaxHp { get; set; }
         public uint ClassJobId { get; set; }
         public EntityType Type { get; set; }
@@ -106,6 +110,8 @@ namespace AetherBlackbox.Core
         private readonly Dictionary<uint, uint> _actionBuffer = new();
         private readonly object _bufferLock = new();
 
+        private readonly HashSet<(uint EntityId, uint StatusId)> _loggedPhantomStatuses = new();
+
         public bool IsRecording { get; private set; } = false;
         private DateTime sessionStartTime = DateTime.MinValue;
         private DateTime lastCaptureTime = DateTime.MinValue;
@@ -142,13 +148,14 @@ namespace AetherBlackbox.Core
                 {
                     sessionAoeEvents.Add(aoeEvent);
                 }
-                Service.PluginLog.Debug($"[AoeEventLog] Logged Action {actionId} from {sourceName} at {timeOffset:F2}s");
+                //Service.PluginLog.Debug($"[AoeEventLog] Logged Action {actionId} from {sourceName} at {timeOffset:F2}s");
             }
 
             lock (_bufferLock)
             {
                 _actionBuffer[sourceId] = actionId;
             }
+           // Service.PluginLog.Debug($"[ABB Action] source={sourceId} action={actionId}");
         }
 
         public unsafe void StartRecording()
@@ -156,6 +163,7 @@ namespace AetherBlackbox.Core
             lock (sessionData) sessionData.Clear();
             lock (sessionAoeEvents) sessionAoeEvents.Clear();
             lock (_bufferLock) _actionBuffer.Clear();
+            _loggedPhantomStatuses.Clear();
             sessionStartTime = DateTime.Now;
             lastCaptureTime = DateTime.MinValue;
             IsRecording = true;
@@ -269,9 +277,24 @@ namespace AetherBlackbox.Core
 
                     bool statusChanged = lastState.ObjectId == 0 || sHash != lastRecordedStates[player.EntityId].StatusHash;
 
+                    string teamTag = string.Empty;
+                    if (Service.PartyList != null)
+                    {
+                        for (int i = 0; i < Service.PartyList.Length; i++)
+                        {
+                            var member = Service.PartyList[i];
+                            if (member != null && member.EntityId == player.EntityId)
+                            {
+                                teamTag = (i < 8) ? "Party" : "Alliance";
+                                break;
+                            }
+                        }
+                    }
+
                     string playerName = string.Empty;
                     if (isNewEntity)
                     {
+                        Service.PluginLog.Debug($"[PositionRecorder] Recorded new entity: {player.Name.TextValue} | ID: {player.EntityId} | Tag: {teamTag}");
                         if (plugin.Configuration.AnonymizeNames)
                         {
                             playerName = player.ClassJob.RowId switch
@@ -294,6 +317,7 @@ namespace AetherBlackbox.Core
                     {
                         ObjectId = player.EntityId,
                         Name = playerName,
+                        TeamTag = teamTag,
                         Position = player.Position,
                         Rotation = player.Rotation,
                         CurrentHp = player.CurrentHp,
@@ -358,6 +382,69 @@ namespace AetherBlackbox.Core
                     } catch { }
                     bool statusChanged = lastRecordedStates[npc.EntityId].ObjectId == 0 || sHash != lastRecordedStates[npc.EntityId].StatusHash;
 
+                    var replayStatuses = npc.StatusList?
+                        .Where(s => s != null)
+                        .Select(s => new ReplayStatus
+                        {
+                            Id = s.StatusId,
+                            Duration = s.RemainingTime,
+                            StackCount = s.Param,
+                            SourceId = s.SourceId
+                        })
+                        .ToList() ?? new List<ReplayStatus>();
+
+                    unsafe
+                    {
+                        var characterPtr = (Character*)npc.Address;
+                        if (characterPtr != null)
+                        {
+                            var statusManager = characterPtr->GetStatusManager();
+                            if (statusManager != null)
+                            {
+                                for (int i = 0; i < statusManager->Status.Length; i++)
+                                {
+                                    uint stId = statusManager->Status[i].StatusId;
+                                    float stDuration = statusManager->Status[i].RemainingTime;
+                                    uint stParam = statusManager->Status[i].Param;
+                                    uint stSourceId = (uint)statusManager->Status[i].SourceObject;
+
+                                    if (stId >= 4358 && stId <= 4805)
+                                    {
+                                        if (!replayStatuses.Any(x => x.Id == stId))
+                                        {
+                                            replayStatuses.Add(new ReplayStatus
+                                            {
+                                                Id = stId,
+                                                Duration = stDuration,
+                                                StackCount = stParam,
+                                                SourceId = stSourceId
+                                            });
+                                            /*
+                                            if (_loggedPhantomStatuses.Add((npc.EntityId, stId)))
+                                            {
+                                                Service.PluginLog.Debug(
+                                                    $"[FrameCapture] Npc {npc.Name.TextValue} ({npc.EntityId:X}) injecting Phantom stance {stId}");
+                                            }*/
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    var phantomStatuses = replayStatuses
+                        .Where(s => s.Id >= 4358 && s.Id <= 4805)
+                        .ToList();
+
+                    if (phantomStatuses.Count > 0 &&
+                        _loggedPhantomStatuses.Add((npc.EntityId, phantomStatuses[0].Id)))
+                    {
+                        Service.PluginLog.Debug(
+                            $"[FrameCapture] Npc {npc.Name.TextValue} captured Phantom statuses: " +
+                            string.Join(",", phantomStatuses.Select(s => s.Id))
+                        );
+                    }
+
                     var snapshot = new EntityPositionSnapshot
                     {
                         ObjectId = npc.EntityId,
@@ -369,7 +456,7 @@ namespace AetherBlackbox.Core
                         Timestamp = snapshotTime,
                         Type = (npc.OwnerId != 0 && npc.OwnerId != 0xE0000000) ? EntityType.Pet : (npc.IsTargetable ? EntityType.Boss : EntityType.Npc),
                         ModelId = (uint)npc.BaseId,
-                        Statuses = statusChanged ? npc.StatusList.Where(s => s != null).Select(s => new ReplayStatus { Id = s.StatusId, Duration = s.RemainingTime, StackCount = s.Param, SourceId = s.SourceId }).ToList() : null,
+                        Statuses = statusChanged ? replayStatuses : null,
                         Cast = npc.IsCasting ? new ReplayCast { ActionId = npc.CastActionId, Current = npc.CurrentCastTime, Total = npc.TotalCastTime } : default,
                         TargetId = npc.TargetObjectId,
                         LastLoggedActionId = actionToLog,
@@ -442,6 +529,7 @@ namespace AetherBlackbox.Core
                             recording.Metadata[entity.ObjectId] = new ReplayMetadata
                             {
                                 Name = entity.Name,
+                                TeamTag = entity.TeamTag ?? string.Empty,
                                 MaxHp = entity.MaxHp,
                                 ClassJobId = entity.ClassJobId,
                                 Type = entity.Type,
@@ -490,6 +578,10 @@ namespace AetherBlackbox.Core
                         frame.Casts.Add(entity.Cast);
                         frame.Targets.Add(entity.TargetId);
                         frame.Actions.Add(entity.LastLoggedActionId);
+#if DEBUG
+                     //   if (entity.LastLoggedActionId != 0)
+                       //     Service.PluginLog.Debug($"[ABB Frame] {frame.TimeOffset:F2}s action={entity.LastLoggedActionId}");
+#endif
                     }
                     recording.Frames.Add(frame);
                 }

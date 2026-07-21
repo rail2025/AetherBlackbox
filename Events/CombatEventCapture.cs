@@ -85,6 +85,30 @@ public class CombatEventCapture : IDisposable
             OwnerId = obj.OwnerId,
             Type = (EntityType)obj.ObjectKind
         };
+
+        if (obj is IPlayerCharacter pc && (Service.ClientState.TerritoryType == 1197 || Service.ClientState.TerritoryType == 1252))
+        {
+            foreach (var status in pc.StatusList)
+            {
+                if (status.StatusId >= 4358 && status.StatusId <= 4805)
+                {
+                    var statusData = Service.DataManager.GetExcelSheet<Status>().GetRowOrDefault(status.StatusId);
+                    combatEvents.AddEntry(entityId, new CombatEvent.StatusEffect
+                    {
+                        Snapshot = pc.Snapshot(),
+                        TargetActorId = entityId,
+                        Id = status.StatusId,
+                        StackCount = 0,
+                        SourceActorId = entityId,
+                        Icon = statusData?.Icon,
+                        Duration = 9999f,
+                        Status = statusData?.Name.ExtractText(),
+                        Description = statusData?.Description.ExtractText(),
+                        Category = (StatusCategory)(statusData?.StatusCategory ?? 0)
+                    });
+                }
+            }
+        }
     }
 
     private unsafe void ProcessPacketActionEffectDetour(
@@ -205,6 +229,7 @@ public class CombatEventCapture : IDisposable
                             if (additionalStatus == null)
                             {
                                 additionalStatus = [];
+
                                 if (casterPtr != null)
                                 {
                                     var statusManager = casterPtr->GetStatusManager();
@@ -299,7 +324,7 @@ public class CombatEventCapture : IDisposable
             switch ((ActorControlCategory)category)
             {
                 case ActorControlCategory.DoT:
-                    Service.PluginLog.Info($"DoT packet received for Entity {entityId}, Amount {param2}");
+                    //Service.PluginLog.Info($"DoT packet received for Entity {entityId}, Amount {param2}");
                     var dotStatus = param1 != 0 ? Service.DataManager.GetExcelSheet<Status>().GetRowOrDefault(param1) : null;
                     uint sourceId = 0;
                     if (Service.ObjectTable.SearchById(entityId) is IBattleNpc battleNpc)

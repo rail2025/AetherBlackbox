@@ -10,8 +10,14 @@ using System.Threading.Tasks;
 
 namespace AetherBlackbox.Core
 {
+    public class ReplayLoadRequest
+    {
+        public Guid TargetSessionId { get; set; }
+        public string Path { get; set; } = string.Empty;
+    }
     public class PullManager : IDisposable
     {
+        private readonly System.Collections.Concurrent.ConcurrentQueue<ReplayLoadRequest> _loadQueue = new();
         private readonly Plugin plugin;
         public ReplayFileManager FileManager { get; private set; }
         public List<PullSession> History { get; private set; } = new();
@@ -26,6 +32,53 @@ namespace AetherBlackbox.Core
             this.plugin = plugin;
             this.FileManager = new ReplayFileManager(plugin);
             this.FileManager.CleanUpOldReplays();
+            System.Threading.Tasks.Task.Run(ProcessLoadQueueLoop);
+        }
+
+        public void EnqueueLoad(ReplayLoadRequest request) => _loadQueue.Enqueue(request);
+
+        private void ProcessLoadQueueLoop()
+        {
+            while (true)
+            {
+                if (_loadQueue.TryDequeue(out var request))
+                {
+                    var session = History.FirstOrDefault(s => s.SessionId == request.TargetSessionId);
+                    if (session == null) continue;
+
+                    try
+                    {
+                        session.LoadState = SessionLoadState.Loading;
+                        session.ProgressText = "Reading and decompressing file...";
+
+                        var loadedSession = FileManager.LoadSession(request.Path, (int)session.PullNumber);
+
+                        if (loadedSession != null)
+                        {
+                            session.StartTime = loadedSession.StartTime;
+                            session.EndTime = loadedSession.EndTime;
+                            session.ZoneName = loadedSession.ZoneName;
+                            session.ReplayData = loadedSession.ReplayData;
+                            session.Deaths = loadedSession.Deaths;
+                            session.DetailedDamageEvents = loadedSession.DetailedDamageEvents;
+                            session.Metadata = loadedSession.Metadata;
+
+                            session.LoadState = SessionLoadState.Loaded;
+                        }
+                        else
+                        {
+                            session.ErrorMessage = "Failed to parse replay file.";
+                            session.LoadState = SessionLoadState.Failed;
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        session.ErrorMessage = "Exception occurred during load.";
+                        session.LoadState = SessionLoadState.Failed;
+                    }
+                }
+                System.Threading.Thread.Sleep(50);
+            }
         }
 
         public void StartSession()

@@ -33,15 +33,29 @@ namespace AetherBlackbox.Windows
                 }
                 if (cachedSavedReplays == null) cachedSavedReplays = plugin.PullManager.GetSavedReplays();
 
+                ImGui.BeginChild("SavedReplaysList", new Vector2(0, ImGui.GetContentRegionAvail().Y * 0.5f), false);
                 foreach (var file in cachedSavedReplays)
                 {
                     if (ImGui.Selectable($"{file.FileName}"))
                     {
-                        var loaded = plugin.PullManager.LoadSession(file.FilePath);
-                        if (loaded != null) selectedPull = loaded;
+                        var placeholder = new Core.PullSession
+                        {
+                            PullNumber = (uint)(plugin.PullManager.History.Count + 1),
+                            ZoneName = "Loading Replays...",
+                            LoadState = Core.SessionLoadState.Queued,
+                            ProgressText = "Queued..."
+                        };
+                        plugin.PullManager.History.Add(placeholder);
+
+                        plugin.PullManager.EnqueueLoad(new Core.ReplayLoadRequest
+                        {
+                            TargetSessionId = placeholder.SessionId,
+                            Path = file.FilePath
+                        });
                     }
                     if (ImGui.IsItemHovered()) ImGui.SetTooltip($"Created: {file.CreationTime}");
                 }
+                ImGui.EndChild();
                 ImGui.TreePop();
             }
             ImGui.Separator();
@@ -77,6 +91,24 @@ namespace AetherBlackbox.Windows
                     for (int j = group.Pulls.Count - 1; j >= 0; j--)
                     {
                         var pull = group.Pulls[j];
+
+                        if (pull.LoadState == Core.SessionLoadState.Queued)
+                        {
+                            ImGui.BulletText("Queued...");
+                            continue;
+                        }
+                        if (pull.LoadState == Core.SessionLoadState.Loading)
+                        {
+                            ImGui.BulletText(pull.ProgressText);
+                            ImGui.ProgressBar(0.5f, new Vector2(-1, 4f * ImGuiHelpers.GlobalScale), string.Empty);
+                            continue;
+                        }
+                        if (pull.LoadState == Core.SessionLoadState.Failed)
+                        {
+                            ImGui.TextColored(new Vector4(1, 0, 0, 1), $"Failed: {pull.ErrorMessage}");
+                            continue;
+                        }
+
                         int lastParen = pull.ZoneName.LastIndexOf('(');
                         string hpStr = lastParen > 0 ? pull.ZoneName.Substring(lastParen).Replace("(", "").Replace(")", "").Replace("%%", "%").Trim() : "??%";
 

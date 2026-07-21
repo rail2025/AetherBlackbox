@@ -4,8 +4,14 @@
 
     namespace AetherBlackbox.Core
     {
-        public class PullSession
+    public enum SessionLoadState { Queued, Loading, Loaded, Failed }
+    public class PullSession
         {
+            public Guid SessionId { get; set; } = Guid.NewGuid();
+            public SessionLoadState LoadState { get; set; } = SessionLoadState.Loaded;
+            public string ProgressText { get; set; } = string.Empty;
+            public string ErrorMessage { get; set; } = string.Empty;
+
             public uint PullNumber { get; set; }
             public DateTime StartTime { get; set; }
             public DateTime? EndTime { get; set; }

@@ -23,14 +23,14 @@ namespace AetherBlackbox.DrawingLogic
             {
                 var existing = drawables.FirstOrDefault(d => d.AutoId == aoe.StableId);
 
-                if (existing != null && !existing.IsUserEdited)
-                {
-                    drawables.Remove(existing);
-                    existing = null;
-                }
-
                 if (existing != null)
+                {
+                    if (!existing.IsUserEdited)
+                    {
+                        existing.EndTime = aoe.ExpirationTime;
+                    }
                     continue;
+                }
 
                 BaseDrawable? newObject = null;
                 Vector2 centerRel = Vector2.Zero;
@@ -40,6 +40,8 @@ namespace AetherBlackbox.DrawingLogic
                 float t = aoe.Template.Thickness > 0 ? aoe.Template.Thickness : 2f;
                 bool f = aoe.Template.IsFilled;
                 var c = aoe.Template.Color;
+
+                Vector3 initialWorldPos = aoe.Origin;
 
                 if (aoe.Template.Shape == AoeShape.Circle)
                 {
@@ -51,12 +53,17 @@ namespace AetherBlackbox.DrawingLogic
                 }
                 else if (aoe.Template.Shape == AoeShape.Rect)
                 {
-                    var start = new Vector2(-w / 2f, 0);
+                    var start = new Vector2(-w / 2f, -r / 2f);
                     newObject = new DrawableRectangle(start, c, t, f)
                     {
-                        EndPointRelative = new Vector2(w / 2f, r), // Radius corresponds to length
+                        EndPointRelative = new Vector2(w / 2f, r / 2f), // Radius corresponds to length
                         RotationAngle = -aoe.Rotation
                     };
+
+                    float lengthYalms = aoe.Template.Radius;
+                    float cx = aoe.Origin.X + (lengthYalms / 2f) * (float)Math.Sin(aoe.Rotation);
+                    float cz = aoe.Origin.Z + (lengthYalms / 2f) * (float)Math.Cos(aoe.Rotation);
+                    initialWorldPos = new Vector3(cx, aoe.Origin.Y, cz);
                 }
                 else if (aoe.Template.Shape == AoeShape.Cone || aoe.Template.Shape == AoeShape.Pie)
                 {
@@ -70,16 +77,23 @@ namespace AetherBlackbox.DrawingLogic
 
                 if (newObject != null)
                 {
+                    newObject.Name = aoe.Template.Name ?? "Auto-AOE";
+
                     newObject.AutoId = aoe.StableId;
                     newObject.IsUserEdited = false;
-                    newObject.InitialWorldPos = aoe.Origin;
+
+                    newObject.InitialWorldPos = initialWorldPos;
+                    newObject.IsEntityTracked = false;
+                    newObject.TargetEntityId = 0;
+                    newObject.OffsetFromEntity = Vector3.Zero;
+
                     newObject.StartTime = aoe.ExpirationTime - aoe.Template.Duration;
                     newObject.EndTime = aoe.ExpirationTime;
                     newObject.IsPreview = false;
 
-                    newObject.IsEntityTracked = true;
+                   /* newObject.IsEntityTracked = true;
                     newObject.TargetEntityId = aoe.SourceEntityId;
-                    newObject.OffsetFromEntity = aoe.OffsetFromEntity;
+                    newObject.OffsetFromEntity = aoe.OffsetFromEntity; */
                     newObject.InitialLogicalPos = Vector2.Zero;
 
                     drawables.Add(newObject);

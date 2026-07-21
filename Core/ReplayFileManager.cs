@@ -6,6 +6,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
+using static FFXIVClientStructs.FFXIV.Client.Game.Character.ActionEffectHandler;
 
 namespace AetherBlackbox.Core
 {
@@ -132,9 +133,10 @@ namespace AetherBlackbox.Core
             try
             {
                 using var fs = new FileStream(path, FileMode.Open, FileAccess.Read);
+                SearchHeader? header = null;
                 using (var reader = new BinaryReader(fs, System.Text.Encoding.UTF8, leaveOpen: true))
                 {
-                    reader.ReadString();
+                    header = JsonConvert.DeserializeObject<SearchHeader>(reader.ReadString());
                 }
 
                 using var gzip = new GZipStream(fs, CompressionMode.Decompress);
@@ -176,6 +178,7 @@ namespace AetherBlackbox.Core
                     ZoneName = extractedZone,
                     ReplayData = new ReplayRecording
                     {
+                        Header = header ?? new SearchHeader(),
                         Metadata = body.Metadata ?? new Dictionary<uint, ReplayMetadata>(),
                         Frames = body.Frames ?? new List<ReplayFrame>(),
                         Waymarks = body.Waymarks ?? new List<WaymarkSnapshot>()

@@ -36,24 +36,42 @@ namespace AetherBlackbox.Windows
                 ImGui.TableNextRow();
 
                 ImGui.TableSetColumnIndex(0);
+
                 string displayName = meta.Name;
                 if (configuration.AnonymizeNames && meta.ClassJobId != 0)
                 {
                     var jobRow = Service.DataManager.GetExcelSheet<ClassJob>().GetRowOrDefault(meta.ClassJobId);
                     displayName = jobRow.HasValue ? jobRow.Value.Abbreviation.ToString() : "Job";
                 }
+
+                uint phId = GetActivePhantomJobIconId((uint)selectedEntityId, targetOffset);
+                if (phId != 0)
+                {
+                    var sheetStatus = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Status>().GetRowOrDefault(phId);
+                    if (sheetStatus.HasValue && sheetStatus.Value.Icon != 0)
+                    {
+                        var icon = Service.TextureProvider.GetFromGameIcon(sheetStatus.Value.Icon).GetWrapOrDefault();
+                        if (icon != null)
+                        {
+                            float phIconSize = ImGui.GetTextLineHeight();
+                            ImGui.Image(icon.Handle, new Vector2(phIconSize, phIconSize));
+                            ImGui.SameLine(0, 4f * ImGuiHelpers.GlobalScale);
+                        }
+                    }
+                }
+
                 ImGui.Text($"{displayName}");
                 ImGui.SameLine();
-                uint currentHp = (closestFrame.Hp != null && idx < closestFrame.Hp.Count) ? closestFrame.Hp[idx] : 0;
-                ImGui.TextColored(new Vector4(0.5f, 1f, 0.5f, 1f), $"(HP: {currentHp} / {meta.MaxHp})");
-                ImGui.SameLine(350 * ImGuiHelpers.GlobalScale);
 
+                uint currentHp = (closestFrame.Hp != null && idx < closestFrame.Hp.Count) ? closestFrame.Hp[idx] : 0;
+                float hpPct = meta.MaxHp > 0 ? ((float)currentHp / meta.MaxHp) * 100f : 0f;
+                ImGui.TextColored(new Vector4(0.5f, 1f, 0.5f, 1f), $"(HP: {currentHp} / {meta.MaxHp} {hpPct:F1}%)");
+
+                ImGui.SameLine(350 * ImGuiHelpers.GlobalScale);
                 uint upcoming = GetActionInRange(targetOffset, 0.1f, 1.5f);
                 ImGui.Text("Next:"); ImGui.SameLine();
                 DrawActionIconSmall(upcoming, 0.5f);
-
                 ImGui.SameLine();
-
                 uint current = GetActionInRange(targetOffset, -2.0f, 0.1f);
                 ImGui.Text("Used:"); ImGui.SameLine();
                 DrawActionIconSmall(current, 1.0f);
@@ -116,6 +134,7 @@ namespace AetherBlackbox.Windows
                         if (targetIdx != -1 && recording.Metadata.TryGetValue((uint)targetId, out var targetMeta))
                         {
                             ImGui.TextDisabled("Targeting:");
+
                             string targetDisplayName = targetMeta.Name;
                             if (configuration.AnonymizeNames && targetMeta.ClassJobId != 0)
                             {
@@ -123,6 +142,23 @@ namespace AetherBlackbox.Windows
                                     .GetRowOrDefault(targetMeta.ClassJobId);
                                 targetDisplayName = jobRow.HasValue ? jobRow.Value.Abbreviation.ToString() : "Job";
                             }
+
+                            uint targetPhId = GetActivePhantomJobIconId((uint)targetId, targetOffset);
+                            if (targetPhId != 0)
+                            {
+                                var sheetStatus = Service.DataManager.GetExcelSheet<Lumina.Excel.Sheets.Status>().GetRowOrDefault(targetPhId);
+                                if (sheetStatus.HasValue && sheetStatus.Value.Icon != 0)
+                                {
+                                    var icon = Service.TextureProvider.GetFromGameIcon(sheetStatus.Value.Icon).GetWrapOrDefault();
+                                    if (icon != null)
+                                    {
+                                        float phIconSize = ImGui.GetTextLineHeight();
+                                        ImGui.Image(icon.Handle, new Vector2(phIconSize, phIconSize));
+                                        ImGui.SameLine(0, 4f * ImGuiHelpers.GlobalScale);
+                                    }
+                                }
+                            }
+
                             ImGui.Text($"{targetDisplayName}");
 
                             float targetHpPct = (closestFrame.Hp != null && targetIdx < closestFrame.Hp.Count) ? (float)closestFrame.Hp[targetIdx] / targetMeta.MaxHp : 0f;
@@ -231,7 +267,7 @@ namespace AetherBlackbox.Windows
                         float timeElapsed = currentTime - frame.TimeOffset;
                         return (Id: status.Id, Remaining: status.Duration - timeElapsed);
                     })
-                    .Where(s => s.Remaining > 0f)
+                    .Where(s => s.Remaining > 0f || (s.Id >= 4358 && s.Id <= 4805))
                     .Select(s => (s.Id, s.Remaining))
                     .ToList();
             }
