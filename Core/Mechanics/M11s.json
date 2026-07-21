@@ -1,0 +1,1568 @@
+[
+  {
+    "Version": 1,
+    "Name": "CrownOfArcadia",
+    "ActionId": 46086,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 60,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "RawSteelAxeBuster",
+    "ActionId": 46091,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 6,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "RawSteelAxeImpact",
+    "ActionId": 46092,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 6,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "RawSteelScytheBuster",
+    "ActionId": 46095,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Cone",
+    "Radius": 60,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 90,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "RawSteelScytheHeavyHitter",
+    "ActionId": 46096,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Cone",
+    "Radius": 60,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 45,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "AssaultEvolvedAxeAOE",
+    "ActionId": 46104,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 8,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "AssaultEvolvedScytheAOE",
+    "ActionId": 46105,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Donut",
+    "Radius": 60,
+    "Width": 0,
+    "InnerRadius": 5,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "AssaultEvolvedSwordAOE_1",
+    "ActionId": 46106,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Rect",
+    "Radius": 40,
+    "Width": 10,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 0.8,
+      "Y": 0.4,
+      "Z": 0,
+      "W": 0.42
+    },
+    "Thickness": 4,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "AssaultEvolvedSwordAOE_2",
+    "ActionId": 46106,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Rect",
+    "Radius": 40,
+    "Width": 10,
+    "InnerRadius": 0,
+    "Angle": 90,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "HeavyWeight",
+    "ActionId": 46107,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 6,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "SweepingVictory",
+    "ActionId": 46108,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Cone",
+    "Radius": 60,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 30,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "SharpTaste",
+    "ActionId": 46109,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Rect",
+    "Radius": 60,
+    "Width": 6,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "Cometite",
+    "ActionId": 46099,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 6,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "CometSpread",
+    "ActionId": 46100,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 6,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "CrushingCometStack",
+    "ActionId": 46101,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 6,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "DanceOfDominationFirst",
+    "ActionId": 46111,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 60,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "DanceOfDominationRepeat",
+    "ActionId": 46113,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 60,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "DanceOfDominationLast",
+    "ActionId": 47082,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 60,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "EyeOfTheHurricane",
+    "ActionId": 46116,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 6,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "HurricaneExplosion",
+    "ActionId": 46112,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Rect",
+    "Radius": 60,
+    "Width": 10,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "HurricaneExplosionVisual",
+    "ActionId": 47036,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Rect",
+    "Radius": 60,
+    "Width": 10,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 2,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "Charybdistopia",
+    "ActionId": 46117,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 60,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "PowerfulGust",
+    "ActionId": 46119,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Cone",
+    "Radius": 60,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 90,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "OneAndOnlyRaidwide",
+    "ActionId": 46122,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 60,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "GreatWallOfFireRect",
+    "ActionId": 46124,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Rect",
+    "Radius": 60,
+    "Width": 6,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "WallExplosion",
+    "ActionId": 46126,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Rect",
+    "Radius": 60,
+    "Width": 6,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "OrbitalOmenRect",
+    "ActionId": 46131,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Rect",
+    "Radius": 60,
+    "Width": 10,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "FireAndFuryFront",
+    "ActionId": 46128,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Cone",
+    "Radius": 60,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 90,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "FireAndFuryBack",
+    "ActionId": 46129,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Cone",
+    "Radius": 60,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 90,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "FearsomeFireballCharge",
+    "ActionId": 46138,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Rect",
+    "Radius": 60,
+    "Width": 6,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "CosmicKiss",
+    "ActionId": 46133,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 4,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "UnmitigatedExplosionComet",
+    "ActionId": 46135,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 60,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "ExplosionComet",
+    "ActionId": 46136,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 8,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "Shockwave",
+    "ActionId": 46141,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 60,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "Flatliner",
+    "ActionId": 47760,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 60,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "ExplosionTower",
+    "ActionId": 46148,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 4,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "UnmitigatedExplosionTower",
+    "ActionId": 46149,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 60,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "MajesticMeteorAOE",
+    "ActionId": 46145,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 6,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "FireBreathRect",
+    "ActionId": 46151,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Rect",
+    "Radius": 60,
+    "Width": 6,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "MajesticMeteowrathRect",
+    "ActionId": 46147,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Rect",
+    "Radius": 60,
+    "Width": 10,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "MajesticMeteorainRect",
+    "ActionId": 46146,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Rect",
+    "Radius": 60,
+    "Width": 10,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "MassiveMeteorStack",
+    "ActionId": 46153,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 6,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "ArcadionAvalanchePlatform1",
+    "ActionId": 46155,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Rect",
+    "Radius": 40,
+    "Width": 40,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "ArcadionAvalanchePlatform2",
+    "ActionId": 46157,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Rect",
+    "Radius": 40,
+    "Width": 40,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "ArcadionAvalanchePlatform3",
+    "ActionId": 46159,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Rect",
+    "Radius": 40,
+    "Width": 40,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "ArcadionAvalanchePlatform4",
+    "ActionId": 46161,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Rect",
+    "Radius": 40,
+    "Width": 40,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "MammothMeteor",
+    "ActionId": 46163,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 60,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "AtomicImpact",
+    "ActionId": 46164,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 5,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "MajesticMeteorEcliptic",
+    "ActionId": 46165,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 6,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "CosmicKissEcliptic",
+    "ActionId": 46166,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 4,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "WeightyImpact",
+    "ActionId": 46167,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 4,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "UnmitigatedExplosionEcliptic",
+    "ActionId": 46168,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 60,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "MajesticMeteowrathEcliptic",
+    "ActionId": 46169,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Rect",
+    "Radius": 60,
+    "Width": 10,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "TwoWayFireball",
+    "ActionId": 47038,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Rect",
+    "Radius": 60,
+    "Width": 6,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "FourWayFireball",
+    "ActionId": 46171,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Rect",
+    "Radius": 60,
+    "Width": 6,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "HeartbreakKickTower",
+    "ActionId": 46174,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 4,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "ToughBreak",
+    "ActionId": 46177,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 60,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  },
+  {
+    "Version": 1,
+    "Name": "HeartbreakerEnrage",
+    "ActionId": 46179,
+    "ZoneId": 0,
+    "SourceActorId": 0,
+    "TerritoryId": 0,
+    "SourceType": "Boss",
+    "Tags": [
+      "M11s"
+    ],
+    "OriginFile": "M11s",
+    "Shape": "Circle",
+    "Radius": 60,
+    "Width": 0,
+    "InnerRadius": 0,
+    "Angle": 0,
+    "Color": {
+      "X": 1,
+      "Y": 0.5,
+      "Z": 0,
+      "W": 0.4
+    },
+    "Thickness": 0,
+    "IsFilled": true,
+    "Duration": 2
+  }
+]

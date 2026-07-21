@@ -1,0 +1,60 @@
+[
+  { "Version": 1, "Name": "ArcadiaAflame", "ActionId": 46376, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 60, "Duration": 2 },
+  { "Version": 1, "Name": "SnakingKick", "ActionId": 46375, "Tags": ["M12S2"], "Shape": "Cone", "Radius": 40, "Angle": 180, "Duration": 2 },
+
+  { "Version": 1, "Name": "WingedScourge", "ActionId": 46300, "Tags": ["M12S2"], "Shape": "Cone", "Radius": 50, "Angle": 30, "Duration": 2 },
+  { "Version": 1, "Name": "TopTierSlamStack", "ActionId": 46302, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 5, "Duration": 2 },
+  { "Version": 1, "Name": "MightyMagicSpread", "ActionId": 46304, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 5, "Duration": 2 },
+
+  { "Version": 1, "Name": "DoubleSobatBuster1", "ActionId": 46369, "Tags": ["M12S2"], "Shape": "Cone", "Radius": 40, "Angle": 180, "Duration": 2 },
+  { "Version": 1, "Name": "DoubleSobatBuster2", "ActionId": 46370, "Tags": ["M12S2"], "Shape": "Cone", "Radius": 40, "Angle": 180, "Duration": 2 },
+  { "Version": 1, "Name": "DoubleSobatBuster3", "ActionId": 46371, "Tags": ["M12S2"], "Shape": "Cone", "Radius": 40, "Angle": 180, "Duration": 2 },
+  { "Version": 1, "Name": "DoubleSobatBuster4", "ActionId": 46372, "Tags": ["M12S2"], "Shape": "Cone", "Radius": 40, "Angle": 180, "Duration": 2 },
+  { "Version": 1, "Name": "DoubleSobatRepeat", "ActionId": 46373, "Tags": ["M12S2"], "Shape": "Cone", "Radius": 40, "Angle": 180, "Duration": 2 },
+  { "Version": 1, "Name": "EsotericFinisher", "ActionId": 46374, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 10, "Duration": 2 },
+
+  { "Version": 1, "Name": "FirefallSplash", "ActionId": 46308, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 5, "Duration": 2 },
+  { "Version": 1, "Name": "ScaldingWaves", "ActionId": 46309, "Tags": ["M12S2"], "Shape": "Cone", "Radius": 50, "Angle": 10, "Duration": 2 },
+  { "Version": 1, "Name": "ManaBurstAOE", "ActionId": 46311, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 20, "Duration": 2 },
+  { "Version": 1, "Name": "HeavySlam", "ActionId": 46312, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 5, "Duration": 2 },
+  { "Version": 1, "Name": "UnmitigatedImpact", "ActionId": 46320, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 60, "Duration": 2 },
+  { "Version": 1, "Name": "HemorrhagicProjection", "ActionId": 46315, "Tags": ["M12S2"], "Shape": "Cone", "Radius": 50, "Angle": 50, "Duration": 2 },
+
+  { "Version": 1, "Name": "FirefallSplashReplay", "ActionId": 46317, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 5, "Duration": 2 },
+  { "Version": 1, "Name": "ManaBurstReplay", "ActionId": 48099, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 20, "Duration": 2 },
+  { "Version": 1, "Name": "TimelessSpite", "ActionId": 46384, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 6, "Duration": 2 },
+  { "Version": 1, "Name": "ScaldingWavesReplay", "ActionId": 47329, "Tags": ["M12S2"], "Shape": "Cone", "Radius": 50, "Angle": 10, "Duration": 2 },
+  { "Version": 1, "Name": "HemorrhagicProjectionReplay", "ActionId": 47394, "Tags": ["M12S2"], "Shape": "Cone", "Radius": 50, "Angle": 45, "Duration": 2 },
+  { "Version": 1, "Name": "HeavySlamReplay", "ActionId": 48733, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 5, "Duration": 2 },
+
+  { "Version": 1, "Name": "BloodyBurst", "ActionId": 46334, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 5, "Duration": 2 },
+  { "Version": 1, "Name": "LindwurmsWaterIII", "ActionId": 46337, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 8, "Duration": 2 },
+  { "Version": 1, "Name": "LindwurmsAeroIII", "ActionId": 46338, "Tags": ["M12S2"], "Shape": "Donut", "Radius": 60, "InnerRadius": 5, "Duration": 2 },
+  { "Version": 1, "Name": "StraightforwardThunderII", "ActionId": 46339, "Tags": ["M12S2"], "Shape": "Cone", "Radius": 40, "Angle": 120, "Duration": 2 },
+  { "Version": 1, "Name": "SidewaysFireII", "ActionId": 46340, "Tags": ["M12S2"], "Shape": "Cone", "Radius": 40, "Angle": 120, "Duration": 2 },
+  { "Version": 1, "Name": "WailingWave", "ActionId": 46381, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 6, "Duration": 2 },
+
+  { "Version": 1, "Name": "IdyllicDream", "ActionId": 46345, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 60, "Duration": 2 },
+
+  { "Version": 1, "Name": "SnakingKickCastFirst", "ActionId": 46353, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 10, "Duration": 2 },
+  { "Version": 1, "Name": "SnakingKickCastSecond", "ActionId": 48303, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 10, "Duration": 2 },
+  { "Version": 1, "Name": "PowerGusherAOEVisual", "ActionId": 46354, "Tags": ["M12S2"], "Shape": "Cone", "Radius": 60, "Angle": 90, "Duration": 2 },
+  { "Version": 1, "Name": "PowerGusher", "ActionId": 46358, "Tags": ["M12S2"], "Shape": "Cone", "Radius": 60, "Angle": 90, "Duration": 2 },
+  { "Version": 1, "Name": "IdyllicDreamSnakingKick", "ActionId": 48789, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 10, "Duration": 2 },
+
+  { "Version": 1, "Name": "LindwurmsMeteor", "ActionId": 46322, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 60, "Duration": 2 },
+  { "Version": 1, "Name": "ArcadianArcanum", "ActionId": 47577, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 6, "Duration": 2 },
+  { "Version": 1, "Name": "IdyllicDreamManaBurst", "ActionId": 46360, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 20, "Duration": 2 },
+  { "Version": 1, "Name": "IdyllicDreamHeavySlam", "ActionId": 46361, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 5, "Duration": 2 },
+  { "Version": 1, "Name": "CosmicKiss", "ActionId": 46324, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 3, "Duration": 2 },
+  { "Version": 1, "Name": "CosmicKissUnmitigatedExplosion", "ActionId": 46325, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 60, "Duration": 2 },
+  { "Version": 1, "Name": "LindwurmsDarkII", "ActionId": 46326, "Tags": ["M12S2"], "Shape": "Rect", "Radius": 50, "Width": 10, "Duration": 2 },
+  { "Version": 1, "Name": "LindwurmsStoneIII", "ActionId": 46327, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 4, "Duration": 2 },
+  { "Version": 1, "Name": "LindwurmsThunderII", "ActionId": 46330, "Tags": ["M12S2"], "Shape": "Cone", "Radius": 60, "Angle": 30, "Duration": 2 },
+
+  { "Version": 1, "Name": "ArcadianHellRaidwide", "ActionId": 46387, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 60, "Duration": 2 },
+  { "Version": 1, "Name": "ArcadianHell4x", "ActionId": 46388, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 60, "Duration": 2 },
+  { "Version": 1, "Name": "ArcadianHell8x", "ActionId": 46389, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 60, "Duration": 2 },
+  { "Version": 1, "Name": "ArcadianHellEnrage", "ActionId": 46391, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 60, "Duration": 2 },
+  { "Version": 1, "Name": "ArcadianHell16x", "ActionId": 48833, "Tags": ["M12S2"], "Shape": "Circle", "Radius": 60, "Duration": 2 }
+]
