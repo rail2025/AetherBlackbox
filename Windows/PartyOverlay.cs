@@ -14,7 +14,6 @@ namespace AetherBlackbox.Windows
     {
         private readonly HashSet<ulong> _loggedPhantomMembers = new();
 
-        // Row data for a single party member in the overlay
         private sealed class PartyMemberRowData
         {
             public required ulong EntityId { get; init; }
@@ -26,7 +25,6 @@ namespace AetherBlackbox.Windows
             public required List<(uint Id, float Remaining)> Debuffs { get; init; }
         }
 
-        // Main function of the overlay: builds party member data and layout, renders rows, and handles dragging with RMB
         private void DrawPartyMembersPanel(Vector2 canvasStartPos)
         {
             float scale = ImGuiHelpers.GlobalScale;
@@ -34,7 +32,7 @@ namespace AetherBlackbox.Windows
             float iconSize = 17.5f * scale;
 
             var allMembers = BuildPartyMemberRows();
-            var members = allMembers.Where(m => m.TeamTag == "Party").ToList();
+            var members = allMembers.Where(m => m.TeamTag.StartsWith("Party")).ToList();
             if (members.Count == 0)
             {
                 members = allMembers.Take(8).ToList();
@@ -76,7 +74,6 @@ namespace AetherBlackbox.Windows
             ImGui.PopStyleColor();
         }
 
-        // Builds party rows from replay metadata: resolves HP from the closest frame, gets debuffs, and applies anonymization if checked
         private List<PartyMemberRowData> BuildPartyMemberRows()
         {
             if (ActiveDeathReplay?.ReplayData == null) return new();
@@ -140,7 +137,6 @@ namespace AetherBlackbox.Windows
             return rows.OrderBy(m => GetPartyRolePriority(m.ClassJobId)).ThenBy(m => m.DisplayName).ToList();
         }
 
-        // Calculates panel width based on the longest display name plus space for 5 debuff icons
         private static float ComputePartyPanelWidth(List<PartyMemberRowData> members, float iconSize, float scale)
         {
             float longestNameWidth = 0f;
@@ -158,7 +154,6 @@ namespace AetherBlackbox.Windows
             return Math.Clamp(longestNameWidth + iconsWidth + badgeWidth + horizontalPadding, 220f * scale, 360f * scale);
         }
 
-        // Computes vertical sizing (row height, HP bar height, total panel height)
         private (float PanelHeight, float RowHeight, float BarHeight, float DefaultX, float DefaultY, float MaxX, float MaxY)
             ComputePartyPanelLayout(float panelWidth, int targetRows, float scale, float padding)
         {
@@ -192,7 +187,6 @@ namespace AetherBlackbox.Windows
             }
         }
 
-        // Renders each party member as its own "card": Name, up to 5 debuff icons, and a color-coded HP bar
         private void DrawPartyMemberRows(List<PartyMemberRowData> members, float rowHeight, float barHeight, float iconSize, float scale, float targetOffset)
         {
             var statusSheet = Service.DataManager.GetExcelSheet<Status>();
@@ -291,7 +285,6 @@ namespace AetherBlackbox.Windows
             ImGui.PopStyleVar();
         }
 
-        // Right-click drag to reposition the panel
         private void HandlePartyPanelDrag(Vector2 panelScreenPos, Vector2 panelScreenEnd, float padding, float maxX, float maxY)
         {
             bool hoveredPanel = ImGui.IsMouseHoveringRect(panelScreenPos, panelScreenEnd, true);

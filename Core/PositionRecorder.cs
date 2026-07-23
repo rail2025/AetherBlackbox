@@ -12,96 +12,13 @@ using static FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentWKSMission;
 
 namespace AetherBlackbox.Core
 {
-    public struct ReplayStatus { public uint Id; public float Duration; public uint StackCount; public uint SourceId; }
-    public struct ReplayCast { public uint ActionId; public float Current; public float Total; }
-    public struct WaymarkSnapshot { public int ID; public float X; public float Z; public bool Active; }
-    public enum EntityType { Player, Boss, Npc, Pet }
-    public class SearchHeader
-    {
-        public int SchemaVersion { get; set; } = 1;
-        public Dictionary<uint, string> AbilityManifest { get; set; } = new();
-        public Dictionary<uint, uint> AbilityIconManifest { get; set; } = new();
-        public Dictionary<uint, string> StatusManifest { get; set; } = new();
-        public List<WaymarkSnapshot> WaymarkSnapshots { get; set; } = new();
-        public List<string> DeathLog { get; set; } = new();
-    }
-    public struct ReplayAoeEvent
-    {
-        public float TimeOffset;
-        public uint ActionId;
-        public uint SourceId;
-        public Vector3 Origin;
-        public float Rotation;
-    }
-    public struct EntityPositionSnapshot
-    {
-        public uint ObjectId;
-        public string Name;
-        public string TeamTag;
-        public Vector3 Position;
-        public float Rotation;
-        public uint CurrentHp;
-        public uint MaxHp;
-        public uint ClassJobId;
-        public DateTime Timestamp;
-        public EntityType Type;
-        public uint ModelId;
-        public List<ReplayStatus>? Statuses;
-        public ReplayCast Cast;
-        public ulong TargetId;
-        public uint LastLoggedActionId;
-        public uint OwnerId;
-    }
-    public class ReplayRecording
-    {
-        public SearchHeader Header { get; set; } = new();
-        public AetherBlackbox.Core.Mechanics.ArenaTimeline ArenaTimeline { get; set; } = new();
-        public Dictionary<uint, ReplayMetadata> Metadata { get; set; } = new();
-        public List<ReplayFrame> Frames { get; set; } = new();
-        public List<WaymarkSnapshot> Waymarks { get; set; } = new();
-        public List<ReplayAoeEvent> AoeEvents { get; set; } = new();
-    }
-
-    public class ReplayMetadata
-    {
-        public uint EntityId { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string TeamTag { get; set; } = string.Empty;
-        public uint MaxHp { get; set; }
-        public uint ClassJobId { get; set; }
-        public EntityType Type { get; set; }
-        public uint ModelId { get; set; }
-        public uint OwnerId { get; set; }
-    }
-
-    public class ReplayFrame
-    {
-        public float TimeOffset; // Time in seconds since start of replay
-        public List<uint> Ids { get; set; } = new();
-        public List<float> X { get; set; } = new(); // Only store X
-        public List<float> Z { get; set; } = new(); // Only store Z (Depth)
-        public List<float> Rot { get; set; } = new();
-        public List<uint> Hp { get; set; } = new();
-        public List<List<ReplayStatus>?> Statuses { get; set; } = new();
-        public List<ReplayCast> Casts { get; set; } = new();
-        public List<ulong> Targets { get; set; } = new();
-        public List<uint> Actions { get; set; } = new();
-    }
-
-    public struct ReplayEntityState
-    {
-        public uint ObjectId;
-        public Vector3 Position;
-        public float Rotation;
-        public uint CurrentHp;
-        public DateTime DeathTime;
-        public uint StatusHash;
-    }
     public class PositionRecorder : IDisposable
     {
         private readonly Plugin plugin;
         private List<WaymarkSnapshot> initialWaymarks = new();
         private readonly Dictionary<uint, ReplayEntityState> lastRecordedStates = new();
+
+        private static readonly ulong[] lastLoggedEntityIds = new ulong[20];
 
         private readonly List<(DateTime Time, List<EntityPositionSnapshot> Data)> sessionData = new();
         private readonly List<ReplayAoeEvent> sessionAoeEvents = new();
@@ -122,6 +39,7 @@ namespace AetherBlackbox.Core
             this.plugin = plugin;
             Service.Framework.Update += OnUpdate;
         }
+
         public void OnActionUsed(uint sourceId, uint actionId, Vector3? pos = null, float? rot = null)
         {
             if (!IsRecording) return;
@@ -148,14 +66,12 @@ namespace AetherBlackbox.Core
                 {
                     sessionAoeEvents.Add(aoeEvent);
                 }
-                //Service.PluginLog.Debug($"[AoeEventLog] Logged Action {actionId} from {sourceName} at {timeOffset:F2}s");
             }
 
             lock (_bufferLock)
             {
                 _actionBuffer[sourceId] = actionId;
             }
-           // Service.PluginLog.Debug($"[ABB Action] source={sourceId} action={actionId}");
         }
 
         public unsafe void StartRecording()
@@ -175,7 +91,6 @@ namespace AetherBlackbox.Core
             {
                 var markers = controller->FieldMarkers;
 
-                // Iterate 0-7 (A, B, C, D, 1, 2, 3, 4)
                 for (int i = 0; i < 8; i++)
                 {
                     var marker = markers[i];
@@ -207,6 +122,8 @@ namespace AetherBlackbox.Core
         {
             if (!IsRecording || !Service.ClientState.IsLoggedIn) return;
 
+            LogGroupManagerAllianceInspection();
+
             var snapshotTime = DateTime.Now;
 
             if ((snapshotTime - sessionStartTime).TotalSeconds > MaxRecordingSeconds)
@@ -226,6 +143,61 @@ namespace AetherBlackbox.Core
             if (plugin.PullManager?.CurrentSession != null && plugin.PullManager.CurrentSession.ReplayData.Header == null)
             {
                 plugin.PullManager.CurrentSession.ReplayData.Header = new SearchHeader();
+            }
+
+            Dictionary<uint, string> allianceTagsById = new();
+            Dictionary<string, string> crossRealmTags = new();
+
+            unsafe
+            {
+                try
+                {
+                    var groupManager = FFXIVClientStructs.FFXIV.Client.Game.Group.GroupManager.Instance();
+                    if (groupManager != null)
+                    {
+                        var group = groupManager->GetGroup(false);
+                        if (group != null)
+                        {
+                            for (int i = 0; i < 20; i++)
+                            {
+                                var member = group->GetAllianceMemberByIndex(i);
+                                if (member != null && member->EntityId != 0 && member->EntityId != 0xE0000000)
+                                {
+                                    allianceTagsById[(uint)member->EntityId] = i < 8 ? "Alliance 1" : "Alliance 2";
+                                }
+                            }
+                        }
+                    }
+
+                    if (allianceTagsById.Count == 0)
+                    {
+                        var proxy = FFXIVClientStructs.FFXIV.Client.UI.Info.InfoProxyCrossRealm.Instance();
+                        if (proxy != null && proxy->IsInCrossRealmParty)
+                        {
+                            for (byte group = 0; group < 6; group++)
+                            {
+                                var count = FFXIVClientStructs.FFXIV.Client.UI.Info.InfoProxyCrossRealm.GetGroupMemberCount(group);
+                                for (int i = 0; i < count; i++)
+                                {
+                                    var member = FFXIVClientStructs.FFXIV.Client.UI.Info.InfoProxyCrossRealm.GetGroupMember(group, i);
+                                    if (member != null && member->ContentId != 0)
+                                    {
+                                        string proxyName = member->NameString.ToString();
+                                        if (!string.IsNullOrEmpty(proxyName))
+                                        {
+                                            char tagLetter = (char)('A' + group);
+                                            crossRealmTags[proxyName] = $"Alliance {tagLetter}";
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    Service.PluginLog.Warning(e, "Safely caught error while reading cross-realm proxy.");
+                }
             }
 
             Dictionary<uint, uint> actionsThisFrame;
@@ -252,7 +224,6 @@ namespace AetherBlackbox.Core
                     float dist = Vector3.Distance(obj.Position, lastState.Position);
                     float rotDiff = Math.Abs(obj.Rotation - lastState.Rotation);
 
-                    // Only record if moved > 0.1 yalms or rotated >= 1 degree (~0.0174 rad)
                     if (dist <= 0.1f && rotDiff < 0.0174f)
                     {
                         shouldRecordMovement = false;
@@ -269,15 +240,20 @@ namespace AetherBlackbox.Core
                     try
                     {
                         if (player.StatusList != null)
-                        { 
-                            unchecked { foreach (var s in player.StatusList) { if (s != null) sHash = (sHash * 397) ^ s.StatusId ^ s.Param ^ s.SourceId; }
-                         }
+                        {
+                            unchecked
+                            {
+                                foreach (var s in player.StatusList) { if (s != null) sHash = (sHash * 397) ^ s.StatusId ^ s.Param ^ s.SourceId; }
+                            }
+                        }
                     }
-                 } catch { }
+                    catch { }
 
                     bool statusChanged = lastState.ObjectId == 0 || sHash != lastRecordedStates[player.EntityId].StatusHash;
 
                     string teamTag = string.Empty;
+                    bool inRealParty = false;
+
                     if (Service.PartyList != null)
                     {
                         for (int i = 0; i < Service.PartyList.Length; i++)
@@ -285,10 +261,31 @@ namespace AetherBlackbox.Core
                             var member = Service.PartyList[i];
                             if (member != null && member.EntityId == player.EntityId)
                             {
-                                teamTag = (i < 8) ? "Party" : "Alliance";
+                                if (i < 8) inRealParty = true;
+                                teamTag = "Party";
                                 break;
                             }
                         }
+                    }
+
+                    if (allianceTagsById.TryGetValue(player.EntityId, out var gmTag))
+                    {
+                        teamTag = gmTag;
+                    }
+                    else if (crossRealmTags.TryGetValue(player.Name.TextValue, out var crTag))
+                    {
+                        if (inRealParty)
+                        {
+                            teamTag = $"Party {crTag.Last()}";
+                        }
+                        else
+                        {
+                            teamTag = crTag;
+                        }
+                    }
+                    else if (!inRealParty && Service.PartyList != null && Service.PartyList.Any(p => p.EntityId == player.EntityId))
+                    {
+                        teamTag = "Alliance";
                     }
 
                     string playerName = string.Empty;
@@ -299,7 +296,7 @@ namespace AetherBlackbox.Core
                         {
                             playerName = player.ClassJob.RowId switch
                             {
-                                19 => "PLD", 21 => "WAR", 32 => "DRK", 37 => "GNB",
+                                19 => "PLD", 21 => "WAR", 32 => "DRK",37 => "GNB",
                                 24 => "WHM", 28 => "SCH", 33 => "AST", 40 => "SGE",
                                 20 => "MNK", 22 => "DRG", 30 => "NIN", 34 => "SAM", 39 => "RPR", 41 => "VPR",
                                 23 => "BRD", 31 => "MCH", 38 => "DNC",
@@ -369,7 +366,7 @@ namespace AetherBlackbox.Core
                     uint sHash = 0;
                     try
                     {
-                        if (npc.StatusList != null) 
+                        if (npc.StatusList != null)
                         {
                             unchecked
                             {
@@ -378,8 +375,9 @@ namespace AetherBlackbox.Core
                                     if (s != null) sHash = (sHash * 397) ^ s.StatusId ^ s.Param ^ s.SourceId;
                                 }
                             }
-                        } 
-                    } catch { }
+                        }
+                    }
+                    catch { }
                     bool statusChanged = lastRecordedStates[npc.EntityId].ObjectId == 0 || sHash != lastRecordedStates[npc.EntityId].StatusHash;
 
                     var replayStatuses = npc.StatusList?
@@ -419,12 +417,6 @@ namespace AetherBlackbox.Core
                                                 StackCount = stParam,
                                                 SourceId = stSourceId
                                             });
-                                            /*
-                                            if (_loggedPhantomStatuses.Add((npc.EntityId, stId)))
-                                            {
-                                                Service.PluginLog.Debug(
-                                                    $"[FrameCapture] Npc {npc.Name.TextValue} ({npc.EntityId:X}) injecting Phantom stance {stId}");
-                                            }*/
                                         }
                                     }
                                 }
@@ -578,10 +570,6 @@ namespace AetherBlackbox.Core
                         frame.Casts.Add(entity.Cast);
                         frame.Targets.Add(entity.TargetId);
                         frame.Actions.Add(entity.LastLoggedActionId);
-#if DEBUG
-                     //   if (entity.LastLoggedActionId != 0)
-                       //     Service.PluginLog.Debug($"[ABB Frame] {frame.TimeOffset:F2}s action={entity.LastLoggedActionId}");
-#endif
                     }
                     recording.Frames.Add(frame);
                 }
@@ -590,7 +578,39 @@ namespace AetherBlackbox.Core
                 return recording;
             }
         }
+        private static unsafe void LogGroupManagerAllianceInspection()
+        {
+            var groupManager = FFXIVClientStructs.FFXIV.Client.Game.Group.GroupManager.Instance();
+            if (groupManager == null) return;
 
+            var group = groupManager->GetGroup(false);
+            if (group == null) return;
+
+            for (int i = 0; i < 20; i++)
+            {
+                var memberPtr = group->GetAllianceMemberByIndex(i);
+                if (memberPtr == null)
+                {
+                    if (lastLoggedEntityIds[i] != 0)
+                    {
+                        Service.PluginLog.Info($"[GroupManagerInspect] Index {i} | Valid: False | Slot Cleared");
+                        lastLoggedEntityIds[i] = 0;
+                    }
+                    continue;
+                }
+
+                ulong entityId = memberPtr->EntityId;
+                if (entityId != lastLoggedEntityIds[i])
+                {
+                    int nullIdx = memberPtr->Name.IndexOf((byte)0);
+                    var nameSpan = nullIdx >= 0 ? memberPtr->Name[..nullIdx] : memberPtr->Name;
+                    string name = System.Text.Encoding.UTF8.GetString(nameSpan);
+
+                    Service.PluginLog.Info($"[GroupManagerInspect] Index {i} | Valid: True | EntityId: {entityId} | Name: {name}");
+                    lastLoggedEntityIds[i] = entityId;
+                }
+            }
+        }
         public void Dispose()
         {
             Service.Framework.Update -= OnUpdate;
